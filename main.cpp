@@ -27,7 +27,6 @@ int main()
     map->Setlatitude(25);
     map->Setlongitude(50);
     map->SetZoom(5);
-    map->SetCenter(0, 0, 0);
     vtkRenderWindow *wind = vtkRenderWindow::New();
     wind->AddRenderer(rend);
     wind->SetSize(1300, 700);
