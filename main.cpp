@@ -20,24 +20,24 @@ using namespace std;
 
 int main()
 {
-    vtkMap *map = vtkMap::New();
+  vtkMap *map = vtkMap::New();
 
-    vtkRenderer *rend = vtkRenderer::New();
-    map->SetRenderer(rend);
-    map->Setlatitude(25);
-    map->Setlongitude(50);
-    map->SetZoom(5);
-    vtkRenderWindow *wind = vtkRenderWindow::New();
-    wind->AddRenderer(rend);
-    wind->SetSize(1300, 700);
-    wind->Render();
+  vtkRenderer *rend = vtkRenderer::New();
+  map->SetRenderer(rend);
+  map->Setlatitude(25);
+  map->Setlongitude(50);
+  map->SetZoom(5);
+  vtkRenderWindow *wind = vtkRenderWindow::New();
+  wind->AddRenderer(rend);
+  wind->SetSize(1300, 700);
+  wind->Render();
 
-    double *cammeraPosition = rend->GetActiveCamera()->GetPosition();
-    rend->GetActiveCamera()->SetPosition(cammeraPosition[0], cammeraPosition[1], cammeraPosition[2] + 10);
-    map->Update();
+  double *cammeraPosition = rend->GetActiveCamera()->GetPosition();
+  rend->GetActiveCamera()->SetPosition(cammeraPosition[0], cammeraPosition[1], cammeraPosition[2] + 10);
+  map->Update();
 
-    for(int i = 0; i < 500; i++)
+  for (int i = 0; i < 500; i++)
     {
-        wind->Render();
+    wind->Render();
     }
 }

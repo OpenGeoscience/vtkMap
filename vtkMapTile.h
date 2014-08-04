@@ -1,15 +1,15 @@
 /*=========================================================================
 
-  Program:   Visualization Toolkit
-  Module:    vtkMapTile.h
+ Program:   Visualization Toolkit
+ Module:    vtkMapTile.h
 
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
+ Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+ All rights reserved.
+ See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
 
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
+   This software is distributed WITHOUT ANY WARRANTY; without even
+   the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+   PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
 // .NAME vtkMapTile -
@@ -33,7 +33,7 @@ class vtkMapTile : public vtkObject
 public:
   static vtkMapTile *New();
   virtual void PrintSelf(ostream &os, vtkIndent indent);
-  vtkTypeMacro(vtkMapTile, vtkObject)
+  vtkTypeMacro (vtkMapTile, vtkObject)
 
   // Description:
   // Get/Set Bing Maps QuadKey corresponding to the tile
