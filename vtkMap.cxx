@@ -31,8 +31,7 @@ vtkStandardNewMacro(vtkMap)
 vtkMap::vtkMap()
 {
   this->Zoom = 1;
-  this->latitude = 0;
-  this->longitude = 0;
+  this->Center[0] = this->Center[1] = 0.0;
 }
 
 //----------------------------------------------------------------------------
@@ -46,9 +45,8 @@ void vtkMap::PrintSelf(ostream &os, vtkIndent indent)
 {
   Superclass::PrintSelf(os, indent);
   os << "vtkMap" << std::endl
-     << "Zoom Level: " << this->Zoom << std::endl
-     << "Latitude: " << latitude << std::endl
-     << "Longitude: " << longitude << std::endl;
+     << "Zoom Level: " << this->Zoom
+     << "Center: " << this->Center[0] << " " << this->Center[1] << std::endl;
 }
 
 //----------------------------------------------------------------------------
@@ -77,7 +75,7 @@ void vtkMap::AddTiles()
   Renderer->SetWorldPoint(0, 0, 0, 0);
   Renderer->WorldToDisplay();
   Renderer->GetDisplayPoint(bottomLeft);
-  vtkDebugMacro( << "Bottom Left Display: " << bottomLeft[0] << " " << bottomLeft[1] << " " << bottomLeft[2]);
+  vtkWarningMacro( << "Bottom Left Display: " << bottomLeft[0] << " " << bottomLeft[1] << " " << bottomLeft[2]);
 
   Renderer->SetWorldPoint(1, 1, 0, 0);
   Renderer->WorldToDisplay();
@@ -97,7 +95,7 @@ void vtkMap::AddTiles()
 
   // Convert latitude longitude to Grid Coordinates
   int pixX, pixY, tileX, tileY;
-  LatLongToPixelXY(latitude, longitude, this->Zoom, pixX, pixY);
+  LatLongToPixelXY(this->Center[1], this->Center[0], this->Zoom, pixX, pixY);
   PixelXYToTileXY(pixX, pixY, tileX, tileY);
 
   int temp_tileX = tileX - ROWS / 2;

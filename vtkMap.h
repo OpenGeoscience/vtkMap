@@ -50,14 +50,9 @@ public:
   vtkSetMacro(Zoom, int)
 
   // Description:
-  // Get/Set latitude of the center of the map
-  vtkGetMacro(latitude, double)
-  vtkSetMacro(latitude, double)
-
-  // Description:
-  // Get/Set Longitude of the center of the map
-  vtkGetMacro(longitude, double)
-  vtkSetMacro(longitude, double)
+  // Get/Set center of the map
+  vtkGetVector2Macro(Center, double);
+  vtkSetVector2Macro(Center, double);
 
   // Description:
   // Update the renderer with relevant tiles to draw the Map
@@ -106,9 +101,8 @@ protected:
   int Zoom;
 
   // Description:
-  //
-  double latitude;
-  double longitude;
+  // Center of the map
+  double Center[2];
 
 private:
   vtkMap(const vtkMap&);  // Not implemented
