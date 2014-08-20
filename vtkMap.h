@@ -41,8 +41,8 @@ public:
 
   // Description:
   // Get/Set the renderer in which map tiles will be added
-  vtkGetMacro(Renderer, vtkRenderer *)
-  vtkSetMacro(Renderer, vtkRenderer *)
+  vtkGetMacro(Renderer, vtkRenderer*)
+  vtkSetMacro(Renderer, vtkRenderer*)
 
   // Description:
   // Get/Set the detailing level

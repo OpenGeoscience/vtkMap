@@ -31,24 +31,24 @@ class vtkTextureMapToPlane;
 class vtkMapTile : public vtkObject
 {
 public:
-  static vtkMapTile *New();
+  static vtkMapTile* New();
   virtual void PrintSelf(ostream &os, vtkIndent indent);
   vtkTypeMacro (vtkMapTile, vtkObject)
 
   // Description:
   // Get/Set Bing Maps QuadKey corresponding to the tile
-  void SetQuadKey(const char *in) {strcpy(QuadKey, in);}
-  char *GetQuadKey() {return this->QuadKey;}
+  void  SetQuadKey(const char* in) {strcpy(QuadKey, in);}
+  char* GetQuadKey() {return this->QuadKey;}
 
   // Description:
   //
-  vtkGetMacro(Plane, vtkPlaneSource *)
-  vtkGetMacro(Actor, vtkActor *)
-  vtkGetMacro(Mapper, vtkPolyDataMapper *)
+  vtkGetMacro(Plane, vtkPlaneSource*)
+  vtkGetMacro(Actor, vtkActor*)
+  vtkGetMacro(Mapper, vtkPolyDataMapper*)
 
   // Description:
   // Get/Set position of the tile
-  void SetCenter(double *center);
+  void SetCenter(double* center);
   void SetCenter(double x, double y, double z);
 
   // Description:
@@ -61,11 +61,11 @@ protected:
 
   // Description:
   // Check if the corresponding texture is downloaded
-  bool IsTextureDownloaded(const char *outfile);
+  bool IsTextureDownloaded(const char* outfile);
 
   // Description:
   // Download the texture corresponding to the Bing Maps QuadKey
-  void DownloadTexture(const char *url, const char *outfilename);
+  void DownloadTexture(const char* url, const char* outfilename);
 
   // Description:
   // Generate url of tile and output file from QuadKey, and download the texture
