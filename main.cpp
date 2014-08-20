@@ -21,7 +21,7 @@ using namespace std;
 
 int main()
 {
-  vtkMap *map = vtkMap::New();
+  vtkNew<vtkMap> map;
 
   vtkNew<vtkRenderer> rend;
   map->SetRenderer(rend.GetPointer());
