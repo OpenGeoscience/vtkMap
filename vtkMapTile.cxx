@@ -39,7 +39,7 @@ vtkMapTile::vtkMapTile()
   Actor = 0;
   Mapper = 0;
 
-  Center[0] = 0; Center[1] = 0; Center[2] = 0;
+  this->Center[0] = 0; this->Center[1] = 0; this->Center[2] = 0;
 }
 
 //----------------------------------------------------------------------------
@@ -66,33 +66,32 @@ void vtkMapTile::init()
 {
 
   this->Plane = vtkPlaneSource::New();
-  Plane->SetCenter(Center[0], Center[1], Center[2]);
-  Plane->SetNormal(0, 0, 1);
+  this->Plane->SetCenter(this->Center[0], this->Center[1], this->Center[2]);
+  this->Plane->SetNormal(0, 0, 1);
 
   texturePlane = vtkTextureMapToPlane::New();
-  InitialiseTexture();
+  this->InitializeTexture();
 
   // Read the image which will be the texture
-  vtkJPEGReader *jPEGReader = vtkJPEGReader::New();
+  vtkJPEGReader* jPEGReader = vtkJPEGReader::New();
   jPEGReader->SetFileName (outfilename);
   jPEGReader->Update();
 
   // Apply the texture
-  vtkTexture *texture = vtkTexture::New();
+  vtkTexture* texture = vtkTexture::New();
   texture->SetInputConnection(jPEGReader->GetOutputPort());
-
   texturePlane->SetInputConnection(Plane->GetOutputPort());
 
   this->Mapper = vtkPolyDataMapper::New();
-  Mapper->SetInputConnection(texturePlane->GetOutputPort());
+  this->Mapper->SetInputConnection(texturePlane->GetOutputPort());
 
   this->Actor = vtkActor::New();
-  Actor->SetMapper(Mapper);
-  Actor->SetTexture(texture);
+  this->Actor->SetMapper(Mapper);
+  this->Actor->SetTexture(texture);
 }
 
 //----------------------------------------------------------------------------
-void vtkMapTile::InitialiseTexture()
+void vtkMapTile::InitializeTexture()
 {
   // Generate URL to Bing Map tile corresponding to the QuadKey
   char *url = new char[200];
@@ -112,9 +111,9 @@ void vtkMapTile::InitialiseTexture()
 
   // Check if texture already exists.
   // If not, download
-  while(!IsTextureDownloaded(outfilename))
+  while(!this->IsTextureDownloaded(outfilename))
     {
-    DownloadTexture(url, outfilename);
+    this->DownloadTexture(url, outfilename);
     }
 }
 
@@ -168,17 +167,17 @@ void vtkMapTile::DownloadTexture(const char *url, const char *outfilename)
 //----------------------------------------------------------------------------
 void vtkMapTile::SetCenter(double *center)
 {
-  Center[0] = center[0];
-  Center[1] = center[1];
-  Center[2] = center[2];
+  this->Center[0] = center[0];
+  this->Center[1] = center[1];
+  this->Center[2] = center[2];
 }
 
 //----------------------------------------------------------------------------
 void vtkMapTile::SetCenter(double x, double y, double z)
 {
-  Center[0] = x;
-  Center[1] = y;
-  Center[2] = z;
+  this->Center[0] = x;
+  this->Center[1] = y;
+  this->Center[2] = z;
 }
 
 //----------------------------------------------------------------------------
@@ -187,5 +186,6 @@ void vtkMapTile::PrintSelf(ostream &os, vtkIndent indent)
   Superclass::PrintSelf(os, indent);
   os << "vtkMapTile" << std::endl
      << "QuadKey: " << QuadKey << std::endl
-     << "Position: " << Center[0] << indent << Center[1] <<  indent << Center[2] << std::endl;
+     << "Position: " << this->Center[0] << indent << this->Center[1] <<  indent
+     << this->Center[2] << std::endl;
 }

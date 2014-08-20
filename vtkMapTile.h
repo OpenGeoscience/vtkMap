@@ -70,17 +70,17 @@ protected:
   // Description:
   // Generate url of tile and output file from QuadKey, and download the texture
   // if not already downloaded.
-  void InitialiseTexture();
+  void InitializeTexture();
 
   // Description:
   // Storing the Quadkey
   char QuadKey[30];
 
-  char *outfilename;
-  vtkPlaneSource *Plane;
-  vtkTextureMapToPlane *texturePlane;
-  vtkActor *Actor;
-  vtkPolyDataMapper *Mapper;
+  char* outfilename;
+  vtkPlaneSource* Plane;
+  vtkTextureMapToPlane* texturePlane;
+  vtkActor* Actor;
+  vtkPolyDataMapper* Mapper;
   double Center[3];
 
 private:

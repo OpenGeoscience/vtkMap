@@ -126,10 +126,13 @@ void vtkMap::AddTiles()
       vtkMapTile *tile = vtkMapTile::New();
       // Set tile position
       tile->SetCenter(j, -i, 0);
+
       // Set tile texture source
       tile->SetQuadKey(TileXYToQuadKey(temp_tileX, temp_tileY, this->Zoom).c_str());
+
       // Initialise the tile
       tile->init();
+
       // Add tile to the renderer
       Renderer->AddActor(tile->GetActor());
       temp_tileX++;
