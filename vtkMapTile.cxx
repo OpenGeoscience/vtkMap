@@ -108,6 +108,8 @@ void vtkMapTile::InitialiseTexture()
   strcat(outfilename, QuadKey);
   strcat(outfilename, ".jpeg");
 
+  std::cerr << "outfilename " << outfilename << std::endl;
+
   // Check if texture already exists.
   // If not, download
   while(!IsTextureDownloaded(outfilename))
@@ -148,6 +150,7 @@ void vtkMapTile::DownloadTexture(const char *url, const char *outfilename)
   if(curl)
     {
     fp = fopen(outfilename,"wb");
+    std::cerr << outfilename << std::endl;
     if(!fp)
       {
       vtkErrorMacro( << "Not Open")

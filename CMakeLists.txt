@@ -21,6 +21,6 @@ set (SOURCES
     vtkMap.h
 )
 
-add_executable(LabelContours ${SOURCES})
+add_executable(vtkMap ${SOURCES})
 
-target_link_libraries(LabelContours ${VTK_LIBRARIES} -lcurl)
+target_link_libraries(vtkMap ${VTK_LIBRARIES} -lcurl)
