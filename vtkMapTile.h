@@ -37,8 +37,21 @@ public:
 
   // Description:
   // Get/Set Bing Maps QuadKey corresponding to the tile
-  void  SetQuadKey(const char* in) {strcpy(QuadKey, in);}
-  char* GetQuadKey() {return this->QuadKey;}
+  void SetImageKey(const std::string& key)
+    {
+    this->ImageKey = key;
+    }
+
+  void  SetImageSource(const std::string& imgSrc) {this->ImageSource= imgSrc;}
+  std::string GetImageSource() {return this->ImageSource;}
+
+  void SetCorners(double llx, double lly, double urx, double ury)
+    {
+    this->Corners[0] = llx;
+    this->Corners[1] = lly;
+    this->Corners[2] = urx;
+    this->Corners[3] = ury;
+    }
 
   // Description:
   //
@@ -74,14 +87,15 @@ protected:
 
   // Description:
   // Storing the Quadkey
-  char QuadKey[30];
+  std::string ImageSource;
+  std::string ImageFile;
+  std::string ImageKey;
 
-  char* outfilename;
   vtkPlaneSource* Plane;
   vtkTextureMapToPlane* texturePlane;
   vtkActor* Actor;
   vtkPolyDataMapper* Mapper;
-  double Center[3];
+  double Corners[4];
 
 private:
   vtkMapTile(const vtkMapTile&);  // Not implemented

@@ -25,8 +25,30 @@
 #include <vtkPlaneSource.h>
 
 #include <sstream>
+#include <math.h>
 
 vtkStandardNewMacro(vtkMap)
+
+int long2tilex(double lon, int z)
+{
+  return (int)(floor((lon + 180.0) / 360.0 * pow(2.0, z)));
+}
+
+int lat2tiley(double lat, int z)
+{
+  return (int)(floor((1.0 - log( tan(lat * M_PI/180.0) + 1.0 / cos(lat * M_PI/180.0)) / M_PI) / 2.0 * pow(2.0, z)));
+}
+
+double tilex2long(int x, int z)
+{
+  return x / pow(2.0, z) * 360.0 - 180;
+}
+
+double tiley2lat(int y, int z)
+{
+  double n = M_PI - 2.0 * M_PI * y / pow(2.0, z);
+  return 180.0 / M_PI * atan(0.5 * (exp(n) - exp(-n)));
+}
 
 //----------------------------------------------------------------------------
 vtkMap::vtkMap()
@@ -54,6 +76,7 @@ void vtkMap::PrintSelf(ostream &os, vtkIndent indent)
 //----------------------------------------------------------------------------
 void vtkMap::Update()
 {
+  std::cerr << "Update " << std::endl;
   RemoveTiles();
   AddTiles();
 }
@@ -66,7 +89,7 @@ void vtkMap::Draw()
     this->Initialized = true;
     this->Renderer->GetActiveCamera()->SetPosition(this->Center[0],
                                                    this->Center[1],
-                                                   100.0);
+                                                   10.0);
     }
   this->Update();
   this->Renderer->GetRenderWindow()->Render();
@@ -85,59 +108,72 @@ void vtkMap::AddTiles()
   double xmax = Renderer->GetSize()[0];
   double ymax = Renderer->GetSize()[1];
 
-  double bottomLeft[2], topRight[2];
+  double bottomLeft[3], topRight[3];
 
   // Obtain world coordinates of viewport corner points
-  Renderer->SetWorldPoint(0, 0, 0, 0);
-  Renderer->WorldToDisplay();
-  Renderer->GetDisplayPoint(bottomLeft);
+  int width, height, llx, lly;
+  this->Renderer->GetTiledSizeAndOrigin(&width, &height, &llx, &lly);
+
+  this->Renderer->SetDisplayPoint(llx, lly, 0.0);
+  this->Renderer->DisplayToWorld();
+  this->Renderer->GetWorldPoint(bottomLeft);
   vtkWarningMacro( << "Bottom Left Display: " << bottomLeft[0] << " " << bottomLeft[1] << " " << bottomLeft[2]);
 
-  Renderer->SetWorldPoint(1, 1, 0, 0);
-  Renderer->WorldToDisplay();
-  Renderer->GetDisplayPoint(topRight);
-  vtkDebugMacro( << "Top Right Display: " << topRight[0] << " " << topRight[1] << " " << topRight[2]);
+  this->Renderer->SetDisplayPoint(llx + width, lly + height, 0.0);
+  this->Renderer->DisplayToWorld();
+  this->Renderer->GetWorldPoint(topRight);
 
-  // Obtain window size in terms of world coordinates
-  int height = topRight[0] - bottomLeft[0];
-  int width = topRight[1] - bottomLeft[1];
+  int tile1x = long2tilex(bottomLeft[0], this->Zoom);
+  int tile1y = lat2tiley(bottomLeft[1], this->Zoom);
+  int tile2x = long2tilex(topRight[0], this->Zoom);
+  int tile2y = lat2tiley(topRight[1], this->Zoom);
 
-  // Obtain dimensions of tile grid
-  int ROWS = ymax / height + 1;
-  ROWS = ROWS < (2 << (this->Zoom - 1)) ? ROWS : (2 << (this->Zoom - 1));
+  int noOfTilesX = pow(2, this->Zoom);
+  int noOfTilesY = pow(2, this->Zoom);
+  double lonPerTile = 360.0 / noOfTilesX;
+  double latPerTile = 360.0 / noOfTilesY;
 
-  int COLS = xmax / width + 1;
-  COLS = COLS < (2 << (this->Zoom - 1)) ? COLS : (2 << (this->Zoom - 1));
-
-  // Convert latitude longitude to Grid Coordinates
-  int pixX, pixY, tileX, tileY;
-  LatLongToPixelXY(this->Center[1], this->Center[0], this->Zoom, pixX, pixY);
-  PixelXYToTileXY(pixX, pixY, tileX, tileY);
-
-  int temp_tileX = tileX - ROWS / 2;
-  int temp_tileY = tileY - ROWS / 2 > 0 ? tileY - ROWS / 2 : 0;
-
-  for (int i = -ROWS / 2; i < ROWS / 2; i++)
+  for (int i = tile1x; i <= tile2x; ++i)
     {
-    temp_tileX = tileX - ROWS / 2 > 0 ? tileX - ROWS / 2 : 0;
-    for (int j = -COLS / 2; j < COLS / 2; j++)
+    for (int j = tile2y; j <= tile1y; ++j)
       {
-      // Create a tile
-      vtkMapTile *tile = vtkMapTile::New();
-      // Set tile position
-      tile->SetCenter(j, -i, 0);
+      int invJ = pow(2, this->Zoom) - 1 - j;
+
+      vtkMapTile* tile = vtkMapTile::New();
+
+      double llx = -180.0 + i * lonPerTile;
+      double lly = -180.0 + j * latPerTile;
+      double urx = -180.0 + (i + 1) * lonPerTile;
+      double ury = -180.0 + (j + 1) * latPerTile;
+
+      tile->SetCorners(llx, lly, urx, ury);
+
+      std::ostringstream oss;
+
+      oss << this->Zoom;
+      std::string zoom = oss.str();
+      oss.str("");
+
+      oss << i;
+      std::string row = oss.str();
+      oss.str("");
+
+      oss << (pow(2, this->Zoom) - 1 - j);
+      std::string col = oss.str();
+      oss.str("");
 
       // Set tile texture source
-      tile->SetQuadKey(TileXYToQuadKey(temp_tileX, temp_tileY, this->Zoom).c_str());
+      oss << zoom << row << col;
+      tile->SetImageKey(oss.str());
+      tile->SetImageSource("http://tile.openstreetmap.org/" + zoom + "/" + row +
+                           "/" + col + ".png");
 
       // Initialise the tile
       tile->init();
 
       // Add tile to the renderer
       Renderer->AddActor(tile->GetActor());
-      temp_tileX++;
       }
-    temp_tileY++;
     }
 }
 

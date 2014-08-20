@@ -7,7 +7,8 @@ set (VTK_REQUIRED_COMPONENTS
     vtkRenderingCore
     vtkRenderingOpenGL
     vtkCommonCore
-    vtkFiltersTexture)
+    vtkFiltersTexture
+    vtkInteractionStyle)
 
 find_package(VTK NO_MODULE REQUIRED COMPONENTS ${VTK_REQUIRED_COMPONENTS})
 

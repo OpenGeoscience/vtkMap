@@ -1,4 +1,5 @@
-#include <iostream>
+#include "vtkMap.h"
+
 #include <vtkRenderer.h>
 #include <vtkTransformCoordinateSystems.h>
 #include <vtkPointSet.h>
@@ -11,11 +12,11 @@
 #include <vtkCamera.h>
 #include <vtkMatrix4x4.h>
 #include <vtkNew.h>
+#include <vtkCallbackCommand.h>
+#include <vtkRendererCollection.h>
+#include <vtkCommand.h>
 
-#include "vtkCommand.h"
-#include "vtkMap.h"
-#include "vtkCallbackCommand.h"
-#include "vtkRendererCollection.h"
+#include <iostream>
 
 using namespace std;
 
@@ -35,7 +36,7 @@ int main()
   vtkNew<vtkRenderWindowInteractor> intr;
   intr->SetRenderWindow(wind.GetPointer());
 
-  rend->GetActiveCamera()->SetPosition(0.0, 0.0, 50.0);
+  intr->Initialize();
   map->Draw();
   intr->Start();
 }

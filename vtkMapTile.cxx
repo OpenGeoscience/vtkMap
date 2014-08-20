@@ -20,7 +20,7 @@
 #include "vtkPlaneSource.h"
 #include "vtkActor.h"
 #include "vtkPolyDataMapper.h"
-#include "vtkJPEGReader.h"
+#include "vtkPNGReader.h"
 #include "vtkTextureMapToPlane.h"
 #include "vtkTexture.h"
 
@@ -34,12 +34,9 @@ vtkStandardNewMacro(vtkMapTile)
 vtkMapTile::vtkMapTile()
 {
   Plane = 0;
-  outfilename = 0;
   texturePlane = 0;
   Actor = 0;
   Mapper = 0;
-
-  this->Center[0] = 0; this->Center[1] = 0; this->Center[2] = 0;
 }
 
 //----------------------------------------------------------------------------
@@ -47,9 +44,6 @@ vtkMapTile::~vtkMapTile()
 {
   if (Plane)
     Plane->Delete();
-
-  if (outfilename)
-    delete[] outfilename;
 
   if (texturePlane)
     texturePlane->Delete();
@@ -66,20 +60,22 @@ void vtkMapTile::init()
 {
 
   this->Plane = vtkPlaneSource::New();
-  this->Plane->SetCenter(this->Center[0], this->Center[1], this->Center[2]);
+  this->Plane->SetPoint1(this->Corners[2], this->Corners[1], 0.0);
+  this->Plane->SetPoint2(this->Corners[0], this->Corners[3], 0.0);
+  this->Plane->SetOrigin(this->Corners[0], this->Corners[1], 0.0);
   this->Plane->SetNormal(0, 0, 1);
 
   texturePlane = vtkTextureMapToPlane::New();
   this->InitializeTexture();
 
   // Read the image which will be the texture
-  vtkJPEGReader* jPEGReader = vtkJPEGReader::New();
-  jPEGReader->SetFileName (outfilename);
-  jPEGReader->Update();
+  vtkPNGReader* pngReader = vtkPNGReader::New();
+  pngReader->SetFileName (this->ImageFile.c_str());
+  pngReader->Update();
 
   // Apply the texture
   vtkTexture* texture = vtkTexture::New();
-  texture->SetInputConnection(jPEGReader->GetOutputPort());
+  texture->SetInputConnection(pngReader->GetOutputPort());
   texturePlane->SetInputConnection(Plane->GetOutputPort());
 
   this->Mapper = vtkPolyDataMapper::New();
@@ -93,27 +89,17 @@ void vtkMapTile::init()
 //----------------------------------------------------------------------------
 void vtkMapTile::InitializeTexture()
 {
-  // Generate URL to Bing Map tile corresponding to the QuadKey
-  char *url = new char[200];
-  url[0] = 0;
-  strcat(url, "http://t0.tiles.virtualearth.net/tiles/a");
-  strcat(url, QuadKey);
-  strcat(url, ".jpeg?g=854&token=A");
-
   // Generate destination file name
-  outfilename = new char[100];
-  outfilename[0] = 0;
-  strcat(outfilename, "Temp/temp_");
-  strcat(outfilename, QuadKey);
-  strcat(outfilename, ".jpeg");
+  this->ImageFile = "Temp/" + this->ImageKey + ".png";
 
-  std::cerr << "outfilename " << outfilename << std::endl;
+  std::cerr << "outfilename " << this->ImageFile << std::endl;
 
   // Check if texture already exists.
   // If not, download
-  while(!this->IsTextureDownloaded(outfilename))
+  while(!this->IsTextureDownloaded(this->ImageFile.c_str()))
     {
-    this->DownloadTexture(url, outfilename);
+    std::cerr << "Downloading " << this->ImageSource.c_str() << std::endl;
+    this->DownloadTexture(this->ImageSource.c_str(), this->ImageFile.c_str());
     }
 }
 
@@ -141,20 +127,22 @@ void vtkMapTile::DownloadTexture(const char *url, const char *outfilename)
 {
   // Download file from url and store in outfilename
   // Uses libcurl
-  CURL *curl;
-  FILE *fp;
+  CURL* curl;
+  FILE* fp;
   CURLcode res;
   curl = curl_easy_init();
 
   if(curl)
     {
-    fp = fopen(outfilename,"wb");
+    fp = fopen(outfilename, "wb");
     std::cerr << outfilename << std::endl;
     if(!fp)
       {
       vtkErrorMacro( << "Not Open")
       return;
       }
+
+    std::cerr << "Url " << url << std::endl;
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
@@ -165,27 +153,9 @@ void vtkMapTile::DownloadTexture(const char *url, const char *outfilename)
 }
 
 //----------------------------------------------------------------------------
-void vtkMapTile::SetCenter(double *center)
-{
-  this->Center[0] = center[0];
-  this->Center[1] = center[1];
-  this->Center[2] = center[2];
-}
-
-//----------------------------------------------------------------------------
-void vtkMapTile::SetCenter(double x, double y, double z)
-{
-  this->Center[0] = x;
-  this->Center[1] = y;
-  this->Center[2] = z;
-}
-
-//----------------------------------------------------------------------------
 void vtkMapTile::PrintSelf(ostream &os, vtkIndent indent)
 {
   Superclass::PrintSelf(os, indent);
   os << "vtkMapTile" << std::endl
-     << "QuadKey: " << QuadKey << std::endl
-     << "Position: " << this->Center[0] << indent << this->Center[1] <<  indent
-     << this->Center[2] << std::endl;
+     << "ImageSource: " << this->ImageSource << std::endl;
 }
