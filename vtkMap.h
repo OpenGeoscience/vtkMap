@@ -58,6 +58,10 @@ public:
   // Update the renderer with relevant tiles to draw the Map
   void Update();
 
+  // Description:
+  // Update the renderer with relevant tiles to draw the Map
+  void Draw();
+
 protected:
   vtkMap();
   ~vtkMap();
@@ -103,6 +107,9 @@ protected:
   // Description:
   // Center of the map
   double Center[2];
+
+protected:
+  bool Initialized;
 
 private:
   vtkMap(const vtkMap&);  // Not implemented

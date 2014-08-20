@@ -14,14 +14,15 @@
 =========================================================================*/
 
 #include "vtkMap.h"
+#include "vtkMapTile.h"
 
 // VTK Includes
-#include "vtkObjectFactory.h"
-#include "vtkMapTile.h"
-#include "vtkRenderer.h"
-#include "vtkCamera.h"
-#include "vtkMatrix4x4.h"
-#include "vtkPlaneSource.h"
+#include <vtkObjectFactory.h>
+#include <vtkRenderer.h>
+#include <vtkRenderWindow.h>
+#include <vtkCamera.h>
+#include <vtkMatrix4x4.h>
+#include <vtkPlaneSource.h>
 
 #include <sstream>
 
@@ -32,6 +33,7 @@ vtkMap::vtkMap()
 {
   this->Zoom = 1;
   this->Center[0] = this->Center[1] = 0.0;
+  this->Initialized = false;
 }
 
 //----------------------------------------------------------------------------
@@ -54,6 +56,20 @@ void vtkMap::Update()
 {
   RemoveTiles();
   AddTiles();
+}
+
+//----------------------------------------------------------------------------
+void vtkMap::Draw()
+{
+  if (!this->Initialized && this->Renderer)
+    {
+    this->Initialized = true;
+    this->Renderer->GetActiveCamera()->SetPosition(this->Center[0],
+                                                   this->Center[1],
+                                                   100.0);
+    }
+  this->Update();
+  this->Renderer->GetRenderWindow()->Render();
 }
 
 //----------------------------------------------------------------------------
