@@ -21,6 +21,7 @@
 #include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
 #include <vtkCamera.h>
+#include <vtkMath.h>
 #include <vtkMatrix4x4.h>
 #include <vtkPlaneSource.h>
 
@@ -29,21 +30,26 @@
 
 vtkStandardNewMacro(vtkMap)
 
+//----------------------------------------------------------------------------
 int long2tilex(double lon, int z)
 {
   return (int)(floor((lon + 180.0) / 360.0 * pow(2.0, z)));
 }
 
+//----------------------------------------------------------------------------
 int lat2tiley(double lat, int z)
 {
-  return (int)(floor((1.0 - log( tan(lat * M_PI/180.0) + 1.0 / cos(lat * M_PI/180.0)) / M_PI) / 2.0 * pow(2.0, z)));
+  return (int)(floor((1.0 - log( tan(lat * M_PI/180.0) + 1.0 /
+    cos(lat * M_PI/180.0)) / M_PI) / 2.0 * pow(2.0, z)));
 }
 
+//----------------------------------------------------------------------------
 double tilex2long(int x, int z)
 {
   return x / pow(2.0, z) * 360.0 - 180;
 }
 
+//----------------------------------------------------------------------------
 double tiley2lat(int y, int z)
 {
   double n = M_PI - 2.0 * M_PI * y / pow(2.0, z);
@@ -59,9 +65,24 @@ vtkMap::vtkMap()
 }
 
 //----------------------------------------------------------------------------
+int computeZoomLevel(vtkCamera* cam)
+{
+  int i;
+  double* pos = cam->GetPosition();
+  double width = pos[2] * sin(vtkMath::RadiansFromDegrees(cam->GetViewAngle()));
+
+  for (i = 0; i < 20; i += 1) {
+    if (width >= (360.0 / pow(2, i))) {
+      /// We are forcing the minimum zoom level to 2 so that we can get
+      /// high res imagery even at the zoom level 0 distance
+      return i;
+    }
+  }
+}
+
+//----------------------------------------------------------------------------
 vtkMap::~vtkMap()
 {
-
 }
 
 //----------------------------------------------------------------------------
@@ -76,7 +97,11 @@ void vtkMap::PrintSelf(ostream &os, vtkIndent indent)
 //----------------------------------------------------------------------------
 void vtkMap::Update()
 {
-  std::cerr << "Update " << std::endl;
+  /// Compute the zoom level here
+  this->SetZoom(computeZoomLevel(this->Renderer->GetActiveCamera()));
+
+  std::cerr << "Zoom is " << this->Zoom << std::endl;
+
   RemoveTiles();
   AddTiles();
 }
