@@ -98,7 +98,7 @@ protected:
 
   // Description:
   // Set the renderer to draww the maps
-  vtkRenderer *Renderer;
+  vtkRenderer* Renderer;
 
   // Description:
   // Set Zoom level, which determines the level of detailing

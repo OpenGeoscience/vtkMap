@@ -20,6 +20,9 @@
 
 using namespace std;
 
+static void callbackFunction ( vtkObject* caller, long unsigned int eventId,
+          void* clientData, void* callData );
+
 int main()
 {
   vtkNew<vtkMap> map;
@@ -38,5 +41,20 @@ int main()
 
   intr->Initialize();
   map->Draw();
+
+  vtkNew<vtkCallbackCommand> callback;
+
+  callback->SetClientData(map.GetPointer());
+  callback->SetCallback(callbackFunction);
+  intr->AddObserver(vtkCommand::MouseWheelForwardEvent, callback.GetPointer());
+  intr->AddObserver(vtkCommand::MouseWheelBackwardEvent, callback.GetPointer());
   intr->Start();
+}
+
+void callbackFunction(vtkObject* caller, long unsigned int vtkNotUsed(eventId),
+                      void* clientData, void* vtkNotUsed(callData) )
+{
+  // Prove that we can access the sphere source
+  vtkMap* map = static_cast<vtkMap*>(clientData);
+  map->Draw();
 }
