@@ -139,22 +139,33 @@ void vtkMap::RemoveTiles()
 //----------------------------------------------------------------------------
 void vtkMap::AddTiles()
 {
-  // Obtain Window Size
-  double xmax = Renderer->GetSize()[0];
-  double ymax = Renderer->GetSize()[1];
-
-  double bottomLeft[3], topRight[3];
-
-  // Obtain world coordinates of viewport corner points
+  double focusDisplayPoint[3], bottomLeft[4], topRight[4];
   int width, height, llx, lly;
-  this->Renderer->GetTiledSizeAndOrigin(&width, &height, &llx, &lly);
 
-  this->Renderer->SetDisplayPoint(llx, lly, 0.0);
+  this->Renderer->SetWorldPoint(0.0, 0.0, 0.0, 1.0);
+  this->Renderer->WorldToDisplay();
+  this->Renderer->GetDisplayPoint(focusDisplayPoint);
+
+  this->Renderer->GetTiledSizeAndOrigin(&width, &height, &llx, &lly);
+  this->Renderer->SetDisplayPoint(llx, lly, focusDisplayPoint[2]);
   this->Renderer->DisplayToWorld();
   this->Renderer->GetWorldPoint(bottomLeft);
-  vtkWarningMacro( << "Bottom Left Display: " << bottomLeft[0] << " " << bottomLeft[1] << " " << bottomLeft[2]);
 
-  this->Renderer->SetDisplayPoint(llx + width, lly + height, 0.0);
+  if (bottomLeft[4] != 0.0)
+    {
+    bottomLeft[0] /= bottomLeft[3];
+    bottomLeft[1] /= bottomLeft[3];
+    bottomLeft[2] /= bottomLeft[3];
+    }
+
+  if (topRight[4] != 0.0)
+    {
+    topRight[0] /= topRight[3];
+    topRight[1] /= topRight[3];
+    topRight[2] /= topRight[3];
+    }
+
+  this->Renderer->SetDisplayPoint(llx + width, lly + height, focusDisplayPoint[2]);
   this->Renderer->DisplayToWorld();
   this->Renderer->GetWorldPoint(topRight);
 
@@ -163,8 +174,20 @@ void vtkMap::AddTiles()
   int tile2x = long2tilex(topRight[0], this->Zoom);
   int tile2y = lat2tiley(topRight[1], this->Zoom);
 
-  int noOfTilesX = pow(2, this->Zoom);
-  int noOfTilesY = pow(2, this->Zoom);
+  /// Clamp tilex and tiley
+  tile1x = std::max(tile1x, 0);
+  tile1x = std::min(static_cast<int>(pow(2, this->Zoom)) - 1, tile1x);
+  tile1y = std::max(tile1y, 0);
+  tile1y = std::min(static_cast<int>(pow(2, this->Zoom)) - 1, tile1y);
+
+  tile2x = std::max(tile2x, 0);
+  tile2x = std::min(static_cast<int>(pow(2, this->Zoom)) - 1, tile2x);
+  tile2y = std::max(tile2y, 0);
+  tile2y = std::min(static_cast<int>(pow(2, this->Zoom)) - 1, tile2y);
+
+  int noOfTilesX = static_cast<int>(pow(2, this->Zoom));
+  int noOfTilesY = static_cast<int>(pow(2, this->Zoom));
+
   double lonPerTile = 360.0 / noOfTilesX;
   double latPerTile = 360.0 / noOfTilesY;
 
@@ -174,12 +197,11 @@ void vtkMap::AddTiles()
     for (int j = tile2y; j <= tile1y; ++j)
       {
       xIndex = i;
-      yIndex = pow(2, this->Zoom) - 1 - j;
+      yIndex = static_cast<int>(pow(2, this->Zoom)) - 1 - j;
 
       vtkMapTile* tile = this->GetCachedTile(this->Zoom, xIndex, yIndex);
       if (!tile)
         {
-        std::cerr << "Tile is not cached " << this->Zoom << " " << xIndex << " " << yIndex << std::endl;
         tile = vtkMapTile::New();
         double llx = -180.0 + xIndex * lonPerTile;
         double lly = -180.0 + yIndex * latPerTile;
@@ -197,7 +219,7 @@ void vtkMap::AddTiles()
         std::string row = oss.str();
         oss.str("");
 
-        oss << (pow(2, this->Zoom) - 1 - yIndex);
+        oss << (static_cast<int>(pow(2, this->Zoom)) - 1 - yIndex);
         std::string col = oss.str();
         oss.str("");
 
