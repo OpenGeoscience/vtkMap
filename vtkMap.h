@@ -23,6 +23,9 @@
 #include <vtkObject.h>
 
 class vtkRenderer;
+class vtkMapTile;
+
+#include <map>
 
 class vtkMap : public vtkObject
 {
@@ -97,6 +100,14 @@ protected:
   uint MapSize(int levelOfDetail);
 
   // Description:
+  // Add tile to the cache
+  void AddTileToCache(int zoom, int x, int y, vtkMapTile* tile);
+
+  // Description:
+  // Return cached tile givena zoom level and indices x and y
+  vtkMapTile* GetCachedTile(int zoom, int x, int y);
+
+  // Description:
   // Set the renderer to draww the maps
   vtkRenderer* Renderer;
 
@@ -107,6 +118,10 @@ protected:
   // Description:
   // Center of the map
   double Center[2];
+
+  // Description:
+  // Cached tiles
+  std::map< int, std::map< int, std::map <int, vtkMapTile*> > > CachedTiles;
 
 protected:
   bool Initialized;

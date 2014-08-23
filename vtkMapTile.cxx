@@ -130,8 +130,6 @@ void vtkMapTile::InitializeDownload()
   // Generate destination file name
   this->ImageFile = "Temp/" + this->ImageKey + ".png";
 
-  std::cerr << "outfilename " << this->ImageFile << std::endl;
-
   // Check if texture already exists.
   // If not, download
   while(!this->IsImageDownloaded(this->ImageFile.c_str()))

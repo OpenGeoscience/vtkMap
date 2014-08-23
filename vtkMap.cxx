@@ -166,40 +166,51 @@ void vtkMap::AddTiles()
       xIndex = i;
       yIndex = pow(2, this->Zoom) - 1 - j;
 
-      vtkMapTile* tile = vtkMapTile::New();
+      vtkMapTile* tile = this->GetCachedTile(this->Zoom, xIndex, yIndex);
+      if (!tile)
+        {
+        std::cerr << "Tile is not cached " << this->Zoom << " " << xIndex << " " << yIndex << std::endl;
+        tile = vtkMapTile::New();
+        double llx = -180.0 + xIndex * lonPerTile;
+        double lly = -180.0 + yIndex * latPerTile;
+        double urx = -180.0 + (xIndex + 1) * lonPerTile;
+        double ury = -180.0 + (yIndex + 1) * latPerTile;
 
-      double llx = -180.0 + xIndex * lonPerTile;
-      double lly = -180.0 + yIndex * latPerTile;
-      double urx = -180.0 + (xIndex + 1) * lonPerTile;
-      double ury = -180.0 + (yIndex + 1) * latPerTile;
+        tile->SetCorners(llx, lly, urx, ury);
 
-      tile->SetCorners(llx, lly, urx, ury);
+        std::ostringstream oss;
+        oss << this->Zoom;
+        std::string zoom = oss.str();
+        oss.str("");
 
-      std::ostringstream oss;
-      oss << this->Zoom;
-      std::string zoom = oss.str();
-      oss.str("");
+        oss << i;
+        std::string row = oss.str();
+        oss.str("");
 
-      oss << i;
-      std::string row = oss.str();
-      oss.str("");
+        oss << (pow(2, this->Zoom) - 1 - yIndex);
+        std::string col = oss.str();
+        oss.str("");
 
-      oss << (pow(2, this->Zoom) - 1 - yIndex);
-      std::string col = oss.str();
-      oss.str("");
+        // Set tile texture source
+        oss << zoom << row << col;
+        tile->SetImageKey(oss.str());
+        tile->SetImageSource("http://tile.openstreetmap.org/" + zoom + "/" + row +
+                             "/" + col + ".png");
+        tile->Init();
+        tile->SetVisible(true);
 
-      // Set tile texture source
-      oss << zoom << row << col;
-      tile->SetImageKey(oss.str());
-      tile->SetImageSource("http://tile.openstreetmap.org/" + zoom + "/" + row +
-                           "/" + col + ".png");
-      tile->Init();
+        this->AddTileToCache(this->Zoom, xIndex, yIndex, tile);
+
+        // Add tile to the renderer
+        Renderer->AddActor(tile->GetActor());
+      }
+     else
+      {
+      std::cerr << "Tile is cached" << std::endl;
       tile->SetVisible(true);
-
-      // Add tile to the renderer
-      Renderer->AddActor(tile->GetActor());
       }
     }
+  }
 }
 
 //----------------------------------------------------------------------------
@@ -211,7 +222,8 @@ double vtkMap::Clip(double n, double minValue, double maxValue)
 }
 
 //----------------------------------------------------------------------------
-void vtkMap::LatLongToPixelXY(double latitude, double longitude, int levelOfDetail, int &pixelX, int &pixelY)
+void vtkMap::LatLongToPixelXY(double latitude, double longitude,
+                              int levelOfDetail, int &pixelX, int &pixelY)
 {
   latitude = Clip(latitude, MinLatitude, MaxLatitude);
   longitude = Clip(longitude, MinLongitude, MaxLongitude);
@@ -229,6 +241,25 @@ void vtkMap::LatLongToPixelXY(double latitude, double longitude, int levelOfDeta
 uint vtkMap::MapSize(int levelOfDetail)
 {
   return (uint) 256 << levelOfDetail;
+}
+
+//----------------------------------------------------------------------------
+void vtkMap::AddTileToCache(int zoom, int x, int y, vtkMapTile* tile)
+{
+  this->CachedTiles[zoom][x][y] = tile;
+}
+
+//----------------------------------------------------------------------------
+vtkMapTile *vtkMap::GetCachedTile(int zoom, int x, int y)
+{
+  if (this->CachedTiles.find(zoom) == this->CachedTiles.end() &&
+      this->CachedTiles[zoom].find(x) == this->CachedTiles[zoom].end() &&
+      this->CachedTiles[zoom][x].find(y) == this->CachedTiles[zoom][x].end())
+    {
+    return NULL;
+    }
+
+  return this->CachedTiles[zoom][x][y];
 }
 
 //----------------------------------------------------------------------------
