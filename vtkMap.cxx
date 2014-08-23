@@ -25,8 +25,9 @@
 #include <vtkMatrix4x4.h>
 #include <vtkPlaneSource.h>
 
-#include <sstream>
+#include <algorithm>
 #include <math.h>
+#include <sstream>
 
 vtkStandardNewMacro(vtkMap)
 
@@ -55,6 +56,15 @@ double tiley2lat(int y, int z)
   double n = M_PI - 2.0 * M_PI * y / pow(2.0, z);
   return 180.0 / M_PI * atan(0.5 * (exp(n) - exp(-n)));
 }
+
+//----------------------------------------------------------------------------
+struct sortTiles
+{
+  inline bool operator() (vtkMapTile* tile1,  vtkMapTile* tile2)
+  {
+    return (tile1->GetBin() < tile2->GetBin());
+  }
+};
 
 //----------------------------------------------------------------------------
 vtkMap::vtkMap()
@@ -201,16 +211,32 @@ void vtkMap::AddTiles()
 
         this->AddTileToCache(this->Zoom, xIndex, yIndex, tile);
 
-        // Add tile to the renderer
-        Renderer->AddActor(tile->GetActor());
+        this->NewPendingTiles.push_back(tile);
       }
      else
       {
-      std::cerr << "Tile is cached" << std::endl;
+      this->NewPendingTiles.push_back(tile);
       tile->SetVisible(true);
       }
     }
   }
+
+  if (this->NewPendingTiles.size() > 0)
+    {
+    /// TODO: Remove only the tiles and not other props
+    this->Renderer->RemoveAllViewProps();
+
+    std::sort(this->NewPendingTiles.begin(), this->NewPendingTiles.end(),
+              sortTiles());
+
+    for (int i = 0; i < this->NewPendingTiles.size(); ++i)
+      {
+      // Add tile to the renderer
+      this->Renderer->AddActor(this->NewPendingTiles[i]->GetActor());
+      }
+
+    this->NewPendingTiles.clear();
+    }
 }
 
 //----------------------------------------------------------------------------

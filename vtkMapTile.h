@@ -52,8 +52,14 @@ public:
   std::string GetImageSource() {return this->ImageSource;}
 
   // Description:
+  // Get/Set corners of the tile (lowerleft, upper right)
   vtkGetVector4Macro(Corners, double);
   vtkSetVector4Macro(Corners, double);
+
+  // Description:
+  // Get/Set bin of the tile
+  vtkGetMacro(Bin, int);
+  vtkSetMacro(Bin, int);
 
   // Description:
   vtkGetMacro(Plane, vtkPlaneSource*)

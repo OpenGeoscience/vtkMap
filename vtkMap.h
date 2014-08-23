@@ -26,6 +26,7 @@ class vtkRenderer;
 class vtkMapTile;
 
 #include <map>
+#include <vector>
 
 class vtkMap : public vtkObject
 {
@@ -122,6 +123,8 @@ protected:
   // Description:
   // Cached tiles
   std::map< int, std::map< int, std::map <int, vtkMapTile*> > > CachedTiles;
+
+  std::vector<vtkMapTile*> NewPendingTiles;
 
 protected:
   bool Initialized;
