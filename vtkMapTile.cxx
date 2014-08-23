@@ -16,15 +16,17 @@
 #include "vtkMapTile.h"
 
 // VTK Includes
-#include "vtkObjectFactory.h"
-#include "vtkPlaneSource.h"
-#include "vtkActor.h"
-#include "vtkPolyDataMapper.h"
-#include "vtkPNGReader.h"
-#include "vtkTextureMapToPlane.h"
-#include "vtkTexture.h"
+#include <vtkActor.h>
+#include <vtkObjectFactory.h>
+#include <vtkPlaneSource.h>
+#include <vtkPolyDataMapper.h>
+#include <vtkPNGReader.h>
+#include <vtkTexture.h>
+#include <vtkTextureMapToPlane.h>
+#include <vtkNew.h>
 
-#include "curl/curl.h"
+#include <curl/curl.h>
+
 #include <sstream>
 #include <fstream>
 
@@ -34,29 +36,41 @@ vtkStandardNewMacro(vtkMapTile)
 vtkMapTile::vtkMapTile()
 {
   Plane = 0;
-  texturePlane = 0;
+  TexturePlane = 0;
   Actor = 0;
   Mapper = 0;
+  this->Bin = Hidden;
+  this->VisibleFlag = false;
+  this->Corners[0] = this->Corners[1] =
+    this->Corners[2] = this->Corners[3] = 0.0;
 }
 
 //----------------------------------------------------------------------------
 vtkMapTile::~vtkMapTile()
 {
   if (Plane)
+    {
     Plane->Delete();
+    }
 
-  if (texturePlane)
-    texturePlane->Delete();
+  if (TexturePlane)
+    {
+    TexturePlane->Delete();
+    }
 
   if (Actor)
+    {
     Actor->Delete();
+    }
 
   if (Mapper)
+    {
     Mapper->Delete();
+    }
 }
 
 //----------------------------------------------------------------------------
-void vtkMapTile::init()
+void vtkMapTile::Init()
 {
 
   this->Plane = vtkPlaneSource::New();
@@ -65,29 +79,53 @@ void vtkMapTile::init()
   this->Plane->SetOrigin(this->Corners[0], this->Corners[1], 0.0);
   this->Plane->SetNormal(0, 0, 1);
 
-  texturePlane = vtkTextureMapToPlane::New();
-  this->InitializeTexture();
+  this->TexturePlane = vtkTextureMapToPlane::New();
+  this->InitializeDownload();
 
   // Read the image which will be the texture
-  vtkPNGReader* pngReader = vtkPNGReader::New();
+  vtkNew<vtkPNGReader> pngReader;
   pngReader->SetFileName (this->ImageFile.c_str());
   pngReader->Update();
 
   // Apply the texture
-  vtkTexture* texture = vtkTexture::New();
+  vtkNew<vtkTexture> texture;
   texture->SetInputConnection(pngReader->GetOutputPort());
-  texturePlane->SetInputConnection(Plane->GetOutputPort());
+  this->TexturePlane->SetInputConnection(Plane->GetOutputPort());
 
   this->Mapper = vtkPolyDataMapper::New();
-  this->Mapper->SetInputConnection(texturePlane->GetOutputPort());
+  this->Mapper->SetInputConnection(this->TexturePlane->GetOutputPort());
 
   this->Actor = vtkActor::New();
   this->Actor->SetMapper(Mapper);
-  this->Actor->SetTexture(texture);
+  this->Actor->SetTexture(texture.GetPointer());
 }
 
 //----------------------------------------------------------------------------
-void vtkMapTile::InitializeTexture()
+void vtkMapTile::SetVisible(bool val)
+{
+  if (val != this->VisibleFlag)
+    {
+    this->VisibleFlag = val;
+    if (this->VisibleFlag)
+      {
+      this->Bin = VisibleFlag;
+      }
+    else
+      {
+      this->Bin = Hidden;
+      }
+    this->Modified();
+    }
+}
+
+//----------------------------------------------------------------------------
+bool vtkMapTile::IsVisible()
+{
+  return this->Visible;
+}
+
+//----------------------------------------------------------------------------
+void vtkMapTile::InitializeDownload()
 {
   // Generate destination file name
   this->ImageFile = "Temp/" + this->ImageKey + ".png";
@@ -96,15 +134,15 @@ void vtkMapTile::InitializeTexture()
 
   // Check if texture already exists.
   // If not, download
-  while(!this->IsTextureDownloaded(this->ImageFile.c_str()))
+  while(!this->IsImageDownloaded(this->ImageFile.c_str()))
     {
     std::cerr << "Downloading " << this->ImageSource.c_str() << std::endl;
-    this->DownloadTexture(this->ImageSource.c_str(), this->ImageFile.c_str());
+    this->DownloadImage(this->ImageSource.c_str(), this->ImageFile.c_str());
     }
 }
 
 //----------------------------------------------------------------------------
-bool vtkMapTile::IsTextureDownloaded(const char *outfile)
+bool vtkMapTile::IsImageDownloaded(const char *outfile)
 {
   // Check if file can be opened
   // Additional checks to confirm existence of correct
@@ -123,7 +161,7 @@ bool vtkMapTile::IsTextureDownloaded(const char *outfile)
 }
 
 //----------------------------------------------------------------------------
-void vtkMapTile::DownloadTexture(const char *url, const char *outfilename)
+void vtkMapTile::DownloadImage(const char *url, const char *outfilename)
 {
   // Download file from url and store in outfilename
   // Uses libcurl

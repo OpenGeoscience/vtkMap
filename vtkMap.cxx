@@ -192,9 +192,7 @@ void vtkMap::AddTiles()
       tile->SetImageKey(oss.str());
       tile->SetImageSource("http://tile.openstreetmap.org/" + zoom + "/" + row +
                            "/" + col + ".png");
-
-      // Initialise the tile
-      tile->init();
+      tile->Init();
 
       // Add tile to the renderer
       Renderer->AddActor(tile->GetActor());
