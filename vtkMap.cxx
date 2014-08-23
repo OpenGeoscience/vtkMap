@@ -158,23 +158,24 @@ void vtkMap::AddTiles()
   double lonPerTile = 360.0 / noOfTilesX;
   double latPerTile = 360.0 / noOfTilesY;
 
+  int xIndex, yIndex;
   for (int i = tile1x; i <= tile2x; ++i)
     {
     for (int j = tile2y; j <= tile1y; ++j)
       {
-      int invJ = pow(2, this->Zoom) - 1 - j;
+      xIndex = i;
+      yIndex = pow(2, this->Zoom) - 1 - j;
 
       vtkMapTile* tile = vtkMapTile::New();
 
-      double llx = -180.0 + i * lonPerTile;
-      double lly = -180.0 + j * latPerTile;
-      double urx = -180.0 + (i + 1) * lonPerTile;
-      double ury = -180.0 + (j + 1) * latPerTile;
+      double llx = -180.0 + xIndex * lonPerTile;
+      double lly = -180.0 + yIndex * latPerTile;
+      double urx = -180.0 + (xIndex + 1) * lonPerTile;
+      double ury = -180.0 + (yIndex + 1) * latPerTile;
 
       tile->SetCorners(llx, lly, urx, ury);
 
       std::ostringstream oss;
-
       oss << this->Zoom;
       std::string zoom = oss.str();
       oss.str("");
@@ -183,7 +184,7 @@ void vtkMap::AddTiles()
       std::string row = oss.str();
       oss.str("");
 
-      oss << (pow(2, this->Zoom) - 1 - j);
+      oss << (pow(2, this->Zoom) - 1 - yIndex);
       std::string col = oss.str();
       oss.str("");
 
@@ -193,6 +194,7 @@ void vtkMap::AddTiles()
       tile->SetImageSource("http://tile.openstreetmap.org/" + zoom + "/" + row +
                            "/" + col + ".png");
       tile->Init();
+      tile->SetVisible(true);
 
       // Add tile to the renderer
       Renderer->AddActor(tile->GetActor());
