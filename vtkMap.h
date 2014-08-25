@@ -36,14 +36,6 @@ public:
   vtkTypeMacro(vtkMap, vtkObject)
 
   // Description:
-  // Bing Maps specific constants to be used during conversions
-  static const double EarthRadius = 6378137;
-  static const double MinLatitude = -85.05112878;
-  static const double MaxLatitude = 85.05112878;
-  static const double MinLongitude = -180;
-  static const double MaxLongitude = 180;
-
-  // Description:
   // Get/Set the renderer in which map tiles will be added
   vtkGetMacro(Renderer, vtkRenderer*)
   vtkSetMacro(Renderer, vtkRenderer*)
@@ -79,26 +71,8 @@ protected:
   void RemoveTiles();
 
   // Description:
-  // Converts tile XY coordinates into a QuadKey at a specified level of detail.
-  std::string TileXYToQuadKey(int tileX, int tileY, int levelOfDetail);
-
-  // Description:
-  // Converts pixel XY coordinates into tile XY coordinates of the
-  // tile containing the specified pixel.
-  void PixelXYToTileXY(int pixelX, int pixelY, int &tileX, int &tileY);
-
-  // Description:
-  // Converts a point from latitude/longitude into pixel XY coordinates
-  // at a specified level of detail
-  void LatLongToPixelXY(double latitude, double longitude, int levelOfDetail, int &pixelX, int &pixelY);
-
-  // Description:
   // Clips a number to the specified minimum and maximum values.
   double Clip(double n, double minValue, double maxValue);
-
-  // Description:
-  // Returns the Map Height/Width depending on the Zoom level
-  uint MapSize(int levelOfDetail);
 
   // Description:
   // Add tile to the cache

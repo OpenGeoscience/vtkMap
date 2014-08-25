@@ -286,28 +286,6 @@ double vtkMap::Clip(double n, double minValue, double maxValue)
 }
 
 //----------------------------------------------------------------------------
-void vtkMap::LatLongToPixelXY(double latitude, double longitude,
-                              int levelOfDetail, int &pixelX, int &pixelY)
-{
-  latitude = Clip(latitude, MinLatitude, MaxLatitude);
-  longitude = Clip(longitude, MinLongitude, MaxLongitude);
-
-  double x = (longitude + 180) / 360;
-  double sinLatitude = sin(latitude * 3.142 / 180);
-  double y = 0.5 - log((1 + sinLatitude) / (1 - sinLatitude)) / (4 * 3.142);
-
-  uint mapSize = MapSize(levelOfDetail);
-  pixelX = (int) Clip(x * mapSize + 0.5, 0, mapSize - 1);
-  pixelY = (int) Clip(y * mapSize + 0.5, 0, mapSize - 1);
-}
-
-//----------------------------------------------------------------------------
-uint vtkMap::MapSize(int levelOfDetail)
-{
-  return (uint) 256 << levelOfDetail;
-}
-
-//----------------------------------------------------------------------------
 void vtkMap::AddTileToCache(int zoom, int x, int y, vtkMapTile* tile)
 {
   this->CachedTiles[zoom][x][y] = tile;
@@ -324,33 +302,4 @@ vtkMapTile *vtkMap::GetCachedTile(int zoom, int x, int y)
     }
 
   return this->CachedTiles[zoom][x][y];
-}
-
-//----------------------------------------------------------------------------
-void vtkMap::PixelXYToTileXY(int pixelX, int pixelY, int &tileX, int &tileY)
-{
-  tileX = pixelX / 256;
-  tileY = pixelY / 256;
-}
-
-//----------------------------------------------------------------------------
-std::string vtkMap::TileXYToQuadKey(int tileX, int tileY, int levelOfDetail)
-{
-  std::stringstream quadKey;
-  for (int i = levelOfDetail; i > 0; i--)
-    {
-    char digit = '0';
-    int mask = 1 << (i - 1);
-    if ( (tileX & mask) != 0 )
-      {
-      digit++;
-      }
-    if ( (tileY & mask) != 0 )
-      {
-      digit++;
-      digit++;
-      }
-    quadKey << digit;
-    }
-  return quadKey.str();
 }
