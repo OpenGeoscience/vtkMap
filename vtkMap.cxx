@@ -17,6 +17,8 @@
 #include "vtkMapTile.h"
 
 // VTK Includes
+#include <vtkImageInPlaceFilter.h>
+#include <vtkInteractorStyleImage.h>
 #include <vtkObjectFactory.h>
 #include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
@@ -69,6 +71,8 @@ struct sortTiles
 //----------------------------------------------------------------------------
 vtkMap::vtkMap()
 {
+  this->Renderer = NULL;
+  this->InteractorStyle = vtkInteractorStyleImage::New();
   this->Zoom = 1;
   this->Center[0] = this->Center[1] = 0.0;
   this->Initialized = false;
@@ -93,6 +97,10 @@ int computeZoomLevel(vtkCamera* cam)
 //----------------------------------------------------------------------------
 vtkMap::~vtkMap()
 {
+  if (this->InteractorStyle)
+    {
+    this->InteractorStyle->Delete();
+    }
 }
 
 //----------------------------------------------------------------------------
@@ -109,8 +117,6 @@ void vtkMap::Update()
 {
   /// Compute the zoom level here
   this->SetZoom(computeZoomLevel(this->Renderer->GetActiveCamera()));
-
-  std::cerr << "Zoom is " << this->Zoom << std::endl;
 
   RemoveTiles();
   AddTiles();
@@ -245,17 +251,10 @@ void vtkMap::AddTiles()
         tile->SetImageSource("http://tile.openstreetmap.org/" + zoom + "/" + row +
                              "/" + col + ".png");
         tile->Init();
-        tile->SetVisible(true);
-
         this->AddTileToCache(this->Zoom, xIndex, yIndex, tile);
-
-        this->NewPendingTiles.push_back(tile);
       }
-     else
-      {
-      this->NewPendingTiles.push_back(tile);
-      tile->SetVisible(true);
-      }
+    this->NewPendingTiles.push_back(tile);
+    tile->SetVisible(true);
     }
   }
 

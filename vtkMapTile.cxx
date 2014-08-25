@@ -171,14 +171,12 @@ void vtkMapTile::DownloadImage(const char *url, const char *outfilename)
   if(curl)
     {
     fp = fopen(outfilename, "wb");
-    std::cerr << outfilename << std::endl;
     if(!fp)
       {
       vtkErrorMacro( << "Not Open")
       return;
       }
 
-    std::cerr << "Url " << url << std::endl;
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);

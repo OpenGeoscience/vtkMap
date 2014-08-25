@@ -1,20 +1,22 @@
 #include "vtkMap.h"
 
-#include <vtkRenderer.h>
+#include <vtkActor.h>
+#include <vtkCallbackCommand.h>
+#include <vtkCamera.h>
+#include <vtkCommand.h>
+#include <vtkInteractorStyle.h>
 #include <vtkTransformCoordinateSystems.h>
 #include <vtkPointSet.h>
 #include <vtkPlaneSource.h>
 #include <vtkPlane.h>
 #include <vtkPolyDataMapper.h>
-#include <vtkActor.h>
-#include <vtkRenderWindow.h>
-#include <vtkRenderWindowInteractor.h>
-#include <vtkCamera.h>
 #include <vtkMatrix4x4.h>
 #include <vtkNew.h>
-#include <vtkCallbackCommand.h>
+#include <vtkRenderWindow.h>
+#include <vtkRenderer.h>
+#include <vtkRenderWindowInteractor.h>
 #include <vtkRendererCollection.h>
-#include <vtkCommand.h>
+#include <vtkSphereSource.h>
 
 #include <iostream>
 
@@ -32,12 +34,24 @@ int main()
   map->SetCenter(0, 0);
   map->SetZoom(5);
 
+  vtkNew<vtkRenderer> rend2;
+  vtkNew<vtkSphereSource> ss;
+  vtkNew<vtkPolyDataMapper> sm;
+  vtkNew<vtkActor> sa;
+  sa->SetMapper(sm.GetPointer());
+  sm->SetInputConnection(ss->GetOutputPort());
+  rend2->AddActor(sa.GetPointer());
+  rend2->SetLayer(1);
+
   vtkNew<vtkRenderWindow> wind;
+//  wind->SetNumberOfLayers(2);
   wind->AddRenderer(rend.GetPointer());
+//  wind->AddRenderer(rend2.GetPointer());
   wind->SetSize(1300, 700);
 
   vtkNew<vtkRenderWindowInteractor> intr;
   intr->SetRenderWindow(wind.GetPointer());
+  intr->SetInteractorStyle(map->GetInteractorStyle());
 
   intr->Initialize();
   map->Draw();

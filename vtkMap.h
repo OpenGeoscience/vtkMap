@@ -22,6 +22,7 @@
 // VTK Includes
 #include <vtkObject.h>
 
+class vtkInteractorStyle;
 class vtkRenderer;
 class vtkMapTile;
 
@@ -39,6 +40,11 @@ public:
   // Get/Set the renderer in which map tiles will be added
   vtkGetMacro(Renderer, vtkRenderer*)
   vtkSetMacro(Renderer, vtkRenderer*)
+
+  // Description:
+  // Get/Set the interactor style in which map tiles will be added
+  vtkGetMacro(InteractorStyle, vtkInteractorStyle*)
+  vtkSetMacro(InteractorStyle, vtkInteractorStyle*)
 
   // Description:
   // Get/Set the detailing level
@@ -85,6 +91,10 @@ protected:
   // Description:
   // Set the renderer to draww the maps
   vtkRenderer* Renderer;
+
+  // Description:
+  // The interactor style used by the map
+  vtkInteractorStyle* InteractorStyle;
 
   // Description:
   // Set Zoom level, which determines the level of detailing
