@@ -1,4 +1,7 @@
 #include <QApplication>
+#include <QFrame>
+#include <QPushButton>
+#include <QMainWindow>
 
 #include <vtkSmartPointer.h>
 #include <vtkSphereSource.h>
@@ -15,9 +18,16 @@
 int main(int argc, char** argv)
 {
   QApplication app(argc, argv);
+  QMainWindow mainWindow;
+  QFrame frame;
+  mainWindow.setCentralWidget(&frame);
 
-  QVTKWidget widget;
+  QPushButton *button = new QPushButton("Test", &frame);
+  button->move(100, 100);
+
+  QVTKWidget widget(&frame);
   widget.resize(256,256);
+  widget.move(200, 200);
 
   // Setup sphere
   vtkSmartPointer<vtkSphereSource> sphereSource =
@@ -43,7 +53,10 @@ int main(int argc, char** argv)
   renderer->ResetCamera();
 
   widget.SetRenderWindow(renderWindow);
-  widget.show();
+
+
+  mainWindow.show();
+  mainWindow.resize(1000, 800);
 
   app.exec();
 
