@@ -33,7 +33,7 @@ int main(int argc, char** argv)
   // Setup sphere (QVTKWidget) from VTK wiki
   QVTKWidget widget(&frame);
   widget.resize(256,256);
-  widget.move(100, 100);
+  widget.move(50, 100);
 
   vtkSmartPointer<vtkSphereSource> sphereSource =
       vtkSmartPointer<vtkSphereSource>::New();
@@ -66,17 +66,13 @@ int main(int argc, char** argv)
   vtkNew<vtkRenderer> mapRenderer;
   map->SetRenderer(mapRenderer.GetPointer());
   map->SetCenter(40.0,-70.0);
-  map->SetZoom(5);
+  map->SetZoom(6);
 
   vtkNew<vtkRenderWindow> mapRenderWindow;
   mapRenderWindow->AddRenderer(mapRenderer.GetPointer());
 
-  // Adding interactor creates second window (?)
-  // vtkNew<vtkRenderWindowInteractor> intr;
-  // intr->SetRenderWindow(mapRenderWindow.GetPointer());
-  // intr->SetInteractorStyle(map->GetInteractorStyle());
-  // intr->Initialize();
-
+  mapWidget.GetInteractor()->SetInteractorStyle((map->GetInteractorStyle()));
+  mapWidget.GetInteractor()->Initialize();
   mapWidget.SetRenderWindow(mapRenderWindow.GetPointer());
 
 
