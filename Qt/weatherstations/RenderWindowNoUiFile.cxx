@@ -67,11 +67,12 @@ int main(int argc, char** argv)
   QPushButton *button = new QPushButton("Test", &frame);
   button->move(50, 50);
 
-
+  int mapWidth = 900;  // default (when sphere widget not included)
+#if 0
   // Setup sphere (QVTKWidget) from VTK wiki
   QVTKWidget widget(&frame);
   widget.resize(256,256);
-  widget.move(50, 100);
+  widget.move(600, 100);
 
   vtkSmartPointer<vtkSphereSource> sphereSource =
       vtkSmartPointer<vtkSphereSource>::New();
@@ -94,11 +95,13 @@ int main(int argc, char** argv)
 
   widget.SetRenderWindow(renderWindow);
 
+  mapWidth = 500;
+#endif
 
   // Setup map (QVTKWwidget)
   QVTKWidget mapWidget(&frame);
-  mapWidget.resize(500, 500);
-  mapWidget.move(400, 100);
+  mapWidget.resize(mapWidth, 500);
+  mapWidget.move(50, 100);
 
   vtkNew<vtkMap> map;
   vtkNew<vtkRenderer> mapRenderer;
