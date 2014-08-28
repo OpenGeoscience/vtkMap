@@ -3,6 +3,7 @@
 #include <QVTKWidget.h>
 
 #include <vtkActor.h>
+#include <vtkCallbackCommand.h>
 #include <vtkInteractorStyleImage.h>
 #include <vtkNew.h>
 #include <vtkPolyDataMapper.h>
@@ -16,6 +17,10 @@
 #include <QFrame>
 #include <QMainWindow>
 #include <QPushButton>
+
+
+static void callbackFunction ( vtkObject* caller, long unsigned int eventId,
+          void* clientData, void* callData );
 
 
 int main(int argc, char** argv)
@@ -65,16 +70,24 @@ int main(int argc, char** argv)
   vtkNew<vtkMap> map;
   vtkNew<vtkRenderer> mapRenderer;
   map->SetRenderer(mapRenderer.GetPointer());
-  map->SetCenter(40.0,-70.0);
-  map->SetZoom(6);
+  map->SetCenter(0, 0);
+  map->SetZoom(5);
 
   vtkNew<vtkRenderWindow> mapRenderWindow;
   mapRenderWindow->AddRenderer(mapRenderer.GetPointer());
-
-  mapWidget.GetInteractor()->SetInteractorStyle((map->GetInteractorStyle()));
-  mapWidget.GetInteractor()->Initialize();
   mapWidget.SetRenderWindow(mapRenderWindow.GetPointer());
 
+  vtkRenderWindowInteractor *intr = mapWidget.GetInteractor();
+  intr->SetInteractorStyle((map->GetInteractorStyle()));
+  intr->Initialize();
+
+  vtkNew<vtkCallbackCommand> callback;
+  callback->SetClientData(map.GetPointer());
+  callback->SetCallback(callbackFunction);
+  // intr->AddObserver(vtkCommand::MouseWheelForwardEvent, callback.GetPointer());
+  // intr->AddObserver(vtkCommand::MouseWheelBackwardEvent, callback.GetPointer());
+  intr->AddObserver(vtkCommand::AnyEvent, callback.GetPointer());
+  intr->Start();
 
   // Display main window and start Qt event loop
   mainWindow.show();
@@ -84,4 +97,25 @@ int main(int argc, char** argv)
   app.exec();
 
   return EXIT_SUCCESS;
+}
+
+
+void callbackFunction(vtkObject* caller, long unsigned int eventId,
+                      void* clientData, void* vtkNotUsed(callData) )
+{
+  switch (eventId)
+  {
+ case vtkCommand::ProgressEvent:             // 5
+ case vtkCommand::MouseWheelForwardEvent:    // 26
+ case vtkCommand::MouseWheelBackwardEvent:   // 27
+ case vtkCommand::WindowLevelEvent:          // 33
+break;
+
+ default:
+std::cout << "EVENT " << eventId << std::endl;
+
+  }
+  // Prove that we can access the sphere source
+  vtkMap* map = static_cast<vtkMap*>(clientData);
+  map->Draw();
 }
