@@ -16,6 +16,7 @@ int main(int argc, char *argv[])
   qtWSMapMainWindow win;
   win.show();
   win.resize(1000, 800);
+  win.drawMap();
 
   return app.exec();
 }
