@@ -19,10 +19,43 @@
 #include <QPushButton>
 
 
-static void callbackFunction ( vtkObject* caller, long unsigned int eventId,
-          void* clientData, void* callData );
+
+// ------------------------------------------------------------
+// Callback command for handling mouse events
+// In the future, will be replaced by interactor style
+class MapCallback : public vtkCallbackCommand
+{
+public:
+  MapCallback(vtkMap *map) : Map(map), MouseDown(false) {}
+
+  virtual void Execute(vtkObject *caller, unsigned long eventId, void *callData)
+  {
+    switch (eventId)
+      {
+      case vtkCommand::MiddleButtonPressEvent:
+        this->MouseDown = true;
+        break;
+      case vtkCommand::MiddleButtonReleaseEvent:
+        this->MouseDown = false;
+        break;
+      case vtkCommand::MouseMoveEvent:
+        if (this->MouseDown)
+          {
+          this->Map->Draw();
+          }
+      case vtkCommand::MouseWheelForwardEvent:
+      case vtkCommand::MouseWheelBackwardEvent:
+        this->Map->Draw();
+      }
+  }
+
+protected:
+  vtkMap *Map;
+  bool MouseDown;
+};
 
 
+// ------------------------------------------------------------
 int main(int argc, char** argv)
 {
   QApplication app(argc, argv);
@@ -81,12 +114,9 @@ int main(int argc, char** argv)
   intr->SetInteractorStyle((map->GetInteractorStyle()));
   intr->Initialize();
 
-  vtkNew<vtkCallbackCommand> callback;
-  callback->SetClientData(map.GetPointer());
-  callback->SetCallback(callbackFunction);
-  // intr->AddObserver(vtkCommand::MouseWheelForwardEvent, callback.GetPointer());
-  // intr->AddObserver(vtkCommand::MouseWheelBackwardEvent, callback.GetPointer());
-  intr->AddObserver(vtkCommand::AnyEvent, callback.GetPointer());
+
+  MapCallback *mapCallback = new MapCallback(map.GetPointer());
+  intr->AddObserver(vtkCommand::AnyEvent, mapCallback);
   intr->Start();
 
   // Display main window and start Qt event loop
@@ -97,25 +127,4 @@ int main(int argc, char** argv)
   app.exec();
 
   return EXIT_SUCCESS;
-}
-
-
-void callbackFunction(vtkObject* caller, long unsigned int eventId,
-                      void* clientData, void* vtkNotUsed(callData) )
-{
-  switch (eventId)
-  {
- case vtkCommand::ProgressEvent:             // 5
- case vtkCommand::MouseWheelForwardEvent:    // 26
- case vtkCommand::MouseWheelBackwardEvent:   // 27
- case vtkCommand::WindowLevelEvent:          // 33
-break;
-
- default:
-std::cout << "EVENT " << eventId << std::endl;
-
-  }
-  // Prove that we can access the sphere source
-  vtkMap* map = static_cast<vtkMap*>(clientData);
-  map->Draw();
 }
