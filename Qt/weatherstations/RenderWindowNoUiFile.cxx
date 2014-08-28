@@ -1,19 +1,22 @@
-#include <QApplication>
-#include <QFrame>
-#include <QPushButton>
-#include <QMainWindow>
-
-#include <vtkSmartPointer.h>
-#include <vtkSphereSource.h>
-#include <vtkPolyDataMapper.h>
-#include <vtkActor.h>
-#include <vtkRenderWindowInteractor.h>
-#include <vtkInteractorStyleImage.h>
-#include <vtkRenderer.h>
-#include <vtkRenderWindow.h>
-#include <vtkJPEGReader.h>
+#include "vtkMap.h"
 
 #include <QVTKWidget.h>
+
+#include <vtkActor.h>
+#include <vtkInteractorStyleImage.h>
+#include <vtkNew.h>
+#include <vtkPolyDataMapper.h>
+#include <vtkRenderer.h>
+#include <vtkRenderWindow.h>
+#include <vtkRenderWindowInteractor.h>
+#include <vtkSmartPointer.h>
+#include <vtkSphereSource.h>
+
+#include <QApplication>
+#include <QFrame>
+#include <QMainWindow>
+#include <QPushButton>
+
 
 int main(int argc, char** argv)
 {
@@ -22,14 +25,16 @@ int main(int argc, char** argv)
   QFrame frame;
   mainWindow.setCentralWidget(&frame);
 
+  // Setup push button (plain Qt widget)
   QPushButton *button = new QPushButton("Test", &frame);
-  button->move(100, 100);
+  button->move(50, 50);
 
+
+  // Setup sphere (QVTKWidget) from VTK wiki
   QVTKWidget widget(&frame);
   widget.resize(256,256);
-  widget.move(200, 200);
+  widget.move(100, 100);
 
-  // Setup sphere
   vtkSmartPointer<vtkSphereSource> sphereSource =
       vtkSmartPointer<vtkSphereSource>::New();
   sphereSource->Update();
@@ -40,11 +45,8 @@ int main(int argc, char** argv)
       vtkSmartPointer<vtkActor>::New();
   sphereActor->SetMapper(sphereMapper);
 
-  // Setup window
   vtkSmartPointer<vtkRenderWindow> renderWindow =
       vtkSmartPointer<vtkRenderWindow>::New();
-
-  // Setup renderer
   vtkSmartPointer<vtkRenderer> renderer =
       vtkSmartPointer<vtkRenderer>::New();
   renderWindow->AddRenderer(renderer);
@@ -55,8 +57,33 @@ int main(int argc, char** argv)
   widget.SetRenderWindow(renderWindow);
 
 
+  // Setup map (QVTKWwidget)
+  QVTKWidget mapWidget(&frame);
+  mapWidget.resize(500, 500);
+  mapWidget.move(400, 100);
+
+  vtkNew<vtkMap> map;
+  vtkNew<vtkRenderer> mapRenderer;
+  map->SetRenderer(mapRenderer.GetPointer());
+  map->SetCenter(40.0,-70.0);
+  map->SetZoom(5);
+
+  vtkNew<vtkRenderWindow> mapRenderWindow;
+  mapRenderWindow->AddRenderer(mapRenderer.GetPointer());
+
+  // Adding interactor creates second window (?)
+  // vtkNew<vtkRenderWindowInteractor> intr;
+  // intr->SetRenderWindow(mapRenderWindow.GetPointer());
+  // intr->SetInteractorStyle(map->GetInteractorStyle());
+  // intr->Initialize();
+
+  mapWidget.SetRenderWindow(mapRenderWindow.GetPointer());
+
+
+  // Display main window and start Qt event loop
   mainWindow.show();
   mainWindow.resize(1000, 800);
+  map->Draw();
 
   app.exec();
 
