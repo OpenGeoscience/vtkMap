@@ -14,6 +14,7 @@
 =========================================================================*/
 
 #include "qtWSMapMainWindow.h"
+#include "qtMapCoordinatesWidget.h"
 #include <QVTKWidget.h>
 #include <vtkCallbackCommand.h>
 #include <vtkInteractorStyleImage.h>
@@ -62,16 +63,20 @@ protected:
 };
 
 
-
 // ------------------------------------------------------------
 qtWSMapMainWindow::qtWSMapMainWindow()
 {
   QFrame *frame = new QFrame();
   this->setCentralWidget(frame);
 
+  // Setup map-coords widget
+  qtMapCoordinatesWidget *mapCoordsWidget = new qtMapCoordinatesWidget(frame);
+  mapCoordsWidget->move(50, 50);
+
+
   // Setup push button (plain Qt widget)
   QPushButton *button = new QPushButton("Test", frame);
-  button->move(50, 50);
+  button->move(50, 650);
 
 
   // Setup map (QVTKWwidget)
@@ -100,7 +105,8 @@ qtWSMapMainWindow::qtWSMapMainWindow()
   intr->Start();
 }
 
-
+// ------------------------------------------------------------
+// Calls map's Draw() method
 void qtWSMapMainWindow::drawMap()
 {
   this->Map->Draw();
