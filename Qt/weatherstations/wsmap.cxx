@@ -16,8 +16,7 @@
 // .SECTION Description
 //
 
-
-#include "qtWSMapMainWindow.h"
+#include "qtWeatherStations.h"
 #include <qapplication.h>
 #include <iostream>
 
@@ -27,7 +26,7 @@ int main(int argc, char *argv[])
   std::cout << "Hello from wsmap" << std::endl;
 
   QApplication app(argc, argv);
-  qtWSMapMainWindow win;
+  qtWeatherStations win;
   win.show();
   win.resize(1000, 800);
   win.drawMap();

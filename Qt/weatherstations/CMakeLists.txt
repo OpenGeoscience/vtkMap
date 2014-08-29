@@ -4,14 +4,14 @@ include_directories(
   ${CMAKE_SOURCE_DIR}
 )
 
-set(UI_FILES qtMapCoordinatesWidget.ui)
-set(QT_WRAP qtMapCoordinatesWidget.h)
+set(UI_FILES qtMapCoordinatesWidget.ui qtWeatherStations.ui)
+set(QT_WRAP qtMapCoordinatesWidget.h qtWeatherStations.h)
 QT4_WRAP_UI(UISrcs ${UI_FILES})
 QT4_WRAP_CPP(MOCSrcs ${QT_WRAP})
 
 add_executable(wsmap
   wsmap.cxx
-  qtWSMapMainWindow.cxx
+  qtWeatherStations.cxx
   qtMapCoordinatesWidget.cxx
   ${CMAKE_SOURCE_DIR}/vtkMapTile.cxx
   ${CMAKE_SOURCE_DIR}/vtkMap.cxx
