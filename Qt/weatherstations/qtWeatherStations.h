@@ -42,7 +42,8 @@ class qtWeatherStations : public QMainWindow
   Ui_qtWeatherStations *UI;  /// Qt Designer form
 
  protected slots:
-   void resizeMap();
+   void resetMapCoords();
+   void resizeMapWidget();
    void showStations();
 };
 

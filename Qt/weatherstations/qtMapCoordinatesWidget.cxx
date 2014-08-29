@@ -13,9 +13,10 @@
 
 =========================================================================*/
 
-#include "vtkMap.h"
 #include "qtMapCoordinatesWidget.h"
 #include "ui_qtMapCoordinatesWidget.h"
+#include "vtkMap.h"
+#include <QString>
 
 
 // ------------------------------------------------------------
@@ -25,6 +26,20 @@ qtMapCoordinatesWidget::qtMapCoordinatesWidget(QWidget *parent)
   this->UI = new Ui_qtMapCoordinatesWidget;
   this->UI->setupUi(this);
 
+}
+
+// ------------------------------------------------------------
+void qtMapCoordinatesWidget::setCoordinates(double center[2], int zoom)
+{
+  QString latText;
+  latText.sprintf("%.6f", center[0]);
+  this->UI->LatitudeEdit->setText(latText);
+
+  QString lonText;
+  lonText.sprintf("%.6f", center[1]);
+  this->UI->LongitudeEdit->setText(lonText);
+
+  this->UI->ZoomEdit->setValue(zoom);
 }
 
 // ------------------------------------------------------------

@@ -32,7 +32,7 @@
 class MapCallback : public vtkCallbackCommand
 {
 public:
-  MapCallback(vtkMap *map) : Map(map), MouseDown(false) {}
+  MapCallback(qtWeatherStations *app) : App(app), MouseDown(false) {}
 
   virtual void Execute(vtkObject *caller, unsigned long eventId, void *callData)
   {
@@ -42,21 +42,22 @@ public:
         this->MouseDown = true;
         break;
       case vtkCommand::MiddleButtonReleaseEvent:
+        this->App->drawMap();
         this->MouseDown = false;
         break;
       case vtkCommand::MouseMoveEvent:
         if (this->MouseDown)
           {
-          this->Map->Draw();
+          this->App->drawMap();
           }
       case vtkCommand::MouseWheelForwardEvent:
       case vtkCommand::MouseWheelBackwardEvent:
-        this->Map->Draw();
+        this->App->drawMap();
       }
   }
 
 protected:
-  vtkMap *Map;
+  qtWeatherStations *App;
   bool MouseDown;
 };
 
@@ -69,10 +70,8 @@ qtWeatherStations::qtWeatherStations(QWidget *parent)
   this->UI = new Ui_qtWeatherStations;
   this->UI->setupUi(this);
 
-//QVBoxLayout *frameLayout = new QVBoxLayout;
-
-  QObject::connect(this->UI->ResizeMapButton, SIGNAL(clicked()),
-                   this, SLOT(resizeMap()));
+  // Manually set label invisible at startup
+  this->UI->RetrievingStationsLabel->setVisible(false);
 
   // Initialize map widget
   this->MapWidget = new QVTKWidget(this->UI->MapFrame);
@@ -83,6 +82,7 @@ qtWeatherStations::qtWeatherStations(QWidget *parent)
   this->Map = vtkMap::New();
   vtkNew<vtkRenderer> mapRenderer;
   this->Map->SetRenderer(mapRenderer.GetPointer());
+  //this->resetMapCoords();
   this->Map->SetCenter(0, 0);
   this->Map->SetZoom(5);
 
@@ -95,15 +95,38 @@ qtWeatherStations::qtWeatherStations(QWidget *parent)
   intr->Initialize();
 
   // Pass *all* callbacks to MapCallback instance
-  MapCallback *mapCallback = new MapCallback(this->Map);
+  MapCallback *mapCallback = new MapCallback(this);
   intr->AddObserver(vtkCommand::AnyEvent, mapCallback);
   intr->Start();
+
+  // Connect manual map-resize button to corresponding slot
+  // Since I cannot figure out how to do this automatically
+  QObject::connect(this->UI->ResizeMapButton, SIGNAL(clicked()),
+                   this, SLOT(resizeMapWidget()));
+
+  // Other connections
+  QObject::connect(this->UI->ResetButton, SIGNAL(clicked()),
+                   this, SLOT(resetMapCoords()));
+  QObject::connect(this->UI->ShowStationsButton, SIGNAL(clicked()),
+                   this, SLOT(showStations()));
+}
+
+// ------------------------------------------------------------
+// Resets map coordinates
+void qtWeatherStations::resetMapCoords()
+{
+  if (this->Map)
+    {
+    // Hard coded for now
+    this->Map->SetCenter(0, 0);
+    this->Map->SetZoom(5);
+    this->drawMap();
+    }
 }
 
 // ------------------------------------------------------------
 // Resizes MapWidget to fill its parent frame
-// Since I cannot figure out how to do this automatically
-void qtWeatherStations::resizeMap()
+void qtWeatherStations::resizeMapWidget()
 {
   int margin = 4;
   QSize sz = this->UI->MapFrame->size();
@@ -122,14 +145,20 @@ void qtWeatherStations::resizeMap()
 void qtWeatherStations::showStations()
 {
   // Todo
+  this->UI->RetrievingStationsLabel->setText("Sorry, not implemented yet");
+  this->UI->RetrievingStationsLabel->show();
 }
 
 // ------------------------------------------------------------
-// Calls map's Draw() method
+// Calls map Draw() method
 void qtWeatherStations::drawMap()
 {
   if (this->Map)
     {
     this->Map->Draw();
+    double center[2];
+    this->Map->GetCenter(center);
+    int zoom = this->Map->GetZoom();
+    this->UI->MapCoordinatesWidget->setCoordinates(center, zoom);
     }
 }
