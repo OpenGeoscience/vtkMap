@@ -23,7 +23,7 @@
 
 int main(int argc, char *argv[])
 {
-  std::cout << "Hello from wsmap" << std::endl;
+  //std::cout << "Hello from wsmap" << std::endl;
 
   QApplication app(argc, argv);
   qtWeatherStations win;

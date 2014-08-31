@@ -25,6 +25,7 @@
 #include <vtkRenderWindowInteractor.h>
 #include <QVBoxLayout>
 #include <curl/curl.h>
+#include <cJSON/cJSON.h>
 #include <sstream>
 #include <stdlib.h>  // for sprintf
 
@@ -128,6 +129,15 @@ qtWeatherStations::qtWeatherStations(QWidget *parent)
                    this, SLOT(resetMapCoords()));
   QObject::connect(this->UI->ShowStationsButton, SIGNAL(clicked()),
                    this, SLOT(showStations()));
+
+  // Initialize curl
+  curl_global_init(CURL_GLOBAL_DEFAULT);
+}
+
+// ------------------------------------------------------------
+qtWeatherStations::~qtWeatherStations()
+{
+  curl_global_cleanup();
 }
 
 // ------------------------------------------------------------
@@ -163,12 +173,12 @@ void qtWeatherStations::resizeMapWidget()
 // Retrieves list of weather stations and displays on map
 void qtWeatherStations::showStations()
 {
-  // Todo
-  //this->UI->RetrievingStationsLabel->setText("Sorry, not implemented yet");
-  //this->UI->RetrievingStationsLabel->show();
+  this->UI->StationText->setFontFamily("Courier New");
+  this->UI->StationText->clear();
+  this->UI->StationText->setText("Retrieving station data");
+  // Todo is there any way to update the display *now* ???
+
   std::stringstream textData;
-  textData << "Retrieving station data.\n";
-  //this->UI->StationText->setText("Retrieving station info");
   double center[2];
   this->Map->GetCenter(center);
   int zoom = this->Map->GetZoom();
@@ -184,8 +194,8 @@ void qtWeatherStations::showStations()
   this->UI->StationText->setText(textData.str().c_str());
 
   // Construct openweathermaps request
+  int count = this->UI->StationCountSpinBox->value();
   const char *appId = "14cdc51cab181f8848f43497c58f1a96";
-  int count = 7;  // number of stations to request
   const char *format = "http://api.openweathermap.org/data/2.5/find"
     "?lat=%f&lon=%f&cnt=%d&units=imperial&APPID=%s";
   char url[256];
@@ -193,7 +203,6 @@ void qtWeatherStations::showStations()
   std::cout << "url " << url << std::endl;
 
   // Initialize curl & send request
-  curl_global_init(CURL_GLOBAL_DEFAULT);
   CURL *curl = curl_easy_init();
   curl_easy_setopt(curl, CURLOPT_URL, url);
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, handle_curl_input);
@@ -207,14 +216,71 @@ void qtWeatherStations::showStations()
   CURLcode res = curl_easy_perform(curl);
   //std::cout << "Request end, return value " << res << std::endl;
   curl_easy_cleanup(curl);
-  curl_global_cleanup();
 
 
   // Parse input string (json)
   ss.seekp(0L);
   std::string ssData = ss.str();
-  textData << ssData.c_str();
+
+  cJSON *json = cJSON_Parse(ssData.c_str());
+  if (!json)
+    {
+    std::cerr << "Error before: [" << cJSON_GetErrorPtr() << "]" << std::endl;
+    textData << ssData.c_str();
+    this->UI->StationText->setText(textData.str().c_str());
+    return;
+    }
+
+  // char *out = cJSON_Print(json);
+  // printf("%s\n",out);
+  // free(out);
+
+  cJSON *stationList = cJSON_GetObjectItem(json, "list");
+  if (!stationList)
+    {
+    std::cerr << "No list element found" << std::endl;
+    textData << ssData.c_str();
+    this->UI->StationText->setText(textData.str().c_str());
+    return;
+    }
+  int stationListSize = cJSON_GetArraySize(stationList);
+  textData << "Station list size " << stationListSize << "\n";
+
+  // Dump info for returned stations
+  for (int i=0; i<stationListSize; ++i)
+    {
+    // Station ID & name
+    cJSON *station = cJSON_GetArrayItem(stationList, i);
+    cJSON *idNode = cJSON_GetObjectItem(station, "id");
+    cJSON *nameNode = cJSON_GetObjectItem(station, "name");
+    textData << std::setw(3) << i+1
+             << ". " << idNode->valueint
+             << "  " << std::setw(20) << nameNode->valuestring;
+
+    // Current temp
+    cJSON *mainNode = cJSON_GetObjectItem(station, "main");
+    cJSON *tempNode = cJSON_GetObjectItem(mainNode, "temp");
+    textData << "  " << std::setiosflags(std::ios_base::fixed)
+             << std::setprecision(1) << tempNode->valuedouble << "F";
+
+    // Geo coords
+    cJSON *coordNode = cJSON_GetObjectItem(station, "coord");
+    cJSON *latNode = cJSON_GetObjectItem(coordNode, "lat");
+    cJSON *lonNode = cJSON_GetObjectItem(coordNode, "lon");
+    textData << "  (" << std::setiosflags(std::ios_base::fixed)
+             << std::setprecision(6) << latNode->valuedouble
+             << ", " << std::setiosflags(std::ios_base::fixed)
+             << std::setprecision(6) << lonNode->valuedouble << ")";
+
+    // Datetime
+    cJSON *dtNode = cJSON_GetObjectItem(station, "dt");
+    time_t dt(dtNode->valueint);  // dt units are seconds
+    textData << "  " << ctime(&dt);  // includes newline
+    //textData  << "\n";
+    }
   this->UI->StationText->setText(textData.str().c_str());
+
+  cJSON_Delete(json);
 }
 
 // ------------------------------------------------------------

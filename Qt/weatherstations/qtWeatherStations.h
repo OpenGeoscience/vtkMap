@@ -32,6 +32,8 @@ class qtWeatherStations : public QMainWindow
   Q_OBJECT
  public:
   qtWeatherStations(QWidget *parent = 0);
+  virtual ~qtWeatherStations();
+
 
   void drawMap();
  public slots:
