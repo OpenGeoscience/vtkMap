@@ -17,7 +17,7 @@ add_executable(wsmap
   ${CMAKE_SOURCE_DIR}/vtkMap.cxx
   ${UISrcs} ${MOCSrcs}
 )
-target_link_libraries(wsmap ${VTK_LIBRARIES} ${QT_LIBRARIES} -lcurl)
+target_link_libraries(wsmap ${VTK_LIBRARIES} -lcurl)
 
 add_executable(RenderWindowNoUiFile
   RenderWindowNoUiFile.cxx

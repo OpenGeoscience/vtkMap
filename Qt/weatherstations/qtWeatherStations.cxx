@@ -24,6 +24,25 @@
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
 #include <QVBoxLayout>
+#include <curl/curl.h>
+#include <sstream>
+#include <stdlib.h>  // for sprintf
+
+
+namespace {
+  // ------------------------------------------------------------
+  // [static] Handles callbacks from curl_easy_perform()
+  // Writes input buffer to stream (last argument)
+  size_t handle_curl_input(void *buffer, size_t size,
+                           size_t nmemb, void *stream)
+  {
+    //std::cout << "handle_input() nmemb: " << nmemb << std::endl
+    //std::cout << static_cast<char *>(buffer) << std::endl;
+    std::stringstream *ss = static_cast<std::stringstream *>(stream);
+    *ss << static_cast<char *>(buffer);
+    return nmemb;
+  }
+}  // namespace
 
 
 // ------------------------------------------------------------
@@ -145,8 +164,57 @@ void qtWeatherStations::resizeMapWidget()
 void qtWeatherStations::showStations()
 {
   // Todo
-  this->UI->RetrievingStationsLabel->setText("Sorry, not implemented yet");
-  this->UI->RetrievingStationsLabel->show();
+  //this->UI->RetrievingStationsLabel->setText("Sorry, not implemented yet");
+  //this->UI->RetrievingStationsLabel->show();
+  std::stringstream textData;
+  textData << "Retrieving station data.\n";
+  //this->UI->StationText->setText("Retrieving station info");
+  double center[2];
+  this->Map->GetCenter(center);
+  int zoom = this->Map->GetZoom();
+  this->UI->MapCoordinatesWidget->setCoordinates(center, zoom);
+  textData << "Map coordinates (lat, lon) are"
+           << " (" << center[0] << ", " << center[1] << ")"
+           ", zoom " << zoom << "\n";
+
+  // K28 lat-lon coordinates per http://www.latlong.net:
+  double lat =  42.849604;
+  double lon = -73.758345;
+  textData << "Instead using KHQ geo coords (" << lat << ", " << lon << ")\n\n";
+  this->UI->StationText->setText(textData.str().c_str());
+
+  // Construct openweathermaps request
+  const char *appId = "14cdc51cab181f8848f43497c58f1a96";
+  int count = 7;  // number of stations to request
+  const char *format = "http://api.openweathermap.org/data/2.5/find"
+    "?lat=%f&lon=%f&cnt=%d&units=imperial&APPID=%s";
+  char url[256];
+  sprintf(url, format, lat, lon, count, appId);
+  std::cout << "url " << url << std::endl;
+
+  // Initialize curl & send request
+  curl_global_init(CURL_GLOBAL_DEFAULT);
+  CURL *curl = curl_easy_init();
+  curl_easy_setopt(curl, CURLOPT_URL, url);
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, handle_curl_input);
+
+  std::stringstream ss;
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &ss);
+
+  //curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+  //std::cout << "Start request" << std::endl;
+  // Use blocking IO for now
+  CURLcode res = curl_easy_perform(curl);
+  //std::cout << "Request end, return value " << res << std::endl;
+  curl_easy_cleanup(curl);
+  curl_global_cleanup();
+
+
+  // Parse input string (json)
+  ss.seekp(0L);
+  std::string ssData = ss.str();
+  textData << ssData.c_str();
+  this->UI->StationText->setText(textData.str().c_str());
 }
 
 // ------------------------------------------------------------
