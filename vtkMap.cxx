@@ -270,7 +270,24 @@ void vtkMap::AddTiles()
 
   if (this->NewPendingTiles.size() > 0)
     {
-    /// TODO: Remove only the tiles and not other props
+    std::vector<vtkActor*>::iterator itr = this->CachedActors.begin();
+    for (itr; itr != this->CachedActors.end(); ++itr)
+      {
+      std::cerr << "Removing " << *itr << std::endl;
+      this->Renderer->RemoveActor(*itr);
+      }
+
+    vtkPropCollection* props = this->Renderer->GetViewProps();
+
+    props->InitTraversal();
+    vtkProp* prop = props->GetNextProp();
+    std::vector<vtkProp*> otherProps;
+    while (prop)
+      {
+      otherProps.push_back(prop);
+      prop = props->GetNextProp();
+      }
+
     this->Renderer->RemoveAllViewProps();
 
     std::sort(this->NewPendingTiles.begin(), this->NewPendingTiles.end(),
@@ -280,6 +297,14 @@ void vtkMap::AddTiles()
       {
       // Add tile to the renderer
       this->Renderer->AddActor(this->NewPendingTiles[i]->GetActor());
+      }
+
+    std::vector<vtkProp*>::iterator itr2 = otherProps.begin();
+    while (itr2 != otherProps.end())
+      {
+      std::cerr << "Nothing to add " << std::endl;
+      this->Renderer->AddViewProp(*itr2);
+      ++itr2;
       }
 
     this->NewPendingTiles.clear();
@@ -298,6 +323,7 @@ double vtkMap::Clip(double n, double minValue, double maxValue)
 void vtkMap::AddTileToCache(int zoom, int x, int y, vtkMapTile* tile)
 {
   this->CachedTiles[zoom][x][y] = tile;
+  this->CachedActors.push_back(tile->GetActor());
 }
 
 //----------------------------------------------------------------------------

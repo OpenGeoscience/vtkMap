@@ -25,6 +25,7 @@
 class vtkInteractorStyle;
 class vtkRenderer;
 class vtkMapTile;
+class vtkActor;
 
 #include <map>
 #include <vector>
@@ -107,6 +108,7 @@ protected:
   // Description:
   // Cached tiles
   std::map< int, std::map< int, std::map <int, vtkMapTile*> > > CachedTiles;
+  std::vector<vtkActor*> CachedActors;
 
   std::vector<vtkMapTile*> NewPendingTiles;
 

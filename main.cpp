@@ -34,19 +34,16 @@ int main()
   map->SetCenter(0, 0);
   map->SetZoom(5);
 
-  vtkNew<vtkRenderer> rend2;
   vtkNew<vtkSphereSource> ss;
   vtkNew<vtkPolyDataMapper> sm;
   vtkNew<vtkActor> sa;
+  ss->SetRadius(10.0);
   sa->SetMapper(sm.GetPointer());
   sm->SetInputConnection(ss->GetOutputPort());
-  rend2->AddActor(sa.GetPointer());
-  rend2->SetLayer(1);
+  rend->AddActor(sa.GetPointer());
 
   vtkNew<vtkRenderWindow> wind;
-//  wind->SetNumberOfLayers(2);
-  wind->AddRenderer(rend.GetPointer());
-//  wind->AddRenderer(rend2.GetPointer());
+  wind->AddRenderer(rend.GetPointer());;
   wind->SetSize(700, 700);
 
   vtkNew<vtkRenderWindowInteractor> intr;
