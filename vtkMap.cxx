@@ -69,13 +69,10 @@ struct sortTiles
 };
 
 //----------------------------------------------------------------------------
-vtkMap::vtkMap()
+double computeCameraDistance(vtkCamera* cam, int zoomLevel)
 {
-  this->Renderer = NULL;
-  this->InteractorStyle = vtkInteractorStyleImage::New();
-  this->Zoom = 1;
-  this->Center[0] = this->Center[1] = 0.0;
-  this->Initialized = false;
+  double deg = 360.0 / std::pow(2, zoomLevel);
+  return (deg / std::sin(vtkMath::RadiansFromDegrees(cam->GetViewAngle())));
 }
 
 //----------------------------------------------------------------------------
@@ -92,6 +89,16 @@ int computeZoomLevel(vtkCamera* cam)
       return i;
     }
   }
+}
+
+//----------------------------------------------------------------------------
+vtkMap::vtkMap()
+{
+  this->Renderer = NULL;
+  this->InteractorStyle = vtkInteractorStyleImage::New();
+  this->Zoom = 1;
+  this->Center[0] = this->Center[1] = 0.0;
+  this->Initialized = false;
 }
 
 //----------------------------------------------------------------------------
@@ -130,7 +137,12 @@ void vtkMap::Draw()
     this->Initialized = true;
     this->Renderer->GetActiveCamera()->SetPosition(this->Center[0],
                                                    this->Center[1],
-                                                   10.0);
+                                                   computeCameraDistance(this->Renderer->GetActiveCamera(), this->Zoom));
+    this->Renderer->GetActiveCamera()->SetFocalPoint(this->Center[0],
+                                                    this->Center[1],
+                                                    0.0);
+    this->Renderer->GetRenderWindow()->Render();
+    this->Renderer->GetRenderWindow()->Render();
     }
   this->Update();
   this->Renderer->GetRenderWindow()->Render();
@@ -182,13 +194,11 @@ void vtkMap::AddTiles()
 
   topRight[0] = std::max(topRight[0], -180.0);
   topRight[0] = std::min(topRight[0],  180.0);
-  topRight[1] = std::max(topRight[1], -85.0);
-  topRight[1] = std::min(topRight[1],  85.0);
+  topRight[1] = std::max(topRight[1], -90.0);
+  topRight[1] = std::min(topRight[1],  90.0);
 
   int tile1x = long2tilex(bottomLeft[0], this->Zoom);
   int tile2x = long2tilex(topRight[0], this->Zoom);
-
-  std::cerr << "bottomLeft " << bottomLeft[1] << std::endl;
 
   int tile1y = lat2tiley(bottomLeft[1], this->Zoom);
   int tile2y = lat2tiley(topRight[1], this->Zoom);

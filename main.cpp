@@ -47,7 +47,7 @@ int main()
 //  wind->SetNumberOfLayers(2);
   wind->AddRenderer(rend.GetPointer());
 //  wind->AddRenderer(rend2.GetPointer());
-  wind->SetSize(1300, 700);
+  wind->SetSize(700, 700);
 
   vtkNew<vtkRenderWindowInteractor> intr;
   intr->SetRenderWindow(wind.GetPointer());
