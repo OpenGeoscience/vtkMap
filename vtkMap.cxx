@@ -203,7 +203,7 @@ void vtkMap::AddTiles()
   int tile1y = lat2tiley(bottomLeft[1], this->Zoom);
   int tile2y = lat2tiley(topRight[1] * 0.5, this->Zoom);
 
-  std::cerr << "tile1y " << tile1y << " " << tile2y << std::endl;
+  //std::cerr << "tile1y " << tile1y << " " << tile2y << std::endl;
 
   if (tile2y > tile1y)
     {
@@ -212,8 +212,8 @@ void vtkMap::AddTiles()
     tile2y = temp;
     }
 
-  std::cerr << "Before bottomLeft " << bottomLeft[0] << " " << bottomLeft[1] << std::endl;
-  std::cerr << "Before topRight " << topRight[0] << " " << topRight[1] << std::endl;
+  //std::cerr << "Before bottomLeft " << bottomLeft[0] << " " << bottomLeft[1] << std::endl;
+  //std::cerr << "Before topRight " << topRight[0] << " " << topRight[1] << std::endl;
 
   /// Clamp tilex and tiley
   tile1x = std::max(tile1x, 0);
@@ -232,11 +232,11 @@ void vtkMap::AddTiles()
   double lonPerTile = 360.0 / noOfTilesX;
   double latPerTile = 360.0 / noOfTilesY;
 
-  std::cerr << "llx " << llx << " lly " << lly << " " << height << std::endl;
+  //std::cerr << "llx " << llx << " lly " << lly << " " << height << std::endl;
   //std::cerr << "tile1y " << tile1y << " " << tile2y << std::endl;
 
-  std::cerr << "tile1x " << tile1x << " tile2x " << tile2x << std::endl;
-  std::cerr << "tile1y " << tile1y << " tile2y " << tile2y << std::endl;
+  //std::cerr << "tile1x " << tile1x << " tile2x " << tile2x << std::endl;
+  //std::cerr << "tile1y " << tile1y << " tile2y " << tile2y << std::endl;
 
   int xIndex, yIndex;
   for (int i = tile1x; i <= tile2x; ++i)
@@ -288,7 +288,6 @@ void vtkMap::AddTiles()
     std::vector<vtkActor*>::iterator itr = this->CachedActors.begin();
     for (itr; itr != this->CachedActors.end(); ++itr)
       {
-      std::cerr << "Removing " << *itr << std::endl;
       this->Renderer->RemoveActor(*itr);
       }
 
@@ -317,7 +316,6 @@ void vtkMap::AddTiles()
     std::vector<vtkProp*>::iterator itr2 = otherProps.begin();
     while (itr2 != otherProps.end())
       {
-      std::cerr << "Nothing to add " << std::endl;
       this->Renderer->AddViewProp(*itr2);
       ++itr2;
       }
