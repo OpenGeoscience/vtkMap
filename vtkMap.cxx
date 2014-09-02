@@ -165,7 +165,7 @@ void vtkMap::AddTiles()
   this->Renderer->GetDisplayPoint(focusDisplayPoint);
 
   this->Renderer->GetTiledSizeAndOrigin(&width, &height, &llx, &lly);
-  this->Renderer->SetDisplayPoint(llx, lly, focusDisplayPoint[2]);
+  this->Renderer->SetDisplayPoint(llx, lly + height, focusDisplayPoint[2]);
   this->Renderer->DisplayToWorld();
   this->Renderer->GetWorldPoint(bottomLeft);
 
@@ -178,10 +178,10 @@ void vtkMap::AddTiles()
 
   bottomLeft[0] = std::max(bottomLeft[0], -180.0);
   bottomLeft[0] = std::min(bottomLeft[0],  180.0);
-  bottomLeft[1] = std::max(bottomLeft[1], -85.0);
-  bottomLeft[1] = std::min(bottomLeft[1],  85.0);
+  bottomLeft[1] = std::max(bottomLeft[1], -85.05 * 2);
+  bottomLeft[1] = std::min(bottomLeft[1],  85.05 * 2);
 
-  this->Renderer->SetDisplayPoint(llx + width, lly + height, focusDisplayPoint[2]);
+  this->Renderer->SetDisplayPoint(llx + width, lly, focusDisplayPoint[2]);
   this->Renderer->DisplayToWorld();
   this->Renderer->GetWorldPoint(topRight);
 
@@ -194,14 +194,26 @@ void vtkMap::AddTiles()
 
   topRight[0] = std::max(topRight[0], -180.0);
   topRight[0] = std::min(topRight[0],  180.0);
-  topRight[1] = std::max(topRight[1], -90.0);
-  topRight[1] = std::min(topRight[1],  90.0);
+  topRight[1] = std::max(topRight[1], -85.05 * 2);
+  topRight[1] = std::min(topRight[1],  85.05 * 2);
 
   int tile1x = long2tilex(bottomLeft[0], this->Zoom);
-  int tile2x = long2tilex(topRight[0], this->Zoom);
+  int tile2x = long2tilex(topRight[0] * 0.5, this->Zoom);
 
   int tile1y = lat2tiley(bottomLeft[1], this->Zoom);
-  int tile2y = lat2tiley(topRight[1], this->Zoom);
+  int tile2y = lat2tiley(topRight[1] * 0.5, this->Zoom);
+
+  std::cerr << "tile1y " << tile1y << " " << tile2y << std::endl;
+
+  if (tile2y > tile1y)
+    {
+    int temp = tile1y;
+    tile1y = tile2y;
+    tile2y = temp;
+    }
+
+  std::cerr << "Before bottomLeft " << bottomLeft[0] << " " << bottomLeft[1] << std::endl;
+  std::cerr << "Before topRight " << topRight[0] << " " << topRight[1] << std::endl;
 
   /// Clamp tilex and tiley
   tile1x = std::max(tile1x, 0);
@@ -214,14 +226,17 @@ void vtkMap::AddTiles()
   tile2y = std::max(tile2y, 0);
   tile2y = std::min(static_cast<int>(pow(2, this->Zoom)) - 1, tile2y);
 
-  int noOfTilesX = static_cast<int>(pow(2, this->Zoom));
-  int noOfTilesY = static_cast<int>(pow(2, this->Zoom));
+  int noOfTilesX = std::max(1, static_cast<int>(pow(2, this->Zoom)));
+  int noOfTilesY = std::max(1, static_cast<int>(pow(2, this->Zoom)));
 
   double lonPerTile = 360.0 / noOfTilesX;
   double latPerTile = 360.0 / noOfTilesY;
 
-  std::cerr << "tile1x " << tile1x << " " << tile2x << std::endl;
-  std::cerr << "tile1y " << tile1y << " " << tile2y << std::endl;
+  std::cerr << "llx " << llx << " lly " << lly << " " << height << std::endl;
+  //std::cerr << "tile1y " << tile1y << " " << tile2y << std::endl;
+
+  std::cerr << "tile1x " << tile1x << " tile2x " << tile2x << std::endl;
+  std::cerr << "tile1y " << tile1y << " tile2y " << tile2y << std::endl;
 
   int xIndex, yIndex;
   for (int i = tile1x; i <= tile2x; ++i)
