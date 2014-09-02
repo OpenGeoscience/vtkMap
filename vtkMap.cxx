@@ -135,11 +135,11 @@ void vtkMap::Draw()
   if (!this->Initialized && this->Renderer)
     {
     this->Initialized = true;
-    this->Renderer->GetActiveCamera()->SetPosition(this->Center[0],
-                                                   this->Center[1],
+    this->Renderer->GetActiveCamera()->SetPosition(this->Center[1],
+                                                   this->Center[0],
                                                    computeCameraDistance(this->Renderer->GetActiveCamera(), this->Zoom));
-    this->Renderer->GetActiveCamera()->SetFocalPoint(this->Center[0],
-                                                    this->Center[1],
+    this->Renderer->GetActiveCamera()->SetFocalPoint(this->Center[1],
+                                                     this->Center[0],
                                                     0.0);
     this->Renderer->GetRenderWindow()->Render();
     this->Renderer->GetRenderWindow()->Render();

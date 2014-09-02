@@ -31,7 +31,7 @@ int main()
 
   vtkNew<vtkRenderer> rend;
   map->SetRenderer(rend.GetPointer());
-  map->SetCenter(0, 0);
+  map->SetCenter(40, -70);
   map->SetZoom(5);
 
   vtkNew<vtkSphereSource> ss;
