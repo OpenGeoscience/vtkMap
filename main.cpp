@@ -31,6 +31,7 @@ int main()
   map->SetRenderer(rend.GetPointer());
   map->SetCenter(0, 0);
   map->SetZoom(5);
+  map->SetDestinationPath("Images/Tiles");
 
   vtkNew<vtkRenderWindow> wind;
   wind->AddRenderer(rend.GetPointer());
