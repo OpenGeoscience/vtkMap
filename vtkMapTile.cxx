@@ -25,6 +25,7 @@
 #include <vtkTexture.h>
 #include <vtkTextureMapToPlane.h>
 #include <vtkNew.h>
+#include <vtksys/SystemTools.hxx>
 
 #include <curl/curl.h>
 
@@ -43,7 +44,7 @@ vtkMapTile::vtkMapTile()
   this->Bin = Hidden;
   this->VisibleFlag = false;
   this->Corners[0] = this->Corners[1] =
-    this->Corners[2] = this->Corners[3] = 0.0;
+  this->Corners[2] = this->Corners[3] = 0.0;
 }
 
 //----------------------------------------------------------------------------
@@ -132,6 +133,14 @@ void vtkMapTile::InitializeDownload()
 {
   // Generate destination file name
   this->ImageFile = "Temp/" + this->ImageKey + ".png";
+
+  // Check if destination directory exists.
+  // If not, then create it.
+  if(!vtksys::SystemTools::FileIsDirectory("Temp"))
+    {
+    std::cerr << "Destination directory not present. Creating " << std::endl;
+    vtksys::SystemTools::MakeDirectory("Temp");
+    }
 
   // Check if texture already exists.
   // If not, download
