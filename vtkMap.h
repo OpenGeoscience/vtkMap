@@ -25,9 +25,11 @@
 class vtkInteractorStyle;
 class vtkRenderer;
 class vtkMapTile;
+class vtkMapMarker;
 class vtkActor;
 
 #include <map>
+#include <set>
 #include <vector>
 
 class vtkMap : public vtkObject
@@ -64,6 +66,14 @@ public:
   // Description:
   // Update the renderer with relevant tiles to draw the Map
   void Draw();
+
+  // Description:
+  // Add marker to map
+  vtkMapMarker *AddMarker(double Latitude, double Longitude);
+
+  // Description:
+  // Removes all map markers
+  void RemoveMapMarkers();
 
 protected:
   vtkMap();
@@ -111,6 +121,8 @@ protected:
   std::vector<vtkActor*> CachedActors;
 
   std::vector<vtkMapTile*> NewPendingTiles;
+
+  std::set<vtkMapMarker*> MapMarkers;
 
 protected:
   bool Initialized;

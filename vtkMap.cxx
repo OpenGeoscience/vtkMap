@@ -14,9 +14,11 @@
 =========================================================================*/
 
 #include "vtkMap.h"
+#include "vtkMapMarker.h"
 #include "vtkMapTile.h"
 
 // VTK Includes
+#include <vtkActor2D.h>
 #include <vtkImageInPlaceFilter.h>
 #include <vtkInteractorStyleImage.h>
 #include <vtkObjectFactory.h>
@@ -364,4 +366,30 @@ vtkMapTile *vtkMap::GetCachedTile(int zoom, int x, int y)
     }
 
   return this->CachedTiles[zoom][x][y];
+}
+
+
+//----------------------------------------------------------------------------
+vtkMapMarker *vtkMap::AddMarker(double Latitude, double Longitude)
+{
+  vtkMapMarker *marker = vtkMapMarker::New();
+  marker->SetCoordinates(Latitude, Longitude);
+  this->Renderer->AddActor(marker->GetActor());
+  this->MapMarkers.insert(marker);
+  this->Draw();
+  return marker;
+}
+
+//----------------------------------------------------------------------------
+void vtkMap::RemoveMapMarkers()
+{
+  std::set<vtkMapMarker*>::iterator iter = this->MapMarkers.begin();
+  for (; iter != this->MapMarkers.end(); iter++)
+    {
+    vtkMapMarker *marker = *iter;
+    vtkActor2D *actor = marker->GetActor();
+    this->Renderer->RemoveActor(actor);
+    }
+  this->MapMarkers.clear();
+  this->Draw();
 }

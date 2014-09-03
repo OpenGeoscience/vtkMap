@@ -24,6 +24,8 @@ include(${VTK_USE_FILE})
 
 set (SOURCES
     main.cpp
+    vtkMapMarker.cxx
+    vtkMapMarker.h
     vtkMapTile.cxx
     vtkMapTile.h
     vtkMap.cxx
