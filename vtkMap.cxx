@@ -60,6 +60,18 @@ double tiley2lat(int y, int z)
 }
 
 //----------------------------------------------------------------------------
+double y2lat(double a)
+{
+  return 180 / M_PI * (2 * atan(exp(a * M_PI / 180.0)) - M_PI / 2.0);
+}
+
+//----------------------------------------------------------------------------
+double lat2y(double a)
+{
+  return 180.0 / M_PI * log(tan(M_PI / 4.0 + a * (M_PI / 180.0) / 2.0));
+}
+
+//----------------------------------------------------------------------------
 struct sortTiles
 {
   inline bool operator() (vtkMapTile* tile1,  vtkMapTile* tile2)
@@ -165,7 +177,7 @@ void vtkMap::AddTiles()
   this->Renderer->GetDisplayPoint(focusDisplayPoint);
 
   this->Renderer->GetTiledSizeAndOrigin(&width, &height, &llx, &lly);
-  this->Renderer->SetDisplayPoint(llx, lly + height, focusDisplayPoint[2]);
+  this->Renderer->SetDisplayPoint(llx, lly, focusDisplayPoint[2]);
   this->Renderer->DisplayToWorld();
   this->Renderer->GetWorldPoint(bottomLeft);
 
@@ -176,12 +188,14 @@ void vtkMap::AddTiles()
     bottomLeft[2] /= bottomLeft[3];
     }
 
+  //std::cerr << "Before bottomLeft " << bottomLeft[0] << " " << bottomLeft[1] << std::endl;
+
   bottomLeft[0] = std::max(bottomLeft[0], -180.0);
   bottomLeft[0] = std::min(bottomLeft[0],  180.0);
-  bottomLeft[1] = std::max(bottomLeft[1], -85.05 * 2);
-  bottomLeft[1] = std::min(bottomLeft[1],  85.05 * 2);
+  bottomLeft[1] = std::max(bottomLeft[1], -180.0);
+  bottomLeft[1] = std::min(bottomLeft[1],  180.0);
 
-  this->Renderer->SetDisplayPoint(llx + width, lly, focusDisplayPoint[2]);
+  this->Renderer->SetDisplayPoint(llx + width, lly + height, focusDisplayPoint[2]);
   this->Renderer->DisplayToWorld();
   this->Renderer->GetWorldPoint(topRight);
 
@@ -194,14 +208,14 @@ void vtkMap::AddTiles()
 
   topRight[0] = std::max(topRight[0], -180.0);
   topRight[0] = std::min(topRight[0],  180.0);
-  topRight[1] = std::max(topRight[1], -85.05 * 2);
-  topRight[1] = std::min(topRight[1],  85.05 * 2);
+  topRight[1] = std::max(topRight[1], -180.0);
+  topRight[1] = std::min(topRight[1],  180.0);
 
   int tile1x = long2tilex(bottomLeft[0], this->Zoom);
-  int tile2x = long2tilex(topRight[0] * 0.5, this->Zoom);
+  int tile2x = long2tilex(topRight[0], this->Zoom);
 
-  int tile1y = lat2tiley(bottomLeft[1], this->Zoom);
-  int tile2y = lat2tiley(topRight[1] * 0.5, this->Zoom);
+  int tile1y = lat2tiley(y2lat(bottomLeft[1]), this->Zoom);
+  int tile2y = lat2tiley(y2lat(topRight[1]), this->Zoom);
 
   //std::cerr << "tile1y " << tile1y << " " << tile2y << std::endl;
 
