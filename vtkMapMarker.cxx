@@ -34,7 +34,7 @@ vtkMapMarker::vtkMapMarker()
   this->Mapper = vtkImageMapper::New();
   this->Mapper->SetColorWindow(255.0);
   this->Mapper->SetColorLevel(127.5);
-  this->Mapper->SetInputData(this->ImageData);
+  this->Mapper->SetInput(vtkMapMarker::ImageData);
 
   this->Actor = vtkActor2D::New();
   this->Actor->SetMapper(this->Mapper);
@@ -69,11 +69,17 @@ void vtkMapMarker::LoadMarkerImage(const char* PngFilename)
             << " x " << dims[2] << std::endl;
 
   vtkMapMarker::ImageData = pngReader->GetOutput();
+  vtkMapMarker::ImageData->Register(NULL);
 }
 
 //----------------------------------------------------------------------------
 void vtkMapMarker::SetCoordinates(double Latitude, double Longitude)
 {
+  // Todo convert to screen position
+  // For now, take absolute value
+  double x = Longitude < 0.0 ? -Longitude : Longitude;
+  double y = Latitude < 0.0 ? -Latitude : Latitude;
+
   // Note that longitude goes first, since it is the X coordinate
-  this->Actor->SetPosition(Longitude, Latitude);
+  this->Actor->SetPosition(x, y);
 }

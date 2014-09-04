@@ -113,6 +113,10 @@ vtkMap::vtkMap()
   this->Zoom = 1;
   this->Center[0] = this->Center[1] = 0.0;
   this->Initialized = false;
+
+  // Load marker image
+  // Todo Embed image data in header or source file?
+  vtkMapMarker::LoadMarkerImage(MARKER_IMAGE_FILE);
 }
 
 //----------------------------------------------------------------------------

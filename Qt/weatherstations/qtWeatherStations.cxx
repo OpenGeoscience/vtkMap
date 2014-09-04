@@ -103,7 +103,7 @@ qtWeatherStations::qtWeatherStations(QWidget *parent)
   vtkNew<vtkRenderer> mapRenderer;
   this->Map->SetRenderer(mapRenderer.GetPointer());
   //this->resetMapCoords();
-  this->Map->SetCenter(0, 0);
+  this->Map->SetCenter(32.2, -90.9);  // approx ERDC coords
   this->Map->SetZoom(5);
 
   vtkNew<vtkRenderWindow> mapRenderWindow;
@@ -246,6 +246,10 @@ void qtWeatherStations::showStations()
   int stationListSize = cJSON_GetArraySize(stationList);
   textData << "Station list size " << stationListSize << "\n";
 
+  this->DisplayStationMarkers(stationList);
+
+  // Todo: refactor following code into DisplayStationData() method
+
   // Dump info for returned stations
   for (int i=0; i<stationListSize; ++i)
     {
@@ -282,6 +286,31 @@ void qtWeatherStations::showStations()
 
   cJSON_Delete(json);
 }
+
+// ------------------------------------------------------------
+void qtWeatherStations::DisplayStationMarkers(cJSON *stationList)
+{
+  int stationListSize = cJSON_GetArraySize(stationList);
+
+  // Create map markers for each station
+  for (int i=0; i<stationListSize; ++i)
+    {
+    cJSON *station = cJSON_GetArrayItem(stationList, i);
+    cJSON *coordNode = cJSON_GetObjectItem(station, "coord");
+    cJSON *latNode = cJSON_GetObjectItem(coordNode, "lat");
+    cJSON *lonNode = cJSON_GetObjectItem(coordNode, "lon");
+
+    double lat = latNode->valuedouble;
+    double lon = lonNode->valuedouble;
+    this->Map->AddMarker(lon, lat);
+
+#if 1
+    // During development, only create one marker
+    break;
+#endif
+    }
+ }
+
 
 // ------------------------------------------------------------
 // Calls map Draw() method

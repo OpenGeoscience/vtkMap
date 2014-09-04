@@ -22,6 +22,7 @@
 #include <QMainWindow>
 class vtkMap;
 class QVTKWidget;
+class cJSON;
 
 
 // Forward Qt class declarations
@@ -39,6 +40,8 @@ class qtWeatherStations : public QMainWindow
  public slots:
 
  protected:
+  void DisplayStationMarkers(cJSON *stationList);
+
   vtkMap *Map;               /// Map instance
   QVTKWidget *MapWidget;     /// Map widget
   Ui_qtWeatherStations *UI;  /// Qt Designer form

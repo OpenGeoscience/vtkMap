@@ -22,6 +22,9 @@ find_package(VTK NO_MODULE REQUIRED COMPONENTS ${VTK_REQUIRED_COMPONENTS})
 
 include(${VTK_USE_FILE})
 
+# Temporary logic for specifying marker image file, used in vtkMap.cxx
+add_definitions("-DMARKER_IMAGE_FILE=\"${CMAKE_SOURCE_DIR}/markerteal.png\"")
+
 set (SOURCES
     main.cpp
     vtkMapMarker.cxx
