@@ -27,6 +27,7 @@
 #include <vtkCamera.h>
 #include <vtkMath.h>
 #include <vtkMatrix4x4.h>
+#include <vtkPoints.h>
 #include <vtkPlaneSource.h>
 
 #include <algorithm>
@@ -396,4 +397,33 @@ void vtkMap::RemoveMapMarkers()
     }
   this->MapMarkers.clear();
   this->Draw();
+}
+
+//----------------------------------------------------------------------------
+vtkPoints* vtkMap::gcsToDisplay(vtkPoints* points, std::string srcProjection)
+{
+  int noOfPoints = static_cast<int>(points->GetNumberOfPoints());
+  double inPoint[4];
+  double outPoint[4];
+  vtkPoints* newPoints = vtkPoints::New();
+  newPoints->SetNumberOfPoints(noOfPoints);
+  for (int i = 0; i < noOfPoints; ++i)
+    {
+    points->GetPoint(i, inPoint);
+    inPoint[0] = lat2y(inPoint[0]);
+    std::cerr << "inPoint now " << inPoint[0] << " " << inPoint[1] << std::endl;
+    this->Renderer->SetWorldPoint(inPoint[1], inPoint[0], inPoint[2], 1.0);
+    this->Renderer->WorldToDisplay();
+    this->Renderer->GetDisplayPoint(outPoint);
+    if (outPoint[3] != 0.0)
+      {
+      outPoint[0] /= outPoint[3];
+      outPoint[1] /= outPoint[3];
+      outPoint[2] /= outPoint[3];
+      }
+    std::cerr << "outPoint now " << outPoint[0] << " " << outPoint[1] << std::endl;
+    newPoints->SetPoint(i, outPoint);
+    }
+
+  return newPoints;
 }

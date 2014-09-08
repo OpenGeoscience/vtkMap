@@ -34,7 +34,7 @@ vtkMapMarker::vtkMapMarker()
   this->Mapper = vtkImageMapper::New();
   this->Mapper->SetColorWindow(255.0);
   this->Mapper->SetColorLevel(127.5);
-  this->Mapper->SetInput(vtkMapMarker::ImageData);
+  this->Mapper->SetInputData(vtkMapMarker::ImageData);
 
   this->Actor = vtkActor2D::New();
   this->Actor->SetMapper(this->Mapper);

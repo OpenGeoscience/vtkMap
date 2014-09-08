@@ -22,14 +22,16 @@
 // VTK Includes
 #include <vtkObject.h>
 
+class vtkActor;
 class vtkInteractorStyle;
-class vtkRenderer;
 class vtkMapTile;
 class vtkMapMarker;
-class vtkActor;
+class vtkPoints;
+class vtkRenderer;
 
 #include <map>
 #include <set>
+#include <string>
 #include <vector>
 
 class vtkMap : public vtkObject
@@ -74,6 +76,9 @@ public:
   // Description:
   // Removes all map markers
   void RemoveMapMarkers();
+
+  // gcsToDisplay(points, "EPSG:3882")
+  vtkPoints* gcsToDisplay(vtkPoints*, std::string srcProjection="");
 
 protected:
   vtkMap();

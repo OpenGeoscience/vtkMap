@@ -53,8 +53,13 @@ int main()
   intr->Initialize();
   map->Draw();
 
-  vtkNew<vtkCallbackCommand> callback;
+  vtkPoints* testPoints = vtkPoints::New();
+  testPoints->InsertNextPoint(-70.0, 40.0, 0.0);
+  vtkPoints* newPoints = map->gcsToDisplay(testPoints);
+  std::cerr << newPoints->GetPoint(0)[1] << " " << newPoints->GetPoint(0)[0] << std::endl;
+  ss->SetCenter(newPoints->GetPoint(0)[1], newPoints->GetPoint(0)[0], 0.0);
 
+  vtkNew<vtkCallbackCommand> callback;
   callback->SetClientData(map.GetPointer());
   callback->SetCallback(callbackFunction);
   intr->AddObserver(vtkCommand::MouseWheelForwardEvent, callback.GetPointer());
