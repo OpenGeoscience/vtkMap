@@ -58,7 +58,7 @@ public:
 
   // Description:
   // Get/Set center of the map
-  vtkGetVector2Macro(Center, double);
+  void GetCenter(double (&latlngPoint)[2]);
   vtkSetVector2Macro(Center, double);
 
   // Description:

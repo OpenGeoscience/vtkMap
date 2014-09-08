@@ -59,6 +59,11 @@ int main()
   std::cerr << newPoints->GetPoint(0)[1] << " " << newPoints->GetPoint(0)[0] << std::endl;
   ss->SetCenter(newPoints->GetPoint(0)[1], newPoints->GetPoint(0)[0], 0.0);
 
+  double center[2];
+  map->GetCenter(center);
+
+  std::cerr << "center is " << center[0] << " " << center[1] << std::endl;
+
   vtkNew<vtkCallbackCommand> callback;
   callback->SetClientData(map.GetPointer());
   callback->SetCallback(callbackFunction);

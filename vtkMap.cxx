@@ -139,6 +139,26 @@ void vtkMap::PrintSelf(ostream &os, vtkIndent indent)
 }
 
 //----------------------------------------------------------------------------
+void vtkMap::GetCenter(double (&latlngPoint)[2])
+{
+  double* center = this->Renderer->GetCenter();
+  this->Renderer->SetDisplayPoint(center);
+  this->Renderer->DisplayToWorld();
+  double* worldPoint = this->Renderer->GetWorldPoint();
+
+  if (worldPoint[3] != 0.0)
+    {
+    worldPoint[0] /= worldPoint[3];
+    worldPoint[1] /= worldPoint[3];
+    worldPoint[2] /= worldPoint[3];
+    }
+
+  worldPoint[1] = y2lat(worldPoint[1]);
+  latlngPoint[0] = worldPoint[1];
+  latlngPoint[1] = worldPoint[0];
+}
+
+//----------------------------------------------------------------------------
 void vtkMap::Update()
 {
   /// Compute the zoom level here
@@ -154,12 +174,13 @@ void vtkMap::Draw()
   if (!this->Initialized && this->Renderer)
     {
     this->Initialized = true;
+    this->Center[0] = lat2y(this->Center[0]);
     this->Renderer->GetActiveCamera()->SetPosition(this->Center[1],
                                                    this->Center[0],
                                                    computeCameraDistance(this->Renderer->GetActiveCamera(), this->Zoom));
     this->Renderer->GetActiveCamera()->SetFocalPoint(this->Center[1],
                                                      this->Center[0],
-                                                    0.0);
+                                                     0.0);
     this->Renderer->GetRenderWindow()->Render();
     this->Renderer->GetRenderWindow()->Render();
     }
@@ -412,7 +433,7 @@ vtkPoints* vtkMap::gcsToDisplay(vtkPoints* points, std::string srcProjection)
     points->GetPoint(i, inPoint);
     inPoint[0] = lat2y(inPoint[0]);
     std::cerr << "inPoint now " << inPoint[0] << " " << inPoint[1] << std::endl;
-    this->Renderer->SetWorldPoint(inPoint[1], inPoint[0], inPoint[2], 1.0);
+    this->Renderer->SetWorldPoint(0.0, 0.0, 1.0, 1.0);
     this->Renderer->WorldToDisplay();
     this->Renderer->GetDisplayPoint(outPoint);
     if (outPoint[3] != 0.0)
