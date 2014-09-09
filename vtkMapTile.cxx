@@ -40,7 +40,7 @@ vtkMapTile::vtkMapTile()
   TexturePlane = 0;
   Actor = 0;
   Mapper = 0;
-  Destination = "";
+  CachePath = "";
   this->Bin = Hidden;
   this->VisibleFlag = false;
   this->Corners[0] = this->Corners[1] =
@@ -130,14 +130,14 @@ bool vtkMapTile::IsVisible()
 void vtkMapTile::InitializeDownload()
 {
   // Generate destination file name
-  this->ImageFile = this->Destination + "/" + this->ImageKey + ".png";
+  this->ImageFile = this->CachePath + "/" + this->ImageKey + ".png";
 
   // Check if destination directory exists.
   // If not, then create it.
-  if(!vtksys::SystemTools::FileIsDirectory(this->Destination.c_str()))
+  if(!vtksys::SystemTools::FileIsDirectory(this->CachePath.c_str()))
     {
     std::cerr << "Destination directory not present. Creating " << std::endl;
-    vtksys::SystemTools::MakeDirectory(this->Destination.c_str());
+    vtksys::SystemTools::MakeDirectory(this->CachePath.c_str());
     }
 
   // Check if texture already exists.

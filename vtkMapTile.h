@@ -73,8 +73,8 @@ public:
 
   // Description:
   // Get/Set Destination directory path
-  void  SetDestinationDir(const std::string& destdir) {this->Destination = destdir;}
-  std::string GetDestinationDir() {return this->Destination;}
+  void  SetCachePath(const std::string& path) {this->CachePath = path;}
+  std::string GetCachePath() {return this->CachePath;}
 
   // Description:
   // Create the geometry and download the image if necessary
@@ -105,7 +105,7 @@ protected:
   std::string ImageSource;
   std::string ImageFile;
   std::string ImageKey;
-  std::string Destination;
+  std::string CachePath;
 
   vtkPlaneSource* Plane;
   vtkTextureMapToPlane* TexturePlane;

@@ -52,8 +52,8 @@ public:
 
   // Description:
   // Get/Set Destination directory path
-  void  SetDestinationPath(const std::string& destdir) {this->Destination = destdir;}
-  std::string GetDestinationDir() {return this->Destination;}
+  void  SetTileCachePath(const std::string& path) {this->TileCachePath = path;}
+  std::string GetTileCachePath() {return this->TileCachePath;}
 
   // Description:
   // Update the renderer with relevant tiles to draw the Map
@@ -106,7 +106,7 @@ protected:
   std::vector<vtkMapTile*> NewPendingTiles;
 
   bool Initialized;
-  std::string Destination;
+  std::string TileCachePath;
 
 private:
   vtkMap(const vtkMap&);  // Not implemented
