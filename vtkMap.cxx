@@ -142,7 +142,8 @@ void vtkMap::PrintSelf(ostream &os, vtkIndent indent)
 void vtkMap::GetCenter(double (&latlngPoint)[2])
 {
   double* center = this->Renderer->GetCenter();
-  this->Renderer->SetDisplayPoint(center);
+//  std::cerr << "center is " << center[0] << " " << center[1] << std::endl;
+  this->Renderer->SetDisplayPoint(center[0], center[1], 0.0);
   this->Renderer->DisplayToWorld();
   double* worldPoint = this->Renderer->GetWorldPoint();
 
@@ -175,13 +176,13 @@ void vtkMap::Draw()
     {
     this->Initialized = true;
     this->Center[0] = lat2y(this->Center[0]);
-    this->Renderer->GetActiveCamera()->SetPosition(this->Center[1],
-                                                   this->Center[0],
-                                                   computeCameraDistance(this->Renderer->GetActiveCamera(), this->Zoom));
+    this->Renderer->GetActiveCamera()->SetPosition(
+      this->Center[1],
+      this->Center[0],
+      computeCameraDistance(this->Renderer->GetActiveCamera(), this->Zoom));
     this->Renderer->GetActiveCamera()->SetFocalPoint(this->Center[1],
                                                      this->Center[0],
                                                      0.0);
-    this->Renderer->GetRenderWindow()->Render();
     this->Renderer->GetRenderWindow()->Render();
     }
   this->Update();
@@ -423,26 +424,56 @@ void vtkMap::RemoveMapMarkers()
 //----------------------------------------------------------------------------
 vtkPoints* vtkMap::gcsToDisplay(vtkPoints* points, std::string srcProjection)
 {
+  if (!srcProjection.empty())
+   {
+   vtkErrorMacro("Does not handle projections other than latlon");
+   }
   int noOfPoints = static_cast<int>(points->GetNumberOfPoints());
   double inPoint[4];
-  double outPoint[4];
+  double outPoint[3];
   vtkPoints* newPoints = vtkPoints::New();
   newPoints->SetNumberOfPoints(noOfPoints);
   for (int i = 0; i < noOfPoints; ++i)
     {
     points->GetPoint(i, inPoint);
     inPoint[0] = lat2y(inPoint[0]);
-    std::cerr << "inPoint now " << inPoint[0] << " " << inPoint[1] << std::endl;
-    this->Renderer->SetWorldPoint(0.0, 0.0, 1.0, 1.0);
+    this->Renderer->SetWorldPoint(inPoint[1], inPoint[0], inPoint[2], 0.0);
     this->Renderer->WorldToDisplay();
     this->Renderer->GetDisplayPoint(outPoint);
-    if (outPoint[3] != 0.0)
+    newPoints->SetPoint(i, outPoint);
+    }
+
+  return newPoints;
+}
+
+//----------------------------------------------------------------------------
+vtkPoints* vtkMap::displayToGcs(vtkPoints* points)
+{
+  double inPoint[4];
+  double outPoint[4];
+  int noOfPoints = static_cast<int>(points->GetNumberOfPoints());
+  vtkPoints* newPoints = vtkPoints::New();
+  newPoints->SetNumberOfPoints(noOfPoints);
+  for (int i = 0; i < noOfPoints; ++i)
+    {
+    points->GetPoint(i, inPoint);
+    this->Renderer->SetDisplayPoint(inPoint[1], inPoint[0], inPoint[2]);
+    this->Renderer->DisplayToWorld();
+    this->Renderer->GetWorldPoint(inPoint);
+
+    if (inPoint[3] != 0.0)
       {
-      outPoint[0] /= outPoint[3];
-      outPoint[1] /= outPoint[3];
-      outPoint[2] /= outPoint[3];
+      inPoint[0] /= inPoint[3];
+      inPoint[1] /= inPoint[3];
+      inPoint[2] /= inPoint[3];
+      inPoint[3] = 1.0;
       }
-    std::cerr << "outPoint now " << outPoint[0] << " " << outPoint[1] << std::endl;
+
+    outPoint[1] = inPoint[0];
+    outPoint[0] = inPoint[1];
+    outPoint[2] = inPoint[2];
+    outPoint[3] = inPoint[3];
+
     newPoints->SetPoint(i, outPoint);
     }
 

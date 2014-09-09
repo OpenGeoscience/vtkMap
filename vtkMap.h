@@ -77,8 +77,14 @@ public:
   // Removes all map markers
   void RemoveMapMarkers();
 
+  // Description:
+  // Transform from map coordiantes to display coordinates
   // gcsToDisplay(points, "EPSG:3882")
-  vtkPoints* gcsToDisplay(vtkPoints*, std::string srcProjection="");
+  vtkPoints* gcsToDisplay(vtkPoints* points, std::string srcProjection="");
+
+  // Description:
+  // Transform from display coordinates to map coordinates
+  vtkPoints* displayToGcs(vtkPoints* points);
 
 protected:
   vtkMap();
