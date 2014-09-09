@@ -35,6 +35,7 @@ public:
   //virtual void PrintSelf(ostream &os, vtkIndent indent);
   vtkTypeMacro (vtkMapMarker, vtkObject)
 
+  void GetCoordinates(double *Latitude, double *Longitude);
   void SetCoordinates(double Latitude, double Longitude);
   vtkGetMacro(Actor, vtkActor2D*);
 
@@ -43,6 +44,8 @@ public:
   ~vtkMapMarker();
 
   static vtkImageData *ImageData;
+  double Latitude;
+  double Longitude;
   vtkImageMapper *Mapper;
   vtkActor2D *Actor;
 

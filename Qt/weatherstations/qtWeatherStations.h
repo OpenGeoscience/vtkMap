@@ -37,6 +37,7 @@ class qtWeatherStations : public QMainWindow
 
 
   void drawMap();
+  void updateMap();
  public slots:
 
  protected:

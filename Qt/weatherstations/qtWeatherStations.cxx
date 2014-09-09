@@ -47,38 +47,36 @@ namespace {
 
 
 // ------------------------------------------------------------
-// Callback command for handling mouse events
+// Callback command for handling interactor mouse events
 // In the future, will be replaced by interactor style
 class MapCallback : public vtkCallbackCommand
 {
 public:
-  MapCallback(qtWeatherStations *app) : App(app), MouseDown(false) {}
+  MapCallback(qtWeatherStations *app) : App(app) {}
 
   virtual void Execute(vtkObject *caller, unsigned long eventId, void *callData)
   {
     switch (eventId)
       {
-      case vtkCommand::MiddleButtonPressEvent:
-        this->MouseDown = true;
-        break;
-      case vtkCommand::MiddleButtonReleaseEvent:
-        this->App->drawMap();
-        this->MouseDown = false;
-        break;
-      case vtkCommand::MouseMoveEvent:
-        if (this->MouseDown)
-          {
-          this->App->drawMap();
-          }
       case vtkCommand::MouseWheelForwardEvent:
       case vtkCommand::MouseWheelBackwardEvent:
+        // Redraw for zoom events
         this->App->drawMap();
+        break;
+
+      case vtkCommand::ModifiedEvent:
+        // Update markers for interactor-modified events
+        this->App->updateMap();
+        break;
+
+      default:
+        //std::cout << "Mouse event " << vtkCommand::GetStringFromEventId(eventId) << std::endl;
+        break;
       }
   }
 
 protected:
   qtWeatherStations *App;
-  bool MouseDown;
 };
 
 
@@ -103,7 +101,8 @@ qtWeatherStations::qtWeatherStations(QWidget *parent)
   vtkNew<vtkRenderer> mapRenderer;
   this->Map->SetRenderer(mapRenderer.GetPointer());
   //this->resetMapCoords();
-  this->Map->SetCenter(32.2, -90.9);  // approx ERDC coords
+  //this->Map->SetCenter(32.2, -90.9);  // approx ERDC coords
+  this->Map->SetCenter(42.849604, -73.758345);  // KHQ coords
   this->Map->SetZoom(5);
 
   vtkNew<vtkRenderWindow> mapRenderWindow;
@@ -183,15 +182,11 @@ void qtWeatherStations::showStations()
   this->Map->GetCenter(center);
   int zoom = this->Map->GetZoom();
   this->UI->MapCoordinatesWidget->setCoordinates(center, zoom);
+  double lat = center[0];
+  double lon = center[1];
   textData << "Map coordinates (lat, lon) are"
-           << " (" << center[0] << ", " << center[1] << ")"
+           << " (" << lat << ", " << lon << ")"
            ", zoom " << zoom << "\n";
-
-  // K28 lat-lon coordinates per http://www.latlong.net:
-  double lat =  42.849604;
-  double lon = -73.758345;
-  textData << "Instead using KHQ geo coords (" << lat << ", " << lon << ")\n\n";
-  this->UI->StationText->setText(textData.str().c_str());
 
   // Construct openweathermaps request
   int count = this->UI->StationCountSpinBox->value();
@@ -290,6 +285,8 @@ void qtWeatherStations::showStations()
 // ------------------------------------------------------------
 void qtWeatherStations::DisplayStationMarkers(cJSON *stationList)
 {
+  this->Map->RemoveMapMarkers();
+
   int stationListSize = cJSON_GetArraySize(stationList);
 
   // Create map markers for each station
@@ -302,12 +299,9 @@ void qtWeatherStations::DisplayStationMarkers(cJSON *stationList)
 
     double lat = latNode->valuedouble;
     double lon = lonNode->valuedouble;
-    this->Map->AddMarker(lon, lat);
-
-#if 1
-    // During development, only create one marker
-    break;
-#endif
+    // std::cout << "Adding marker at lat/lon "
+    //           << lat << ", " << lon << std::endl;
+    this->Map->AddMarker(lat, lon);
     }
  }
 
@@ -319,8 +313,23 @@ void qtWeatherStations::drawMap()
   if (this->Map)
     {
     this->Map->Draw();
+    }
+}
+
+
+// ------------------------------------------------------------
+// Calls map Update() method
+void qtWeatherStations::updateMap()
+{
+  if (this->Map)
+    {
+    // Call Map->Update to update marker display positions
+    this->Map->Update();
+
+    // Also update displayed lat/lon coords
     double center[2];
     this->Map->GetCenter(center);
+    //std::cout << "GetCenter " << center[0] << ", " << center[1] << std::endl;
     int zoom = this->Map->GetZoom();
     this->UI->MapCoordinatesWidget->setCoordinates(center, zoom);
     }

@@ -30,7 +30,6 @@ class vtkPoints;
 class vtkRenderer;
 
 #include <map>
-#include <set>
 #include <string>
 #include <vector>
 
@@ -138,7 +137,7 @@ protected:
 
   std::vector<vtkMapTile*> NewPendingTiles;
 
-  std::set<vtkMapMarker*> MapMarkers;
+  std::vector<vtkMapMarker*> MapMarkers;
 
 protected:
   bool Initialized;

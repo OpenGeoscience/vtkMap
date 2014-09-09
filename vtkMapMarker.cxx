@@ -73,13 +73,16 @@ void vtkMapMarker::LoadMarkerImage(const char* PngFilename)
 }
 
 //----------------------------------------------------------------------------
-void vtkMapMarker::SetCoordinates(double Latitude, double Longitude)
+void vtkMapMarker::GetCoordinates(double *LatitudeCoord, double *LongitudeCoord)
 {
-  // Todo convert to screen position
-  // For now, take absolute value
-  double x = Longitude < 0.0 ? -Longitude : Longitude;
-  double y = Latitude < 0.0 ? -Latitude : Latitude;
+  *LatitudeCoord = this->Latitude;
+  *LongitudeCoord = this->Longitude;
+}
 
-  // Note that longitude goes first, since it is the X coordinate
-  this->Actor->SetPosition(x, y);
+
+//----------------------------------------------------------------------------
+void vtkMapMarker::SetCoordinates(double LatitudeCoord, double LongitudeCoord)
+{
+  this->Latitude = LatitudeCoord;
+  this->Longitude = LongitudeCoord;
 }
