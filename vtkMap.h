@@ -71,7 +71,7 @@ public:
 
   // Description:
   // Add marker to map
-  vtkMapMarker *AddMarker(double Latitude, double Longitude);
+  vtkMapMarker* AddMarker(double Latitude, double Longitude);
 
   // Description:
   // Removes all map markers
@@ -80,10 +80,15 @@ public:
   // Description:
   // Transform from map coordiantes to display coordinates
   // gcsToDisplay(points, "EPSG:3882")
+  // This method assumes plate carree projection if the source projection is
+  // empty. In case of plate carree projection, the point is supposed to be in
+  // [latitude, longitude, elevation] format.
   vtkPoints* gcsToDisplay(vtkPoints* points, std::string srcProjection="");
 
   // Description:
   // Transform from display coordinates to map coordinates
+  // If the map projection is EPSG 4326 or EPSG 3857, then returned
+  // points will have the following format: [latitude, longitude, elevation]
   vtkPoints* displayToGcs(vtkPoints* points);
 
 protected:
