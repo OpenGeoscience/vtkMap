@@ -22,10 +22,15 @@
 // VTK Includes
 #include <vtkObject.h>
 
-class vtkRenderer;
+class vtkActor;
+class vtkInteractorStyle;
 class vtkMapTile;
+class vtkMapMarker;
+class vtkPoints;
+class vtkRenderer;
 
 #include <map>
+#include <string>
 #include <vector>
 
 class vtkMap : public vtkObject
@@ -41,13 +46,18 @@ public:
   vtkSetMacro(Renderer, vtkRenderer*)
 
   // Description:
+  // Get/Set the interactor style in which map tiles will be added
+  vtkGetMacro(InteractorStyle, vtkInteractorStyle*)
+  vtkSetMacro(InteractorStyle, vtkInteractorStyle*)
+
+  // Description:
   // Get/Set the detailing level
   vtkGetMacro(Zoom, int)
   vtkSetMacro(Zoom, int)
 
   // Description:
   // Get/Set center of the map
-  vtkGetVector2Macro(Center, double);
+  void GetCenter(double (&latlngPoint)[2]);
   vtkSetVector2Macro(Center, double);
 
   // Description:
@@ -57,6 +67,28 @@ public:
   // Description:
   // Update the renderer with relevant tiles to draw the Map
   void Draw();
+
+  // Description:
+  // Add marker to map
+  vtkMapMarker* AddMarker(double Latitude, double Longitude);
+
+  // Description:
+  // Removes all map markers
+  void RemoveMapMarkers();
+
+  // Description:
+  // Transform from map coordiantes to display coordinates
+  // gcsToDisplay(points, "EPSG:3882")
+  // This method assumes plate carree projection if the source projection is
+  // empty. In case of plate carree projection, the point is supposed to be in
+  // [latitude, longitude, elevation] format.
+  vtkPoints* gcsToDisplay(vtkPoints* points, std::string srcProjection="");
+
+  // Description:
+  // Transform from display coordinates to map coordinates
+  // If the map projection is EPSG 4326 or EPSG 3857, then returned
+  // points will have the following format: [latitude, longitude, elevation]
+  vtkPoints* displayToGcs(vtkPoints* points);
 
 protected:
   vtkMap();
@@ -87,6 +119,10 @@ protected:
   vtkRenderer* Renderer;
 
   // Description:
+  // The interactor style used by the map
+  vtkInteractorStyle* InteractorStyle;
+
+  // Description:
   // Set Zoom level, which determines the level of detailing
   int Zoom;
 
@@ -97,11 +133,18 @@ protected:
   // Description:
   // Cached tiles
   std::map< int, std::map< int, std::map <int, vtkMapTile*> > > CachedTiles;
+  std::vector<vtkActor*> CachedActors;
 
   std::vector<vtkMapTile*> NewPendingTiles;
 
+  std::vector<vtkMapMarker*> MapMarkers;
+
 protected:
   bool Initialized;
+
+  // Description:
+  // Effective zoom used by the tiles
+  int TileZoom;
 
 private:
   vtkMap(const vtkMap&);  // Not implemented
