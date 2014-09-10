@@ -10,13 +10,14 @@
 #include <vtkPlaneSource.h>
 #include <vtkPlane.h>
 #include <vtkPolyDataMapper.h>
+#include <vtkProperty.h>
 #include <vtkMatrix4x4.h>
 #include <vtkNew.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderer.h>
 #include <vtkRenderWindowInteractor.h>
 #include <vtkRendererCollection.h>
-#include <vtkSphereSource.h>
+#include <vtkRegularPolygonSource.h>
 
 #include <iostream>
 
@@ -31,23 +32,22 @@ int main()
 
   vtkNew<vtkRenderer> rend;
   map->SetRenderer(rend.GetPointer());
-  map->SetCenter(0, 0);
+  map->SetCenter(40, -70);
   map->SetZoom(5);
 
-  vtkNew<vtkRenderer> rend2;
-  vtkNew<vtkSphereSource> ss;
-  vtkNew<vtkPolyDataMapper> sm;
-  vtkNew<vtkActor> sa;
-  sa->SetMapper(sm.GetPointer());
-  sm->SetInputConnection(ss->GetOutputPort());
-  rend2->AddActor(sa.GetPointer());
-  rend2->SetLayer(1);
+  vtkNew<vtkRegularPolygonSource> marker;
+  vtkNew<vtkPolyDataMapper> markerMapper;
+  vtkNew<vtkActor> markerActor;
+  marker->SetNumberOfSides(50);
+  marker->SetRadius(5);
+  markerActor->SetMapper(markerMapper.GetPointer());
+  markerMapper->SetInputConnection(marker->GetOutputPort());
+  markerActor->GetProperty()->SetOpacity(0.5);
+  rend->AddActor(markerActor.GetPointer());
 
   vtkNew<vtkRenderWindow> wind;
-//  wind->SetNumberOfLayers(2);
-  wind->AddRenderer(rend.GetPointer());
-//  wind->AddRenderer(rend2.GetPointer());
-  wind->SetSize(1300, 700);
+  wind->AddRenderer(rend.GetPointer());;
+  wind->SetSize(1920, 1080);
 
   vtkNew<vtkRenderWindowInteractor> intr;
   intr->SetRenderWindow(wind.GetPointer());
@@ -56,8 +56,17 @@ int main()
   intr->Initialize();
   map->Draw();
 
-  vtkNew<vtkCallbackCommand> callback;
+  double center[2];
+  map->GetCenter(center);
 
+  vtkPoints* testPoints = vtkPoints::New();
+  testPoints->InsertNextPoint(40.0, -70.0, 0.0);
+  vtkPoints* newPoints = map->gcsToDisplay(testPoints);
+  newPoints = map->displayToGcs(newPoints);
+  markerActor->SetPosition(newPoints->GetPoint(0)[1], newPoints->GetPoint(0)[0], 0.0);
+  map->Draw();
+
+  vtkNew<vtkCallbackCommand> callback;
   callback->SetClientData(map.GetPointer());
   callback->SetCallback(callbackFunction);
   intr->AddObserver(vtkCommand::MouseWheelForwardEvent, callback.GetPointer());

@@ -21,6 +21,7 @@
 #include <vtkPlaneSource.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkPNGReader.h>
+#include <vtkProperty.h>
 #include <vtkTexture.h>
 #include <vtkTextureMapToPlane.h>
 #include <vtkNew.h>
