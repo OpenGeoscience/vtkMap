@@ -142,6 +142,10 @@ protected:
 protected:
   bool Initialized;
 
+  // Description:
+  // Effective zoom used by the tiles
+  int TileZoom;
+
 private:
   vtkMap(const vtkMap&);  // Not implemented
   void operator=(const vtkMap&); // Not implemented

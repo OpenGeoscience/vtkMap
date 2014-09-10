@@ -163,8 +163,11 @@ void vtkMap::GetCenter(double (&latlngPoint)[2])
 //----------------------------------------------------------------------------
 void vtkMap::Update()
 {
-  /// Compute the zoom level here
+  // Compute the zoom level here
   this->SetZoom(computeZoomLevel(this->Renderer->GetActiveCamera()));
+
+  // Update the tile zoom
+  this->TileZoom = this->Zoom + 2;
 
   RemoveTiles();
   AddTiles();
@@ -281,11 +284,11 @@ void vtkMap::AddTiles()
   topRight[1] = std::max(topRight[1], -180.0);
   topRight[1] = std::min(topRight[1],  180.0);
 
-  int tile1x = long2tilex(bottomLeft[0], this->Zoom);
-  int tile2x = long2tilex(topRight[0], this->Zoom);
+  int tile1x = long2tilex(bottomLeft[0], this->TileZoom);
+  int tile2x = long2tilex(topRight[0], this->TileZoom);
 
-  int tile1y = lat2tiley(y2lat(bottomLeft[1]), this->Zoom);
-  int tile2y = lat2tiley(y2lat(topRight[1]), this->Zoom);
+  int tile1y = lat2tiley(y2lat(bottomLeft[1]), this->TileZoom);
+  int tile2y = lat2tiley(y2lat(topRight[1]), this->TileZoom);
 
   //std::cerr << "tile1y " << tile1y << " " << tile2y << std::endl;
 
@@ -301,17 +304,17 @@ void vtkMap::AddTiles()
 
   /// Clamp tilex and tiley
   tile1x = std::max(tile1x, 0);
-  tile1x = std::min(static_cast<int>(pow(2, this->Zoom)) - 1, tile1x);
+  tile1x = std::min(static_cast<int>(pow(2, this->TileZoom)) - 1, tile1x);
   tile2x = std::max(tile2x, 0);
-  tile2x = std::min(static_cast<int>(pow(2, this->Zoom)) - 1, tile2x);
+  tile2x = std::min(static_cast<int>(pow(2, this->TileZoom)) - 1, tile2x);
 
   tile1y = std::max(tile1y, 0);
-  tile1y = std::min(static_cast<int>(pow(2, this->Zoom)) - 1, tile1y);
+  tile1y = std::min(static_cast<int>(pow(2, this->TileZoom)) - 1, tile1y);
   tile2y = std::max(tile2y, 0);
-  tile2y = std::min(static_cast<int>(pow(2, this->Zoom)) - 1, tile2y);
+  tile2y = std::min(static_cast<int>(pow(2, this->TileZoom)) - 1, tile2y);
 
-  int noOfTilesX = std::max(1, static_cast<int>(pow(2, this->Zoom)));
-  int noOfTilesY = std::max(1, static_cast<int>(pow(2, this->Zoom)));
+  int noOfTilesX = std::max(1, static_cast<int>(pow(2, this->TileZoom)));
+  int noOfTilesY = std::max(1, static_cast<int>(pow(2, this->TileZoom)));
 
   double lonPerTile = 360.0 / noOfTilesX;
   double latPerTile = 360.0 / noOfTilesY;
@@ -328,9 +331,9 @@ void vtkMap::AddTiles()
     for (int j = tile2y; j <= tile1y; ++j)
       {
       xIndex = i;
-      yIndex = static_cast<int>(pow(2, this->Zoom)) - 1 - j;
+      yIndex = static_cast<int>(pow(2, this->TileZoom)) - 1 - j;
 
-      vtkMapTile* tile = this->GetCachedTile(this->Zoom, xIndex, yIndex);
+      vtkMapTile* tile = this->GetCachedTile(this->TileZoom, xIndex, yIndex);
       if (!tile)
         {
         tile = vtkMapTile::New();
@@ -342,7 +345,7 @@ void vtkMap::AddTiles()
         tile->SetCorners(llx, lly, urx, ury);
 
         std::ostringstream oss;
-        oss << this->Zoom;
+        oss << this->TileZoom;
         std::string zoom = oss.str();
         oss.str("");
 
@@ -350,7 +353,7 @@ void vtkMap::AddTiles()
         std::string row = oss.str();
         oss.str("");
 
-        oss << (static_cast<int>(pow(2, this->Zoom)) - 1 - yIndex);
+        oss << (static_cast<int>(pow(2, this->TileZoom)) - 1 - yIndex);
         std::string col = oss.str();
         oss.str("");
 
@@ -360,7 +363,7 @@ void vtkMap::AddTiles()
         tile->SetImageSource("http://tile.openstreetmap.org/" + zoom + "/" + row +
                              "/" + col + ".png");
         tile->Init();
-        this->AddTileToCache(this->Zoom, xIndex, yIndex, tile);
+        this->AddTileToCache(this->TileZoom, xIndex, yIndex, tile);
       }
     this->NewPendingTiles.push_back(tile);
     tile->SetVisible(true);

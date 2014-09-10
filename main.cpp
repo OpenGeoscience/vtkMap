@@ -32,8 +32,8 @@ int main()
 
   vtkNew<vtkRenderer> rend;
   map->SetRenderer(rend.GetPointer());
-  map->SetCenter(40, -70);
-  map->SetZoom(5);
+  map->SetCenter(0, 0);
+  map->SetZoom(0);
 
   vtkNew<vtkRegularPolygonSource> marker;
   vtkNew<vtkPolyDataMapper> markerMapper;
