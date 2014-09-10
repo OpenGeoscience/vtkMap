@@ -92,7 +92,7 @@ void vtkMapTile::Init()
   vtkNew<vtkTexture> texture;
   texture->SetInputConnection(pngReader->GetOutputPort());
   texture->SetQualityTo32Bit();
-  texture->SetInterpolate(0);
+  texture->SetInterpolate(1);
   this->TexturePlane->SetInputConnection(Plane->GetOutputPort());
 
   this->Mapper = vtkPolyDataMapper::New();

@@ -167,7 +167,7 @@ void vtkMap::Update()
   this->SetZoom(computeZoomLevel(this->Renderer->GetActiveCamera()));
 
   // Update the tile zoom
-  this->TileZoom = this->Zoom + 2;
+  this->TileZoom = this->Zoom + 1;
 
   RemoveTiles();
   AddTiles();
