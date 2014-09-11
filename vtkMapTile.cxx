@@ -21,6 +21,7 @@
 #include <vtkPlaneSource.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkPNGReader.h>
+#include <vtkProperty.h>
 #include <vtkTexture.h>
 #include <vtkTextureMapToPlane.h>
 #include <vtkNew.h>
@@ -90,6 +91,8 @@ void vtkMapTile::Init()
   // Apply the texture
   vtkNew<vtkTexture> texture;
   texture->SetInputConnection(pngReader->GetOutputPort());
+  texture->SetQualityTo32Bit();
+  texture->SetInterpolate(1);
   this->TexturePlane->SetInputConnection(Plane->GetOutputPort());
 
   this->Mapper = vtkPolyDataMapper::New();
