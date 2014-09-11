@@ -27,6 +27,7 @@ class vtkPlaneSource;
 class vtkActor;
 class vtkPolyDataMapper;
 class vtkTextureMapToPlane;
+class vtkMap;
 
 class vtkMapTile : public vtkObject
 {
@@ -57,6 +58,11 @@ public:
   vtkSetVector4Macro(Corners, double);
 
   // Description:
+  // Get/Set parent Map of the tile
+  vtkGetMacro(ParentMap, vtkMap *);
+  vtkSetMacro(ParentMap, vtkMap *);
+
+  // Description:
   // Get/Set bin of the tile
   vtkGetMacro(Bin, int);
   vtkSetMacro(Bin, int);
@@ -67,7 +73,7 @@ public:
   vtkGetMacro(Mapper, vtkPolyDataMapper*)
 
   // Description:
-  // Get/Set position of the tile
+  // Set position of the tile
   void SetCenter(double* center);
   void SetCenter(double x, double y, double z);
 
@@ -100,11 +106,13 @@ protected:
   std::string ImageSource;
   std::string ImageFile;
   std::string ImageKey;
+  std::string CachePath;
 
   vtkPlaneSource* Plane;
   vtkTextureMapToPlane* TexturePlane;
   vtkActor* Actor;
   vtkPolyDataMapper* Mapper;
+  vtkMap *ParentMap;
 
   int Bin;
   bool VisibleFlag;

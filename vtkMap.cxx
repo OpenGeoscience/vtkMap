@@ -72,6 +72,7 @@ vtkMap::vtkMap()
   this->Zoom = 1;
   this->Center[0] = this->Center[1] = 0.0;
   this->Initialized = false;
+  this->TileCachePath = "Tiles"; // Default destination directory for tiles
 }
 
 //----------------------------------------------------------------------------
@@ -244,6 +245,7 @@ void vtkMap::AddTiles()
         tile->SetImageKey(oss.str());
         tile->SetImageSource("http://tile.openstreetmap.org/" + zoom + "/" + row +
                              "/" + col + ".png");
+        tile->SetParentMap(this);
         tile->Init();
         tile->SetVisible(true);
 

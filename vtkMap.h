@@ -51,6 +51,11 @@ public:
   vtkSetVector2Macro(Center, double);
 
   // Description:
+  // Get/Set Destination directory path
+  void  SetTileCachePath(const std::string& path) {this->TileCachePath = path;}
+  std::string GetTileCachePath() {return this->TileCachePath;}
+
+  // Description:
   // Update the renderer with relevant tiles to draw the Map
   void Update();
 
@@ -100,8 +105,8 @@ protected:
 
   std::vector<vtkMapTile*> NewPendingTiles;
 
-protected:
   bool Initialized;
+  std::string TileCachePath;
 
 private:
   vtkMap(const vtkMap&);  // Not implemented

@@ -14,6 +14,7 @@
 =========================================================================*/
 
 #include "vtkMapTile.h"
+#include "vtkMap.h"
 
 // VTK Includes
 #include <vtkActor.h>
@@ -24,6 +25,7 @@
 #include <vtkTexture.h>
 #include <vtkTextureMapToPlane.h>
 #include <vtkNew.h>
+#include <vtksys/SystemTools.hxx>
 
 #include <curl/curl.h>
 
@@ -39,10 +41,11 @@ vtkMapTile::vtkMapTile()
   TexturePlane = 0;
   Actor = 0;
   Mapper = 0;
+  CachePath = "";
   this->Bin = Hidden;
   this->VisibleFlag = false;
   this->Corners[0] = this->Corners[1] =
-    this->Corners[2] = this->Corners[3] = 0.0;
+  this->Corners[2] = this->Corners[3] = 0.0;
 }
 
 //----------------------------------------------------------------------------
@@ -128,7 +131,16 @@ bool vtkMapTile::IsVisible()
 void vtkMapTile::InitializeDownload()
 {
   // Generate destination file name
-  this->ImageFile = "Temp/" + this->ImageKey + ".png";
+  std::string TileCachePath = this->ParentMap->GetTileCachePath();
+  this->ImageFile = TileCachePath + "/" + this->ImageKey + ".png";
+
+  // Check if destination directory exists.
+  // If not, then create it.
+  if(!vtksys::SystemTools::FileIsDirectory(TileCachePath.c_str()))
+    {
+    std::cerr << "Destination directory not present. Creating " << std::endl;
+    vtksys::SystemTools::MakeDirectory(TileCachePath.c_str());
+    }
 
   // Check if texture already exists.
   // If not, download
@@ -195,3 +207,4 @@ void vtkMapTile::PrintSelf(ostream &os, vtkIndent indent)
   os << "vtkMapTile" << std::endl
      << "ImageSource: " << this->ImageSource << std::endl;
 }
+
