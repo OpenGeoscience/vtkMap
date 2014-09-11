@@ -14,6 +14,7 @@
 =========================================================================*/
 
 #include "vtkMapTile.h"
+#include "vtkMap.h"
 
 // VTK Includes
 #include <vtkActor.h>
@@ -130,14 +131,15 @@ bool vtkMapTile::IsVisible()
 void vtkMapTile::InitializeDownload()
 {
   // Generate destination file name
-  this->ImageFile = this->CachePath + "/" + this->ImageKey + ".png";
+  std::string TileCachePath = this->ParentMap->GetTileCachePath();
+  this->ImageFile = TileCachePath + "/" + this->ImageKey + ".png";
 
   // Check if destination directory exists.
   // If not, then create it.
-  if(!vtksys::SystemTools::FileIsDirectory(this->CachePath.c_str()))
+  if(!vtksys::SystemTools::FileIsDirectory(TileCachePath.c_str()))
     {
     std::cerr << "Destination directory not present. Creating " << std::endl;
-    vtksys::SystemTools::MakeDirectory(this->CachePath.c_str());
+    vtksys::SystemTools::MakeDirectory(TileCachePath.c_str());
     }
 
   // Check if texture already exists.

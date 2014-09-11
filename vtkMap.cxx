@@ -245,7 +245,7 @@ void vtkMap::AddTiles()
         tile->SetImageKey(oss.str());
         tile->SetImageSource("http://tile.openstreetmap.org/" + zoom + "/" + row +
                              "/" + col + ".png");
-        tile->SetCachePath(this->TileCachePath);
+        tile->SetParentMap(this);
         tile->Init();
         tile->SetVisible(true);
 
