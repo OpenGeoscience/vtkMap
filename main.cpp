@@ -32,7 +32,7 @@ int main()
 
   vtkNew<vtkRenderer> rend;
   map->SetRenderer(rend.GetPointer());
-  map->SetCenter(0, 0);
+  map->SetCenter(40, -70);
   map->SetZoom(0);
 
   vtkNew<vtkRegularPolygonSource> marker;
@@ -59,11 +59,10 @@ int main()
   double center[2];
   map->GetCenter(center);
 
-  vtkPoints* testPoints = vtkPoints::New();
-  testPoints->InsertNextPoint(40.0, -70.0, 0.0);
-  vtkPoints* newPoints = map->gcsToDisplay(testPoints);
-  newPoints = map->displayToGcs(newPoints);
-  markerActor->SetPosition(newPoints->GetPoint(0)[1], newPoints->GetPoint(0)[0], 0.0);
+  vtkPoints* testPoints = vtkPoints::New(VTK_DOUBLE);
+  //testPoints->InsertNextPoint(0.0, 0.0, 0.0);
+  testPoints->InsertNextPoint(42.3, -73.5, 0.0);
+  markerActor->SetPosition(testPoints->GetPoint(0)[1], testPoints->GetPoint(0)[0], 0.0);
   map->Draw();
 
   vtkNew<vtkCallbackCommand> callback;
@@ -71,7 +70,22 @@ int main()
   callback->SetCallback(callbackFunction);
   intr->AddObserver(vtkCommand::MouseWheelForwardEvent, callback.GetPointer());
   intr->AddObserver(vtkCommand::MouseWheelBackwardEvent, callback.GetPointer());
-  intr->Start();
+  //intr->Start();
+  //map->Print(std::cout);
+
+
+
+  map->test();
+
+  // vtkPoints* testPoints2 = vtkPoints::New(VTK_DOUBLE);
+  // //testPoints2->InsertNextPoint(0.0, 0.0, 0.0);
+  // testPoints2->InsertNextPoint(42.3, -73.5, 0.0);
+  // vtkPoints* newPoints = map->gcsToDisplay(testPoints2);
+  // std::cout << "newPoints Coords: " << newPoints->GetPoint(0)[0]
+  //           << ", " << newPoints->GetPoint(0)[1] << std::endl;
+  // vtkPoints *gcsPoints = map->displayToGcs(newPoints);
+  // std::cout << "GCS Coords: " << gcsPoints->GetPoint(0)[0]
+  //           << ", " << gcsPoints->GetPoint(0)[1] << std::endl;
 }
 
 void callbackFunction(vtkObject* caller, long unsigned int vtkNotUsed(eventId),
