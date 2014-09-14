@@ -135,25 +135,16 @@ vtkMap::~vtkMap()
 void vtkMap::PrintSelf(ostream &os, vtkIndent indent)
 {
   Superclass::PrintSelf(os, indent);
-  os << "vtkMap" << std::endl
-     << "Zoom Level: " << this->Zoom
-     << " Center: " << this->Center[0] << " " << this->Center[1] << std::endl;
-
-  double *rcenter = this->Renderer->GetCenter();
-  os << " Renderer->Center " << rcenter[0]
-     << " " << rcenter[1] << " " << rcenter[2] << "\n";
-
-  double *cposition = this->Renderer->GetActiveCamera()->GetPosition();
-  os << " Cam posiiton " << cposition[0]
-     << " " << cposition[1] << " " << cposition[2] << "\n";
-
-  double *fposition = this->Renderer->GetActiveCamera()->GetFocalPoint();
-  os << " Focal point " << fposition[0]
-     << " " << fposition[1] << " " << fposition[2] << "\n";
-
-
-
-
+  double *camPosition = this->Renderer->GetActiveCamera()->GetPosition();
+  double *focalPosition = this->Renderer->GetActiveCamera()->GetFocalPoint();
+  os << "  Zoom Level: " << this->Zoom << "\n"
+     << "  Center Lat/Lon: " << y2lat(this->Center[0]) << " "
+     << this->Center[1] << "\n"
+     << "  Camera Lat/Lon/Z: " << y2lat(camPosition[1]) << " "
+     << camPosition[0] << " " << camPosition[2] << "\n"
+     << "  Focal Lat/Lon/Z: " << y2lat(focalPosition[1]) << " "
+     << focalPosition[0] << " " << focalPosition[2] << "\n"
+     << std::endl;
 }
 
 //----------------------------------------------------------------------------
@@ -523,12 +514,12 @@ vtkPoints* vtkMap::displayToGcs(vtkPoints* points)
   int noOfPoints = static_cast<int>(points->GetNumberOfPoints());
   vtkPoints* newPoints = vtkPoints::New(VTK_DOUBLE);
   newPoints->SetNumberOfPoints(noOfPoints);
+  double wCoords[4];
   for (int i = 0; i < noOfPoints; ++i)
     {
     points->GetPoint(i, inPoint);
     this->Renderer->SetDisplayPoint(inPoint[0], inPoint[1], inPoint[2]);
     this->Renderer->DisplayToWorld();
-    double wCoords[] = {0.0, 0.0, 0.0, 0.0};
     this->Renderer->GetWorldPoint(wCoords);
 
     if (wCoords[3] != 0.0)
@@ -550,70 +541,4 @@ vtkPoints* vtkMap::displayToGcs(vtkPoints* points)
     }
 
   return newPoints;
-}
-
-
-void vtkMap::test()
-{
-  // ============================================================
-  // Local calculation
-
-  std::cout << std::fixed << std::setprecision(9);
-
-  // Start with KHQ coords
-  double latitude = 42.849604;
-  double longitude = -73.758345;
-  //latitude = 0.0;
-  //longitude = 0.0;
-  std::cout << "==========" << "\n";
-  std::cout << "Input GCS lat/lon: " << latitude
-            << ", " << longitude << std::endl;
-
-  double x = longitude;
-  double y = lat2y(latitude);
-  double z = 0.0;
-  this->Renderer->SetWorldPoint(x, y, z, 1.0);
-  this->Renderer->WorldToDisplay();
-
-  double dispCoords[] = {0.0, 0.0, 0.0};
-  this->Renderer->GetDisplayPoint(dispCoords);
-  std::cout << "Display coords: " << dispCoords[0]
-            << ", " << dispCoords[1]
-            << ", " << dispCoords[2] << std::endl;
-
-
-  this->Renderer->SetDisplayPoint(dispCoords);
-  this->Renderer->DisplayToWorld();
-  double worldCoords[] = {0.0, 0.0, 0.0, 0.0};
-  this->Renderer->GetWorldPoint(worldCoords);
-  std::cout << "World coords: " << worldCoords[0]
-            << ", " << worldCoords[1]
-            << ", " << worldCoords[2]
-            << ", " << worldCoords[3] << std::endl;
-
-  latitude = y2lat(worldCoords[1]);
-  longitude = worldCoords[0];
-  std::cout << "Calc lat/lon " << latitude << ", " << longitude << std::endl;
-
-  // ============================================================
-  // Using gcsToDisplay() and displayToGcs()
-  std::cout << "==========" << "\n";
-
-  vtkPoints* testPoints2 = vtkPoints::New(VTK_DOUBLE);
-  //testPoints2->InsertNextPoint(0.0, 0.0, 0.0);
-  //testPoints2->InsertNextPoint(42.3, -73.5, 0.0);
-  testPoints2->InsertNextPoint(latitude, longitude, 0.0);
-  std::cout << "Starting lat/lon: " << testPoints2->GetPoint(0)[0]
-            << ", " << testPoints2->GetPoint(0)[1] << std::endl;
-
-  vtkPoints* newPoints = this->gcsToDisplay(testPoints2);
-  std::cout << "newPoints Coords: " << newPoints->GetPoint(0)[0]
-            << ", " << newPoints->GetPoint(0)[1]
-            << ", " << newPoints->GetPoint(0)[2]
-            << std::endl;
-  vtkPoints *gcsPoints = this->displayToGcs(newPoints);
-  std::cout << "GCS Coords: " << gcsPoints->GetPoint(0)[0]
-            << ", " << gcsPoints->GetPoint(0)[1] << std::endl;
-
-  std::cout << "==========" << "\n";
 }

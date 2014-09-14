@@ -90,8 +90,6 @@ public:
   // points will have the following format: [latitude, longitude, elevation]
   vtkPoints* displayToGcs(vtkPoints* points);
 
-  void test();
-
 protected:
   vtkMap();
   ~vtkMap();

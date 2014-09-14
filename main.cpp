@@ -63,6 +63,7 @@ int main()
   double center[2];
   map->GetCenter(center);
 
+  // Initialize test marker
   vtkPoints* testPoints = vtkPoints::New(VTK_DOUBLE);
   double kwLatitude = 42.849604;
   double kwLongitude = -73.758345;
@@ -83,21 +84,9 @@ int main()
   intr->AddObserver(vtkCommand::MouseWheelForwardEvent, callback.GetPointer());
   intr->AddObserver(vtkCommand::MouseWheelBackwardEvent, callback.GetPointer());
   intr->Start();
-  //map->Print(std::cout);
 
-
-
-  map->test();
-
-  // vtkPoints* testPoints2 = vtkPoints::New(VTK_DOUBLE);
-  // //testPoints2->InsertNextPoint(0.0, 0.0, 0.0);
-  // testPoints2->InsertNextPoint(42.3, -73.5, 0.0);
-  // vtkPoints* newPoints = map->gcsToDisplay(testPoints2);
-  // std::cout << "newPoints Coords: " << newPoints->GetPoint(0)[0]
-  //           << ", " << newPoints->GetPoint(0)[1] << std::endl;
-  // vtkPoints *gcsPoints = map->displayToGcs(newPoints);
-  // std::cout << "GCS Coords: " << gcsPoints->GetPoint(0)[0]
-  //           << ", " << gcsPoints->GetPoint(0)[1] << std::endl;
+  map->Print(std::cout);
+  return 0;
 }
 
 void callbackFunction(vtkObject* caller, long unsigned int vtkNotUsed(eventId),
