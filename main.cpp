@@ -8,11 +8,13 @@
 #include <vtkDistanceToCamera.h>
 #include <vtkGlyph3D.h>
 #include <vtkInteractorStyle.h>
+#include <vtkTransform.h>
 #include <vtkTransformCoordinateSystems.h>
 #include <vtkPointSet.h>
 #include <vtkPlaneSource.h>
 #include <vtkPlane.h>
 #include <vtkPoints.h>
+#include <vtkPointData.h>
 #include <vtkPolyData.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkProperty.h>
@@ -86,23 +88,31 @@ int main()
   // Initialize glyph-based markers
   vtkNew<vtkPoints> markerPoints;
   markerPoints->SetDataTypeToDouble();
-  x = kwLongitude;
-  y = lat2y(kwLatitude);
-  markerPoints->InsertNextPoint(x, y, 0.0);
 
-  double krsLatitude = 35.911373;
-  double krsLongitude = -79.072205;
-  x = krsLongitude;
-  y = lat2y(krsLatitude);
-  markerPoints->InsertNextPoint(x, y, 0.0);
+  // Add data array for setting color
+  vtkNew<vtkUnsignedCharArray> colors;
+  colors->SetName("Colors");
+  colors->SetNumberOfComponents(3);
+  unsigned char kwBlue[] = {0, 83, 155};
 
-  double erdcLatitude = 32.301393;
-  double erdcLongitude = -90.871495;
-  x = erdcLongitude;
-  y = lat2y(erdcLatitude);
-  markerPoints->InsertNextPoint(x, y, 0.0);
+  // Specify array of lat-lon coordinates
+  double latlonCoords[][2] = {
+    42.849604, -73.758345,  // KHQ
+    35.911373, -79.072205,  // KRS
+    32.301393, -90.871495   // ERDC
+  };
+  unsigned numMarkers = sizeof(latlonCoords) / sizeof(double) / 2;
+  for (unsigned i=0; i<numMarkers; ++i)
+    {
+    double x = latlonCoords[i][1];
+    double y = lat2y(latlonCoords[i][0]);
+    markerPoints->InsertNextPoint(x, y, 0.0);
+    colors->InsertNextTupleValue(kwBlue);
+    }
+
   vtkNew<vtkPolyData> markerPolys;
   markerPolys->SetPoints(markerPoints.GetPointer());
+  markerPolys->GetPointData()->AddArray(colors.GetPointer());
 
   vtkNew<vtkDistanceToCamera> dFilter;
   dFilter->SetScreenSize(50.0);
@@ -114,11 +124,19 @@ int main()
   vtkNew<vtkGlyph3D> glyph;
   glyph->SetInputConnection(dFilter->GetOutputPort());
   glyph->SetSourceConnection(arrow->GetOutputPort());
+  glyph->ScalingOn();
+  glyph->SetScaleFactor(1.0);
   glyph->SetScaleModeToScaleByScalar();
+  glyph->SetColorModeToColorByScalar();
   // Just gotta know this:
   glyph->SetInputArrayToProcess(
     0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "DistanceToCamera");
+  glyph->SetInputArrayToProcess(
+    3, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "Colors");
   glyph->GeneratePointIdsOn();
+  vtkNew<vtkTransform> transform;
+  transform->RotateZ(90.0);
+  glyph->SetSourceTransform(transform.GetPointer());
 
   vtkNew<vtkPolyDataMapper> glyphMapper;
   glyphMapper->SetInputConnection(glyph->GetOutputPort());
