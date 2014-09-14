@@ -1,14 +1,19 @@
 #include "vtkMap.h"
 
 #include <vtkActor.h>
+#include <vtkArrowSource.h>
 #include <vtkCallbackCommand.h>
 #include <vtkCamera.h>
 #include <vtkCommand.h>
+#include <vtkDistanceToCamera.h>
+#include <vtkGlyph3D.h>
 #include <vtkInteractorStyle.h>
 #include <vtkTransformCoordinateSystems.h>
 #include <vtkPointSet.h>
 #include <vtkPlaneSource.h>
 #include <vtkPlane.h>
+#include <vtkPoints.h>
+#include <vtkPolyData.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkProperty.h>
 #include <vtkMatrix4x4.h>
@@ -77,6 +82,51 @@ int main()
   double y = lat2y(coords[0]);  // latitude
   markerActor->SetPosition(x, y, 0.0);
   map->Draw();
+
+  // Initialize glyph-based markers
+  vtkNew<vtkPoints> markerPoints;
+  markerPoints->SetDataTypeToDouble();
+  x = kwLongitude;
+  y = lat2y(kwLatitude);
+  markerPoints->InsertNextPoint(x, y, 0.0);
+
+  double krsLatitude = 35.911373;
+  double krsLongitude = -79.072205;
+  x = krsLongitude;
+  y = lat2y(krsLatitude);
+  markerPoints->InsertNextPoint(x, y, 0.0);
+
+  double erdcLatitude = 32.301393;
+  double erdcLongitude = -90.871495;
+  x = erdcLongitude;
+  y = lat2y(erdcLatitude);
+  markerPoints->InsertNextPoint(x, y, 0.0);
+  vtkNew<vtkPolyData> markerPolys;
+  markerPolys->SetPoints(markerPoints.GetPointer());
+
+  vtkNew<vtkDistanceToCamera> dFilter;
+  dFilter->SetScreenSize(50.0);
+  dFilter->SetRenderer(rend.GetPointer());
+  dFilter->SetInputData(markerPolys.GetPointer());
+
+  vtkNew<vtkArrowSource> arrow;
+  arrow->InvertOn();
+  vtkNew<vtkGlyph3D> glyph;
+  glyph->SetInputConnection(dFilter->GetOutputPort());
+  glyph->SetSourceConnection(arrow->GetOutputPort());
+  glyph->SetScaleModeToScaleByScalar();
+  // Just gotta know this:
+  glyph->SetInputArrayToProcess(
+    0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "DistanceToCamera");
+  glyph->GeneratePointIdsOn();
+
+  vtkNew<vtkPolyDataMapper> glyphMapper;
+  glyphMapper->SetInputConnection(glyph->GetOutputPort());
+  vtkNew<vtkActor> glyphActor;
+  glyphActor->SetMapper(glyphMapper.GetPointer());
+  rend->AddActor(glyphActor.GetPointer());
+  map->Draw();
+
 
   vtkNew<vtkCallbackCommand> callback;
   callback->SetClientData(map.GetPointer());
