@@ -26,6 +26,9 @@ using namespace std;
 static void callbackFunction ( vtkObject* caller, long unsigned int eventId,
           void* clientData, void* callData );
 
+double lat2y(double);
+
+
 int main()
 {
   vtkNew<vtkMap> map;
@@ -39,9 +42,10 @@ int main()
   vtkNew<vtkPolyDataMapper> markerMapper;
   vtkNew<vtkActor> markerActor;
   marker->SetNumberOfSides(50);
-  marker->SetRadius(5);
+  marker->SetRadius(2.0);
   markerActor->SetMapper(markerMapper.GetPointer());
   markerMapper->SetInputConnection(marker->GetOutputPort());
+  markerActor->GetProperty()->SetColor(1.0, 0.1, 0.1);
   markerActor->GetProperty()->SetOpacity(0.5);
   rend->AddActor(markerActor.GetPointer());
 
@@ -60,9 +64,17 @@ int main()
   map->GetCenter(center);
 
   vtkPoints* testPoints = vtkPoints::New(VTK_DOUBLE);
+  double kwLatitude = 42.849604;
+  double kwLongitude = -73.758345;
   //testPoints->InsertNextPoint(0.0, 0.0, 0.0);
-  testPoints->InsertNextPoint(42.3, -73.5, 0.0);
-  markerActor->SetPosition(testPoints->GetPoint(0)[1], testPoints->GetPoint(0)[0], 0.0);
+  testPoints->InsertNextPoint(kwLatitude, kwLongitude, 0.0);
+  vtkPoints *displayPoints = map->gcsToDisplay(testPoints);
+  vtkPoints *gcsPoints = map->displayToGcs(displayPoints);
+  double coords[3];
+  gcsPoints->GetPoint(0, coords);
+  double x = coords[1];         // longitude
+  double y = lat2y(coords[0]);  // latitude
+  markerActor->SetPosition(x, y, 0.0);
   map->Draw();
 
   vtkNew<vtkCallbackCommand> callback;
@@ -70,7 +82,7 @@ int main()
   callback->SetCallback(callbackFunction);
   intr->AddObserver(vtkCommand::MouseWheelForwardEvent, callback.GetPointer());
   intr->AddObserver(vtkCommand::MouseWheelBackwardEvent, callback.GetPointer());
-  //intr->Start();
+  intr->Start();
   //map->Print(std::cout);
 
 
