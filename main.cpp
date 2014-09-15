@@ -19,6 +19,7 @@
 #include <vtkPolyData.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkProperty.h>
+#include <vtkPropPicker.h>
 #include <vtkMatrix4x4.h>
 #include <vtkNew.h>
 #include <vtkRenderWindow.h>
@@ -33,6 +34,47 @@ using namespace std;
 
 static void callbackFunction ( vtkObject* caller, long unsigned int eventId,
           void* clientData, void* callData );
+
+class PickCallback : public vtkCommand
+{
+public:
+  static PickCallback *New()
+    { return new PickCallback; }
+  virtual void Execute(vtkObject *caller, unsigned long, void*)
+    {
+      vtkRenderWindowInteractor *interactor =
+        vtkRenderWindowInteractor::SafeDownCast(caller);
+      int *pos = interactor->GetEventPosition();
+      std::cout << "Event position: " << pos[0] << ", " << pos[1] << std::endl;
+
+      vtkPropPicker *picker = vtkPropPicker::SafeDownCast(interactor->GetPicker());
+      if (picker)
+        {
+        if (picker->Pick(pos[0], pos[1], 0.0, this->Renderer))
+          {
+           vtkProp* pickedActor = picker->GetViewProp();
+           std::cout << "pickedActor " << pickedActor << std::endl;
+           if (pickedActor)
+             {
+             // Todo Figure out how to get "InputPointIds" value
+             }
+          }
+        }
+      else
+        {
+        std::cout << "Picker NG " << interactor->GetPicker() << std::endl;
+       }
+    }
+
+  void SetRenderer(vtkRenderer *ren)
+  {
+    this->Renderer = ren;
+  }
+
+protected:
+  vtkRenderer *Renderer;
+};
+
 
 double lat2y(double);
 
@@ -110,9 +152,14 @@ int main()
   callback->SetCallback(callbackFunction);
   intr->AddObserver(vtkCommand::MouseWheelForwardEvent, callback.GetPointer());
   intr->AddObserver(vtkCommand::MouseWheelBackwardEvent, callback.GetPointer());
+
+  PickCallback *pickCallback = PickCallback::New();
+  pickCallback->SetRenderer(rend.GetPointer());
+  intr->AddObserver(vtkCommand::LeftButtonPressEvent, pickCallback);
+
   intr->Start();
 
-  map->Print(std::cout);
+  //map->Print(std::cout);
   return 0;
 }
 
