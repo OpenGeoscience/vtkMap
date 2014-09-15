@@ -14,7 +14,7 @@
 =========================================================================*/
 
 #include "vtkMap.h"
-#include "vtkMapMarker.h"
+#include "vtkMapMarkerSet.h"
 #include "vtkMapTile.h"
 
 // VTK Includes
@@ -116,10 +116,7 @@ vtkMap::vtkMap()
   this->Zoom = 1;
   this->Center[0] = this->Center[1] = 0.0;
   this->Initialized = false;
-
-  // Load marker image
-  // Todo Embed image data in header or source file?
-  vtkMapMarker::LoadMarkerImage(MARKER_IMAGE_FILE);
+  this->MapMarkerSet = vtkMapMarkerSet::New();
 }
 
 //----------------------------------------------------------------------------
@@ -179,46 +176,6 @@ void vtkMap::Update()
 
   RemoveTiles();
   AddTiles();
-
-  // Update markers
-  std::vector<vtkMapMarker*>::iterator markerIter = this->MapMarkers.begin();
-  vtkPoints *gcsPoints = vtkPoints::New(VTK_DOUBLE);
-  double latitude;
-  double longitude;
-  double geoCoords[3];
-  for (; markerIter != this->MapMarkers.end(); markerIter++)
-    {
-    (*markerIter)->GetCoordinates(&latitude, &longitude);
-    geoCoords[0] = latitude;
-    geoCoords[1] = longitude;
-    geoCoords[2] = 0.0;
-    gcsPoints->InsertNextPoint(geoCoords);
-    }
-  vtkPoints *displayPoints = this->gcsToDisplay(gcsPoints);
-
-  double displayCoords[3];
-  markerIter = this->MapMarkers.begin();
-  for (int i=0; markerIter != this->MapMarkers.end(); i++, markerIter++)
-    {
-    displayPoints->GetPoint(i, displayCoords);
-    // std::cout << "Marker " << i
-    //           << " at " << displayCoords[0]
-    //           << ", " << displayCoords[1] << std::endl;
-    (*markerIter)->GetActor()->SetDisplayPosition(displayCoords[0], displayCoords[1]);
-    }
-
-  // for (int i=0; i<gcsPoints->GetNumberOfPoints(); i++)
-  //   {
-  //   gcsPoints->GetPoint(i, geoCoords);
-  //   std::cout << "Input lat/lon: " << geoCoords[0] << ", " << geoCoords[1];
-
-  //   displayPoints->GetPoint(i, displayCoords);
-  //   std::cout << " -- Display coords " << displayCoords[0]
-  //             << ", " << displayCoords[1]
-  //             << ", " << displayCoords[2] << std::endl;
-  //   }
-
-  gcsPoints->Delete();
 }
 
 //----------------------------------------------------------------------------
@@ -227,6 +184,8 @@ void vtkMap::Draw()
   if (!this->Initialized && this->Renderer)
     {
     this->Initialized = true;
+    this->MapMarkerSet->SetRenderer(this->Renderer);
+
     this->Center[0] = lat2y(this->Center[0]);
     this->Renderer->GetActiveCamera()->SetPosition(
       this->Center[1],
@@ -449,28 +408,15 @@ vtkMapTile *vtkMap::GetCachedTile(int zoom, int x, int y)
 
 
 //----------------------------------------------------------------------------
-vtkMapMarker *vtkMap::AddMarker(double Latitude, double Longitude)
+vtkIdType vtkMap::AddMarker(double Latitude, double Longitude)
 {
-  vtkMapMarker *marker = vtkMapMarker::New();
-  marker->SetCoordinates(Latitude, Longitude);
-  this->Renderer->AddActor(marker->GetActor());
-  this->MapMarkers.push_back(marker);
-  this->Draw();
-  return marker;
+  return this->MapMarkerSet->AddMarker(Latitude, Longitude);
 }
 
 //----------------------------------------------------------------------------
 void vtkMap::RemoveMapMarkers()
 {
-  std::vector<vtkMapMarker*>::iterator iter = this->MapMarkers.begin();
-  for (; iter != this->MapMarkers.end(); iter++)
-    {
-    vtkMapMarker *marker = *iter;
-    vtkActor2D *actor = marker->GetActor();
-    this->Renderer->RemoveActor(actor);
-    }
-  this->MapMarkers.clear();
-  this->Draw();
+  // TODO
 }
 
 //----------------------------------------------------------------------------

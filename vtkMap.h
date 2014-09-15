@@ -25,7 +25,7 @@
 class vtkActor;
 class vtkInteractorStyle;
 class vtkMapTile;
-class vtkMapMarker;
+class vtkMapMarkerSet;
 class vtkPoints;
 class vtkRenderer;
 
@@ -70,7 +70,7 @@ public:
 
   // Description:
   // Add marker to map
-  vtkMapMarker* AddMarker(double Latitude, double Longitude);
+  vtkIdType AddMarker(double Latitude, double Longitude);
 
   // Description:
   // Removes all map markers
@@ -115,7 +115,7 @@ protected:
   vtkMapTile* GetCachedTile(int zoom, int x, int y);
 
   // Description:
-  // Set the renderer to draww the maps
+  // The renderer used to draw the maps
   vtkRenderer* Renderer;
 
   // Description:
@@ -137,7 +137,9 @@ protected:
 
   std::vector<vtkMapTile*> NewPendingTiles;
 
-  std::vector<vtkMapMarker*> MapMarkers;
+  // Description:
+  // The map marker manager
+  vtkMapMarkerSet *MapMarkerSet;
 
 protected:
   bool Initialized;

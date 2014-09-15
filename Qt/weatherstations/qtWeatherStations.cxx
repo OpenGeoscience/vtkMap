@@ -303,6 +303,7 @@ void qtWeatherStations::DisplayStationMarkers(cJSON *stationList)
     //           << lat << ", " << lon << std::endl;
     this->Map->AddMarker(lat, lon);
     }
+  this->drawMap();
  }
 
 

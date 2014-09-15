@@ -29,8 +29,6 @@ set (SOURCES
     main.cpp
     vtkMapMarkerSet.cxx
     vtkMapMarkerSet.h
-    vtkMapMarker.cxx
-    vtkMapMarker.h
     vtkMapTile.cxx
     vtkMapTile.h
     vtkMap.cxx

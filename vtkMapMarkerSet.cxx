@@ -125,5 +125,6 @@ vtkIdType vtkMapMarkerSet::AddMarker(double Latitude, double Longitude)
   vtkUnsignedCharArray *colors = vtkUnsignedCharArray::SafeDownCast(data);
   colors->InsertNextTupleValue(kwBlue);
 
+  this->MarkerPolyData->Modified();
   return id;
 }
