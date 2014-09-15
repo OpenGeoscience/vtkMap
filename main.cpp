@@ -8,6 +8,7 @@
 #include <vtkCommand.h>
 #include <vtkDistanceToCamera.h>
 #include <vtkGlyph3D.h>
+#include <vtkIdTypeArray.h>
 #include <vtkInteractorStyle.h>
 #include <vtkTransform.h>
 #include <vtkTransformCoordinateSystems.h>
@@ -19,7 +20,7 @@
 #include <vtkPolyData.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkProperty.h>
-#include <vtkPropPicker.h>
+#include <vtkPointPicker.h>
 #include <vtkMatrix4x4.h>
 #include <vtkNew.h>
 #include <vtkRenderWindow.h>
@@ -46,24 +47,29 @@ public:
         vtkRenderWindowInteractor::SafeDownCast(caller);
       int *pos = interactor->GetEventPosition();
       std::cout << "Event position: " << pos[0] << ", " << pos[1] << std::endl;
+      //std::cout << interactor->GetPicker()->GetClassName() << std::endl;
 
-      vtkPropPicker *picker = vtkPropPicker::SafeDownCast(interactor->GetPicker());
-      if (picker)
+      vtkPointPicker *pointPicker =
+        vtkPointPicker::SafeDownCast(interactor->GetPicker());
+      if (pointPicker && (pointPicker->Pick(pos[0], pos[1], 0.0, this->Renderer)))
         {
-        if (picker->Pick(pos[0], pos[1], 0.0, this->Renderer))
+        vtkIdType pointId = pointPicker->GetPointId();
+        if (pointId > 0)
           {
-           vtkProp* pickedActor = picker->GetViewProp();
-           std::cout << "pickedActor " << pickedActor << std::endl;
-           if (pickedActor)
-             {
-             // Todo Figure out how to get "InputPointIds" value
-             }
+          vtkDataArray *dataArray =
+            pointPicker->GetDataSet()->GetPointData()->GetArray("InputPointIds");
+          vtkIdTypeArray *idArray = vtkIdTypeArray::SafeDownCast(dataArray);
+          if (idArray)
+            {
+            std::cout << "Point id " << pointId
+                      << " - Data " << idArray->GetValue(pointId) << std::endl;
+            }
+          }
+        else
+          {
+          std::cout << "Point id " << pointId << " - no data" << std::endl;
           }
         }
-      else
-        {
-        std::cout << "Picker NG " << interactor->GetPicker() << std::endl;
-       }
     }
 
   void SetRenderer(vtkRenderer *ren)
@@ -134,6 +140,7 @@ int main()
 
   // Specify array of lat-lon coordinates
   double latlonCoords[][2] = {
+    0.0, 0.0,
     42.849604, -73.758345,  // KHQ
     35.911373, -79.072205,  // KRS
     32.301393, -90.871495   // ERDC
@@ -156,6 +163,9 @@ int main()
   PickCallback *pickCallback = PickCallback::New();
   pickCallback->SetRenderer(rend.GetPointer());
   intr->AddObserver(vtkCommand::LeftButtonPressEvent, pickCallback);
+
+  vtkNew<vtkPointPicker> pointPicker;
+  intr->SetPicker(pointPicker.GetPointer());
 
   intr->Start();
 
