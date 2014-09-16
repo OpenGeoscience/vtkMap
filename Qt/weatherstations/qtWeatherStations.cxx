@@ -18,8 +18,13 @@
 #include "vtkMap.h"
 #include <QVTKWidget.h>
 #include <vtkCallbackCommand.h>
+#include <vtkDataArray.h>
+#include <vtkDataSet.h>
+#include <vtkIdTypeArray.h>
 #include <vtkInteractorStyleImage.h>
 #include <vtkNew.h>
+#include <vtkPointData.h>
+#include <vtkPointPicker.h>
 #include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
@@ -56,6 +61,9 @@ public:
 
   virtual void Execute(vtkObject *caller, unsigned long eventId, void *callData)
   {
+    vtkRenderWindowInteractor *interactor =
+      vtkRenderWindowInteractor::SafeDownCast(caller);
+
     switch (eventId)
       {
       case vtkCommand::MouseWheelForwardEvent:
@@ -67,6 +75,41 @@ public:
       case vtkCommand::ModifiedEvent:
         // Update markers for interactor-modified events
         this->App->updateMap();
+        break;
+
+      case vtkCommand::LeftButtonPressEvent:
+        {
+        int *pos = interactor->GetEventPosition();
+        //std::cout << "Event position: " << pos[0] << ", " << pos[1] << std::endl;
+        vtkPointPicker *pointPicker =
+          vtkPointPicker::SafeDownCast(interactor->GetPicker());
+        vtkRenderer *renderer = this->App->getRenderer();
+        if (pointPicker && (pointPicker->Pick(pos[0], pos[1], 0.0, renderer)))
+          {
+          vtkIdType pointId = pointPicker->GetPointId();
+          if (pointId > 0)
+            {
+            vtkDataArray *dataArray =
+              pointPicker->GetDataSet()->GetPointData()->GetArray("InputPointIds");
+            vtkIdTypeArray *glyphIdArray = vtkIdTypeArray::SafeDownCast(dataArray);
+            if (glyphIdArray)
+              {
+              vtkIdType glyphId = glyphIdArray->GetValue(pointId);
+              //std::cout << "Point id " << pointId
+              //          << " - Data " << glyphId << std::endl;
+              if (glyphId >= 0)
+                {
+                //std::cout << "Clicked marker " << glyphId << std::endl;
+                this->App->onMarkerPicked(glyphId, pos);
+                }
+              }
+            }
+          else
+            {
+            //std::cout << "Point id " << pointId << " - no data" << std::endl;
+            }
+          }
+        }
         break;
 
       default:
@@ -98,19 +141,21 @@ qtWeatherStations::qtWeatherStations(QWidget *parent)
 
   // Initialize Map instance
   this->Map = vtkMap::New();
-  vtkNew<vtkRenderer> mapRenderer;
-  this->Map->SetRenderer(mapRenderer.GetPointer());
+  this->Renderer = vtkRenderer::New();
+  this->Map->SetRenderer(this->Renderer);
   //this->resetMapCoords();
   //this->Map->SetCenter(32.2, -90.9);  // approx ERDC coords
   this->Map->SetCenter(42.849604, -73.758345);  // KHQ coords
   this->Map->SetZoom(5);
 
   vtkNew<vtkRenderWindow> mapRenderWindow;
-  mapRenderWindow->AddRenderer(mapRenderer.GetPointer());
+  mapRenderWindow->AddRenderer(this->Renderer);
   this->MapWidget->SetRenderWindow(mapRenderWindow.GetPointer());
 
   vtkRenderWindowInteractor *intr = this->MapWidget->GetInteractor();
   intr->SetInteractorStyle(this->Map->GetInteractorStyle());
+  vtkNew<vtkPointPicker> pointPicker;
+  intr->SetPicker(pointPicker.GetPointer());
   intr->Initialize();
 
   // Pass *all* callbacks to MapCallback instance
@@ -137,6 +182,14 @@ qtWeatherStations::qtWeatherStations(QWidget *parent)
 qtWeatherStations::~qtWeatherStations()
 {
   curl_global_cleanup();
+  if (this->Map)
+    {
+    this->Map->Delete();
+    }
+  if (this->Renderer)
+    {
+    this->Renderer->Delete();
+    }
 }
 
 // ------------------------------------------------------------
@@ -334,4 +387,20 @@ void qtWeatherStations::updateMap()
     int zoom = this->Map->GetZoom();
     this->UI->MapCoordinatesWidget->setCoordinates(center, zoom);
     }
+}
+
+// ------------------------------------------------------------
+// Returns vtkRenderer
+vtkRenderer *qtWeatherStations::getRenderer() const
+{
+  return this->Renderer;
+}
+
+// ------------------------------------------------------------
+// Handles map marker getting picked
+void qtWeatherStations::onMarkerPicked(vtkIdType markerId, int displayCoords[2])
+{
+  std::cout << "Picked marker " << markerId
+            << " at " << displayCoords[0] << ", " << displayCoords[1]
+            << std::endl;
 }

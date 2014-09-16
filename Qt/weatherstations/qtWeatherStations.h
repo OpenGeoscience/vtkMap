@@ -20,9 +20,11 @@
 #define __qtWeatherStations_h
 
 #include <QMainWindow>
-class vtkMap;
-class QVTKWidget;
+#include <vtkType.h>
 class cJSON;
+class vtkMap;
+class vtkRenderer;
+class QVTKWidget;
 
 
 // Forward Qt class declarations
@@ -35,15 +37,17 @@ class qtWeatherStations : public QMainWindow
   qtWeatherStations(QWidget *parent = 0);
   virtual ~qtWeatherStations();
 
-
   void drawMap();
   void updateMap();
+  vtkRenderer *getRenderer() const;
+  void onMarkerPicked(vtkIdType markerId, int displayCoords[2]);
  public slots:
 
  protected:
   void DisplayStationMarkers(cJSON *stationList);
 
   vtkMap *Map;               /// Map instance
+  vtkRenderer *Renderer;     /// vtk renderer
   QVTKWidget *MapWidget;     /// Map widget
   Ui_qtWeatherStations *UI;  /// Qt Designer form
 
