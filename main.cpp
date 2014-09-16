@@ -45,39 +45,23 @@ public:
       vtkRenderWindowInteractor *interactor =
         vtkRenderWindowInteractor::SafeDownCast(caller);
       int *pos = interactor->GetEventPosition();
-      std::cout << "Event position: " << pos[0] << ", " << pos[1] << std::endl;
+      //std::cout << "Event position: " << pos[0] << ", " << pos[1] << std::endl;
       //std::cout << interactor->GetPicker()->GetClassName() << std::endl;
 
-      vtkPointPicker *pointPicker =
-        vtkPointPicker::SafeDownCast(interactor->GetPicker());
-      if (pointPicker && (pointPicker->Pick(pos[0], pos[1], 0.0, this->Renderer)))
+      vtkIdType markerId = this->Map->PickMarker(pos);
+      if (markerId >= 0)
         {
-        vtkIdType pointId = pointPicker->GetPointId();
-        if (pointId > 0)
-          {
-          vtkDataArray *dataArray =
-            pointPicker->GetDataSet()->GetPointData()->GetArray("InputPointIds");
-          vtkIdTypeArray *idArray = vtkIdTypeArray::SafeDownCast(dataArray);
-          if (idArray)
-            {
-            std::cout << "Point id " << pointId
-                      << " - Data " << idArray->GetValue(pointId) << std::endl;
-            }
-          }
-        else
-          {
-          std::cout << "Point id " << pointId << " - no data" << std::endl;
-          }
+        std::cout << "Picked marker " << markerId << std::endl;
         }
     }
 
-  void SetRenderer(vtkRenderer *ren)
+  void SetMap(vtkMap *map)
   {
-    this->Renderer = ren;
+    this->Map = map;
   }
 
 protected:
-  vtkRenderer *Renderer;
+  vtkMap *Map;
 };
 
 
@@ -111,6 +95,7 @@ int main()
   vtkNew<vtkRenderWindowInteractor> intr;
   intr->SetRenderWindow(wind.GetPointer());
   intr->SetInteractorStyle(map->GetInteractorStyle());
+  intr->SetPicker(map->GetPicker());
 
   intr->Initialize();
   map->Draw();
@@ -156,11 +141,8 @@ int main()
   intr->AddObserver(vtkCommand::MouseWheelBackwardEvent, callback.GetPointer());
 
   PickCallback *pickCallback = PickCallback::New();
-  pickCallback->SetRenderer(rend.GetPointer());
+  pickCallback->SetMap(map.GetPointer());
   intr->AddObserver(vtkCommand::LeftButtonPressEvent, pickCallback);
-
-  vtkNew<vtkPointPicker> pointPicker;
-  intr->SetPicker(pointPicker.GetPointer());
 
   intr->Start();
 

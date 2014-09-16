@@ -42,7 +42,7 @@ class qtWeatherStations : public QMainWindow
   void drawMap();
   void updateMap();
   vtkRenderer *getRenderer() const;
-  void onMarkerPicked(vtkIdType markerId, int displayCoords[2]);
+  void pickMarker(int displayCoords[2]);
  public slots:
 
  protected:

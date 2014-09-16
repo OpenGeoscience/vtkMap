@@ -18,13 +18,9 @@
 #include "vtkMap.h"
 #include <QVTKWidget.h>
 #include <vtkCallbackCommand.h>
-#include <vtkDataArray.h>
-#include <vtkDataSet.h>
-#include <vtkIdTypeArray.h>
 #include <vtkInteractorStyleImage.h>
 #include <vtkNew.h>
-#include <vtkPointData.h>
-#include <vtkPointPicker.h>
+#include <vtkPicker.h>
 #include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
@@ -83,35 +79,7 @@ public:
       case vtkCommand::LeftButtonPressEvent:
         {
         int *pos = interactor->GetEventPosition();
-        //std::cout << "Event position: " << pos[0] << ", " << pos[1] << std::endl;
-        vtkPointPicker *pointPicker =
-          vtkPointPicker::SafeDownCast(interactor->GetPicker());
-        vtkRenderer *renderer = this->App->getRenderer();
-        if (pointPicker && (pointPicker->Pick(pos[0], pos[1], 0.0, renderer)))
-          {
-          vtkIdType pointId = pointPicker->GetPointId();
-          if (pointId > 0)
-            {
-            vtkDataArray *dataArray =
-              pointPicker->GetDataSet()->GetPointData()->GetArray("InputPointIds");
-            vtkIdTypeArray *glyphIdArray = vtkIdTypeArray::SafeDownCast(dataArray);
-            if (glyphIdArray)
-              {
-              vtkIdType glyphId = glyphIdArray->GetValue(pointId);
-              //std::cout << "Point id " << pointId
-              //          << " - Data " << glyphId << std::endl;
-              if (glyphId >= 0)
-                {
-                //std::cout << "Clicked marker " << glyphId << std::endl;
-                this->App->onMarkerPicked(glyphId, pos);
-                }
-              }
-            }
-          else
-            {
-            //std::cout << "Point id " << pointId << " - no data" << std::endl;
-            }
-          }
+        this->App->pickMarker(pos);
         }
         break;
 
@@ -157,8 +125,7 @@ qtWeatherStations::qtWeatherStations(QWidget *parent)
 
   vtkRenderWindowInteractor *intr = this->MapWidget->GetInteractor();
   intr->SetInteractorStyle(this->Map->GetInteractorStyle());
-  vtkNew<vtkPointPicker> pointPicker;
-  intr->SetPicker(pointPicker.GetPointer());
+  intr->SetPicker(this->Map->GetPicker());
   intr->Initialize();
 
   // Pass *all* callbacks to MapCallback instance
@@ -440,13 +407,10 @@ vtkRenderer *qtWeatherStations::getRenderer() const
 }
 
 // ------------------------------------------------------------
-// Handles map marker getting picked
-void qtWeatherStations::onMarkerPicked(vtkIdType markerId, int vtkNotUsed[2])
+// Handles left-click event
+void qtWeatherStations::pickMarker(int displayCoords[2])
 {
-  // std::cout << "Picked marker " << markerId
-  //           << " at " << displayCoords[0] << ", " << displayCoords[1]
-  //           << std::endl;
-
+  vtkIdType markerId = this->Map->PickMarker(displayCoords);
   std::map<vtkIdType, StationReport>::iterator stationIter =
     this->StationMap.find(markerId);
   if (stationIter != this->StationMap.end())

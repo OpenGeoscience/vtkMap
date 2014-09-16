@@ -26,6 +26,7 @@ class vtkActor;
 class vtkInteractorStyle;
 class vtkMapTile;
 class vtkMapMarkerSet;
+class vtkPicker;
 class vtkPoints;
 class vtkRenderer;
 
@@ -49,6 +50,11 @@ public:
   // Get/Set the interactor style in which map tiles will be added
   vtkGetMacro(InteractorStyle, vtkInteractorStyle*)
   vtkSetMacro(InteractorStyle, vtkInteractorStyle*)
+
+  // Description:
+  // Get/Set the picker used for picking map markers
+  vtkGetMacro(Picker, vtkPicker*)
+  vtkSetMacro(Picker, vtkPicker*)
 
   // Description:
   // Get/Set the detailing level
@@ -75,6 +81,10 @@ public:
   // Description:
   // Removes all map markers
   void RemoveMapMarkers();
+
+  // Description:
+  // Returns id of marker at specified display coordinates
+  vtkIdType PickMarker(int displayCoords[2]);
 
   // Description:
   // Transform from map coordiantes to display coordinates
@@ -121,6 +131,10 @@ protected:
   // Description:
   // The interactor style used by the map
   vtkInteractorStyle* InteractorStyle;
+
+  // Description:
+  // The picker used for picking map markers
+  vtkPicker* Picker;
 
   // Description:
   // Set Zoom level, which determines the level of detailing

@@ -16,11 +16,14 @@
 #include "vtkMapMarkerSet.h"
 #include <vtkActor.h>
 #include <vtkArrowSource.h>
+#include <vtkDataArray.h>
 #include <vtkDistanceToCamera.h>
+#include <vtkIdTypeArray.h>
 #include <vtkGlyph3D.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
 #include <vtkPointData.h>
+#include <vtkPointPicker.h>
 #include <vtkPoints.h>
 #include <vtkPolyData.h>
 #include <vtkPolyDataMapper.h>
@@ -145,4 +148,33 @@ void vtkMapMarkerSet::RemoveMapMarkers()
   data->Reset();
 
   this->MarkerPolyData->Modified();
+}
+
+//----------------------------------------------------------------------------
+vtkIdType vtkMapMarkerSet::
+PickMarker(vtkRenderer *renderer, vtkPicker *picker, int displayCoords[2])
+{
+  vtkIdType markerId = -1;  // return value
+
+  vtkPointPicker *pointPicker = vtkPointPicker::SafeDownCast(picker);
+  if (pointPicker &&
+      (pointPicker->Pick(displayCoords[0], displayCoords[1], 0.0, renderer)))
+    {
+    vtkIdType pointId = pointPicker->GetPointId();
+    if (pointId > 0)
+      {
+      vtkDataArray *dataArray =
+        pointPicker->GetDataSet()->GetPointData()->GetArray("InputPointIds");
+      vtkIdTypeArray *glyphIdArray = vtkIdTypeArray::SafeDownCast(dataArray);
+      if (glyphIdArray)
+        {
+        markerId = glyphIdArray->GetValue(pointId);
+        //std::cout << "Point id " << pointId
+        //          << " - Data " << markerId << std::endl;
+        }
+
+      }
+    }
+
+  return markerId;
 }

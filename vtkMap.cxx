@@ -22,6 +22,7 @@
 #include <vtkImageInPlaceFilter.h>
 #include <vtkInteractorStyleImage.h>
 #include <vtkObjectFactory.h>
+#include <vtkPointPicker.h>
 #include <vtkPoints.h>
 #include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
@@ -113,6 +114,7 @@ vtkMap::vtkMap()
 {
   this->Renderer = NULL;
   this->InteractorStyle = vtkInteractorStyleImage::New();
+  this->Picker = vtkPointPicker::New();
   this->Zoom = 1;
   this->Center[0] = this->Center[1] = 0.0;
   this->Initialized = false;
@@ -417,6 +419,12 @@ vtkIdType vtkMap::AddMarker(double Latitude, double Longitude)
 void vtkMap::RemoveMapMarkers()
 {
   this->MapMarkerSet->RemoveMapMarkers();
+}
+
+//----------------------------------------------------------------------------
+vtkIdType vtkMap::PickMarker(int displayCoords[2])
+{
+  return this->MapMarkerSet->PickMarker(this->Renderer, this->Picker, displayCoords);
 }
 
 //----------------------------------------------------------------------------

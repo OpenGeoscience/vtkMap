@@ -23,6 +23,7 @@
 
 class vtkActor;
 class vtkMapper;
+class vtkPicker;
 class vtkPolyDataMapper;
 class vtkPolyData;
 class vtkRenderer;
@@ -45,6 +46,11 @@ public:
   // Description:
   // Removes all map markers
   void RemoveMapMarkers();
+
+  // Description:
+  // Returns id of marker at specified display coordinates
+  vtkIdType PickMarker(vtkRenderer *renderer, vtkPicker *picker,
+    int displayCoords[2]);
 
  protected:
   vtkMapMarkerSet();
