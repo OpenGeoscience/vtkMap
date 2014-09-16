@@ -28,6 +28,9 @@
 #include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
+
+#include <QMessageBox>
+#include <QString>
 #include <QVBoxLayout>
 #include <curl/curl.h>
 #include <cJSON/cJSON.h>
@@ -438,9 +441,24 @@ vtkRenderer *qtWeatherStations::getRenderer() const
 
 // ------------------------------------------------------------
 // Handles map marker getting picked
-void qtWeatherStations::onMarkerPicked(vtkIdType markerId, int displayCoords[2])
+void qtWeatherStations::onMarkerPicked(vtkIdType markerId, int vtkNotUsed[2])
 {
-  std::cout << "Picked marker " << markerId
-            << " at " << displayCoords[0] << ", " << displayCoords[1]
-            << std::endl;
+  // std::cout << "Picked marker " << markerId
+  //           << " at " << displayCoords[0] << ", " << displayCoords[1]
+  //           << std::endl;
+
+  std::map<vtkIdType, StationReport>::iterator stationIter =
+    this->StationMap.find(markerId);
+  if (stationIter != this->StationMap.end())
+    {
+    StationReport station = stationIter->second;
+    std::stringstream ss;
+    ss << "Station: " << station.name << "\n"
+       << "Current Temp: " << std::setiosflags(std::ios_base::fixed)
+       << std::setprecision(1) << station.temperature << "F"
+       <<  std::endl;
+
+    QMessageBox::information(this->MapWidget, "Marker clicked",
+      QString::fromStdString(ss.str()));
+    }
 }

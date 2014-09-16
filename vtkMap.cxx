@@ -416,7 +416,7 @@ vtkIdType vtkMap::AddMarker(double Latitude, double Longitude)
 //----------------------------------------------------------------------------
 void vtkMap::RemoveMapMarkers()
 {
-  // TODO
+  this->MapMarkerSet->RemoveMapMarkers();
 }
 
 //----------------------------------------------------------------------------

@@ -128,3 +128,21 @@ vtkIdType vtkMapMarkerSet::AddMarker(double Latitude, double Longitude)
   this->MarkerPolyData->Modified();
   return id;
 }
+
+//----------------------------------------------------------------------------
+void vtkMapMarkerSet::RemoveMapMarkers()
+{
+   if (this->MarkerPolyData == NULL)
+    {
+    return;
+    }
+
+  vtkPoints *points = this->MarkerPolyData->GetPoints();
+  points->Reset();
+
+  vtkDataArray *data =
+    this->MarkerPolyData->GetPointData()->GetArray("Colors");
+  data->Reset();
+
+  this->MarkerPolyData->Modified();
+}
