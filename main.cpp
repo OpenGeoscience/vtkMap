@@ -1,5 +1,4 @@
 #include "vtkMap.h"
-#include "vtkMapMarkerSet.h"
 
 #include <vtkActor.h>
 #include <vtkArrowSource.h>
@@ -134,10 +133,6 @@ int main()
   markerActor->SetPosition(x, y, 0.0);
   map->Draw();
 
-  // Initialize glyph-based markers
-  vtkMapMarkerSet *markerSet = vtkMapMarkerSet::New();
-  markerSet->SetRenderer(rend.GetPointer());
-
   // Specify array of lat-lon coordinates
   double latlonCoords[][2] = {
     0.0, 0.0,
@@ -150,7 +145,7 @@ int main()
     {
     double lat = latlonCoords[i][0];
     double lon = latlonCoords[i][1];
-    markerSet->AddMarker(lat, lon);
+    map->AddMarker(lat, lon);
     }
   //map->Draw();
 
