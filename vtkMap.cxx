@@ -31,6 +31,7 @@
 #include <vtkMatrix4x4.h>
 #include <vtkPoints.h>
 #include <vtkPlaneSource.h>
+#include <vtksys/SystemTools.hxx>
 
 #include <algorithm>
 #include <iomanip>
@@ -134,6 +135,11 @@ vtkMap::~vtkMap()
 void vtkMap::PrintSelf(ostream &os, vtkIndent indent)
 {
   Superclass::PrintSelf(os, indent);
+  os << "vtkMap" << std::endl
+     << "Zoom Level: " << this->Zoom
+     << "Center: " << this->Center[0] << " " << this->Center[1] << std::endl
+     << "CacheDirectory: " << this->CacheDirectory << std::endl;
+
   double *camPosition = this->Renderer->GetActiveCamera()->GetPosition();
   double *focalPosition = this->Renderer->GetActiveCamera()->GetFocalPoint();
   os << "  Zoom Level: " << this->Zoom << "\n"
@@ -188,6 +194,37 @@ void vtkMap::Draw()
     this->Initialized = true;
     this->MapMarkerSet->SetRenderer(this->Renderer);
 
+    // Make sure cache directory specified
+    if (!this->CacheDirectory || "" == this->CacheDirectory)
+      {
+      // Use vtksys::SplitPath() to expand home directory
+      std::vector<std::string> cachePath;
+      vtksys::SystemTools::SplitPath("~/", cachePath);
+      cachePath.push_back(".vtkmap");
+      cachePath.push_back("tiles");
+      this->SetCacheDirectory(vtksys::SystemTools::JoinPath(cachePath).c_str());
+      std::cerr << "Set cache directory to " << this->CacheDirectory << std::endl;
+      }
+
+    // Make sure cache directory specified with unix separators
+    std::string sCacheDir(this->CacheDirectory);  // for convenience
+    vtksys::SystemTools::ConvertToUnixSlashes(sCacheDir);
+    // If trailing slash char, strip it off
+    if (*sCacheDir.rbegin() == '/')
+       {
+       sCacheDir.erase(sCacheDir.end()-1);
+       this->SetCacheDirectory(sCacheDir.c_str());
+       }
+
+    // Make sure cache directory exists
+    if(!vtksys::SystemTools::FileIsDirectory(this->CacheDirectory))
+      {
+      std::cerr << "Create tile cache directory " << this->CacheDirectory
+                << std::endl;
+      vtksys::SystemTools::MakeDirectory(this->CacheDirectory);
+      }
+
+    // Initialize graphics
     this->Center[0] = lat2y(this->Center[0]);
     this->Renderer->GetActiveCamera()->SetPosition(
       this->Center[1],
@@ -331,7 +368,7 @@ void vtkMap::AddTiles()
         tile->SetImageKey(oss.str());
         tile->SetImageSource("http://tile.openstreetmap.org/" + zoom + "/" + row +
                              "/" + col + ".png");
-        tile->Init();
+        tile->Init(this->CacheDirectory);
         this->AddTileToCache(this->TileZoom, xIndex, yIndex, tile);
       }
     this->NewPendingTiles.push_back(tile);

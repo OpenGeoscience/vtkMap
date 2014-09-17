@@ -67,6 +67,11 @@ public:
   vtkSetVector2Macro(Center, double);
 
   // Description:
+  //
+  vtkGetStringMacro(CacheDirectory);
+  vtkSetStringMacro(CacheDirectory);
+
+  // Description:
   // Update the renderer with relevant tiles to draw the Map
   void Update();
 
@@ -143,6 +148,9 @@ protected:
   // Description:
   // Center of the map
   double Center[2];
+
+  // Directory for caching map tiles
+  char *CacheDirectory;
 
   // Description:
   // Cached tiles
