@@ -72,7 +72,7 @@ vtkMapTile::~vtkMapTile()
 }
 
 //----------------------------------------------------------------------------
-void vtkMapTile::Init()
+void vtkMapTile::Init(const char *cacheDirectory)
 {
 
   this->Plane = vtkPlaneSource::New();
@@ -82,7 +82,7 @@ void vtkMapTile::Init()
   this->Plane->SetNormal(0, 0, 1);
 
   this->TexturePlane = vtkTextureMapToPlane::New();
-  this->InitializeDownload();
+  this->InitializeDownload(cacheDirectory);
 
   // Read the image which will be the texture
   vtkNew<vtkPNGReader> pngReader;
@@ -129,18 +129,10 @@ bool vtkMapTile::IsVisible()
 }
 
 //----------------------------------------------------------------------------
-void vtkMapTile::InitializeDownload()
+void vtkMapTile::InitializeDownload(const char *cacheDirectory)
 {
   // Generate destination file name
-  this->ImageFile = "Temp/" + this->ImageKey + ".png";
-
-  // Check if destination directory exists.
-  // If not, then create it.
-  if(!vtksys::SystemTools::FileIsDirectory("Temp"))
-    {
-    std::cerr << "Destination directory not present. Creating " << std::endl;
-    vtksys::SystemTools::MakeDirectory("Temp");
-    }
+  this->ImageFile = std::string(cacheDirectory) + "/" + this->ImageKey + ".png";
 
   // Check if texture already exists.
   // If not, download

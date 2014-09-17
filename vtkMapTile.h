@@ -73,7 +73,7 @@ public:
 
   // Description:
   // Create the geometry and download the image if necessary
-  void Init();
+  void Init(const char *cacheDirectory);
 
   void SetVisible(bool val);
   bool IsVisible();
@@ -93,7 +93,7 @@ protected:
   // Description:
   // Generate url of tile and output file from QuadKey, and download the texture
   // if not already downloaded.
-  void InitializeDownload();
+  void InitializeDownload(const char *cacheDirectory);
 
   // Description:
   // Storing the Quadkey
