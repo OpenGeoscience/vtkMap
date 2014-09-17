@@ -43,7 +43,7 @@ vtkMapTile::vtkMapTile()
   this->Bin = Hidden;
   this->VisibleFlag = false;
   this->Corners[0] = this->Corners[1] =
-    this->Corners[2] = this->Corners[3] = 0.0;
+  this->Corners[2] = this->Corners[3] = 0.0;
 }
 
 //----------------------------------------------------------------------------
@@ -71,7 +71,7 @@ vtkMapTile::~vtkMapTile()
 }
 
 //----------------------------------------------------------------------------
-void vtkMapTile::Init()
+void vtkMapTile::Init(const char *cacheDirectory)
 {
 
   this->Plane = vtkPlaneSource::New();
@@ -81,7 +81,7 @@ void vtkMapTile::Init()
   this->Plane->SetNormal(0, 0, 1);
 
   this->TexturePlane = vtkTextureMapToPlane::New();
-  this->InitializeDownload();
+  this->InitializeDownload(cacheDirectory);
 
   // Read the image which will be the texture
   vtkNew<vtkPNGReader> pngReader;
@@ -128,10 +128,10 @@ bool vtkMapTile::IsVisible()
 }
 
 //----------------------------------------------------------------------------
-void vtkMapTile::InitializeDownload()
+void vtkMapTile::InitializeDownload(const char *cacheDirectory)
 {
   // Generate destination file name
-  this->ImageFile = "Temp/" + this->ImageKey + ".png";
+  this->ImageFile = std::string(cacheDirectory) + "/" + this->ImageKey + ".png";
 
   // Check if texture already exists.
   // If not, download
