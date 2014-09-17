@@ -25,7 +25,6 @@
 #include <vtkTexture.h>
 #include <vtkTextureMapToPlane.h>
 #include <vtkNew.h>
-#include <vtksys/SystemTools.hxx>
 
 #include <curl/curl.h>
 
