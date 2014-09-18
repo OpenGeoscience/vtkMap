@@ -160,6 +160,11 @@ PickMarker(vtkRenderer *renderer, vtkPicker *picker, int displayCoords[2])
   if (pointPicker &&
       (pointPicker->Pick(displayCoords[0], displayCoords[1], 0.0, renderer)))
     {
+    // std::cout << "Using tolerance " << pointPicker->GetTolerance() << std::endl;
+    // vtkPoints *pickPoints = pointPicker->GetPickedPositions();
+    // std::cout << "Picked " << pickPoints->GetNumberOfPoints() << " points "
+    //           << std::endl;
+
     vtkIdType pointId = pointPicker->GetPointId();
     if (pointId > 0)
       {
