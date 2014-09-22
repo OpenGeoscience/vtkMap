@@ -269,7 +269,7 @@ void vtkMap::Draw()
       std::cerr << "Set Export Scene directory to " << this->ExportSceneDirectory << std::endl;
       }
 
-    // Make sure cache directory specified with unix separators
+    // Make sure Export scene directory specified with unix separators
     std::string sExportDir(this->ExportSceneDirectory);  // for convenience
     vtksys::SystemTools::ConvertToUnixSlashes(sExportDir);
     // If trailing slash char, strip it off
@@ -279,7 +279,7 @@ void vtkMap::Draw()
        this->SetExportSceneDirectory(sExportDir.c_str());
        }
 
-    // Make sure cache directory exists
+    // Make sure Export Scene directory exists
     if(!vtksys::SystemTools::FileIsDirectory(this->ExportSceneDirectory))
       {
       std::cerr << "Create tile cache directory " << this->ExportSceneDirectory
