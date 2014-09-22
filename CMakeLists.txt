@@ -33,6 +33,8 @@ set (SOURCES
     vtkMapTile.h
     vtkMap.cxx
     vtkMap.h
+    vtkTeardropSource.cxx
+    vtkTeardropSource.h
 )
 
 add_executable(vtkMap ${SOURCES})

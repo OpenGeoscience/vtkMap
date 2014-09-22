@@ -1,7 +1,6 @@
 #include "vtkMap.h"
 
 #include <vtkActor.h>
-#include <vtkArrowSource.h>
 #include <vtkCallbackCommand.h>
 #include <vtkCamera.h>
 #include <vtkCommand.h>

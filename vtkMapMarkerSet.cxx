@@ -14,8 +14,8 @@
 =========================================================================*/
 
 #include "vtkMapMarkerSet.h"
+#include "vtkTeardropSource.h"
 #include <vtkActor.h>
-#include <vtkArrowSource.h>
 #include <vtkDataArray.h>
 #include <vtkDistanceToCamera.h>
 #include <vtkIdTypeArray.h>
@@ -77,12 +77,11 @@ void vtkMapMarkerSet::SetRenderer(vtkRenderer *renderer)
   dFilter->SetRenderer(this->Renderer);
   dFilter->SetInputData(this->MarkerPolyData);
 
-  // Instantiate arrow as the default glyph
-  vtkNew<vtkArrowSource> arrow;
-  arrow->InvertOn();
+  // Instantiate marker glyph
+  vtkNew<vtkTeardropSource> marker;
   vtkNew<vtkGlyph3D> glyph;
   glyph->SetInputConnection(dFilter->GetOutputPort());
-  glyph->SetSourceConnection(arrow->GetOutputPort());
+  glyph->SetSourceConnection(marker->GetOutputPort());
   glyph->ScalingOn();
   glyph->SetScaleFactor(1.0);
   glyph->SetScaleModeToScaleByScalar();
@@ -94,7 +93,7 @@ void vtkMapMarkerSet::SetRenderer(vtkRenderer *renderer)
     3, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "Colors");
   glyph->GeneratePointIdsOn();
 
-  // Rotate the arrow to point downward (parallel to y axis)
+  // Rotate the glyph to point downward (parallel to y axis)
   vtkNew<vtkTransform> transform;
   transform->RotateZ(90.0);
   glyph->SetSourceTransform(transform.GetPointer());
