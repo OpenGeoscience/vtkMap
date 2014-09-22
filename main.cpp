@@ -1,4 +1,5 @@
 #include "vtkMap.h"
+#include "vtkMapMarkerSet.h"
 
 #include <vtkActor.h>
 #include <vtkCallbackCommand.h>
@@ -76,17 +77,6 @@ int main()
   map->SetCenter(40, -70);
   map->SetZoom(0);
 
-  vtkNew<vtkRegularPolygonSource> marker;
-  vtkNew<vtkPolyDataMapper> markerMapper;
-  vtkNew<vtkActor> markerActor;
-  marker->SetNumberOfSides(50);
-  marker->SetRadius(2.0);
-  markerActor->SetMapper(markerMapper.GetPointer());
-  markerMapper->SetInputConnection(marker->GetOutputPort());
-  markerActor->GetProperty()->SetColor(1.0, 0.1, 0.1);
-  markerActor->GetProperty()->SetOpacity(0.5);
-  rend->AddActor(markerActor.GetPointer());
-
   vtkNew<vtkRenderWindow> wind;
   wind->AddRenderer(rend.GetPointer());;
   wind->SetSize(1920, 1080);
@@ -114,25 +104,37 @@ int main()
   gcsPoints->GetPoint(0, coords);
   double x = coords[1];         // longitude
   double y = lat2y(coords[0]);  // latitude
-  markerActor->SetPosition(x, y, 0.0);
+  vtkNew<vtkRegularPolygonSource> testPolygon;
+  vtkNew<vtkPolyDataMapper> testMapper;
+  vtkNew<vtkActor> testActor;
+  testPolygon->SetNumberOfSides(50);
+  testPolygon->SetRadius(2.0);
+  testActor->SetMapper(testMapper.GetPointer());
+  testMapper->SetInputConnection(testPolygon->GetOutputPort());
+  testActor->GetProperty()->SetColor(1.0, 0.1, 0.1);
+  testActor->GetProperty()->SetOpacity(0.5);
+  rend->AddActor(testActor.GetPointer());
+  testActor->SetPosition(x, y, 0.0);
   map->Draw();
 
-  // Specify array of lat-lon coordinates
+  // Instantiate markers for array of lat-lon coordinates
   double latlonCoords[][2] = {
     0.0, 0.0,
     42.849604, -73.758345,  // KHQ
     35.911373, -79.072205,  // KRS
     32.301393, -90.871495   // ERDC
   };
+  vtkMapMarkerSet *markerSet = map->GetMapMarkerSet();
   unsigned numMarkers = sizeof(latlonCoords) / sizeof(double) / 2;
   for (unsigned i=0; i<numMarkers; ++i)
     {
     double lat = latlonCoords[i][0];
     double lon = latlonCoords[i][1];
-    map->AddMarker(lat, lon);
+    markerSet->AddMarker(lat, lon);
     }
   //map->Draw();
 
+  // Set callbacks
   vtkNew<vtkCallbackCommand> callback;
   callback->SetClientData(map.GetPointer());
   callback->SetCallback(callbackFunction);

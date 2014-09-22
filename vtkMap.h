@@ -52,6 +52,10 @@ public:
   vtkSetMacro(InteractorStyle, vtkInteractorStyle*)
 
   // Description:
+  // Get the map marker layer
+  vtkGetMacro(MapMarkerSet, vtkMapMarkerSet*);
+
+  // Description:
   // Get/Set the picker used for picking map markers
   vtkGetMacro(Picker, vtkPicker*)
   vtkSetMacro(Picker, vtkPicker*)
@@ -67,9 +71,10 @@ public:
   vtkSetVector2Macro(Center, double);
 
   // Description:
-  //
+  // Get/Set the directory used for caching map tiles
   vtkGetStringMacro(CacheDirectory);
   vtkSetStringMacro(CacheDirectory);
+
 
   // Description:
   // Update the renderer with relevant tiles to draw the Map
@@ -78,14 +83,6 @@ public:
   // Description:
   // Update the renderer with relevant tiles to draw the Map
   void Draw();
-
-  // Description:
-  // Add marker to map
-  vtkIdType AddMarker(double Latitude, double Longitude);
-
-  // Description:
-  // Removes all map markers
-  void RemoveMapMarkers();
 
   // Description:
   // Returns id of marker at specified display coordinates

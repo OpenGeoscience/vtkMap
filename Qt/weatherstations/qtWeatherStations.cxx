@@ -16,6 +16,7 @@
 #include "qtWeatherStations.h"
 #include "ui_qtWeatherStations.h"
 #include "vtkMap.h"
+#include "vtkMapMarkerSet.h"
 #include <QVTKWidget.h>
 #include <vtkCallbackCommand.h>
 #include <vtkInteractorStyleImage.h>
@@ -202,7 +203,7 @@ void qtWeatherStations::showStations()
   this->UI->StationText->setText("Retrieving station data.");
   // Todo is there any way to update StationText (QTextEdit) *now* ???
 
-  this->Map->RemoveMapMarkers();
+  this->Map->GetMapMarkerSet()->RemoveMapMarkers();
   this->StationMap.clear();
 
   // Request weather station data
@@ -359,10 +360,11 @@ void qtWeatherStations::
 DisplayStationMarkers(std::vector<StationReport> stationList)
 {
   // Create map markers for each station
+  vtkMapMarkerSet *markerLayer = this->Map->GetMapMarkerSet();
   for (int i=0; i<stationList.size(); ++i)
     {
     StationReport station = stationList[i];
-    vtkIdType id = this->Map->AddMarker(station.latitude, station.longitude);
+    vtkIdType id = markerLayer->AddMarker(station.latitude, station.longitude);
     if (id >= 0)
       this->StationMap[id] = station;
     }

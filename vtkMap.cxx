@@ -445,19 +445,6 @@ vtkMapTile *vtkMap::GetCachedTile(int zoom, int x, int y)
   return this->CachedTiles[zoom][x][y];
 }
 
-
-//----------------------------------------------------------------------------
-vtkIdType vtkMap::AddMarker(double Latitude, double Longitude)
-{
-  return this->MapMarkerSet->AddMarker(Latitude, Longitude);
-}
-
-//----------------------------------------------------------------------------
-void vtkMap::RemoveMapMarkers()
-{
-  this->MapMarkerSet->RemoveMapMarkers();
-}
-
 //----------------------------------------------------------------------------
 vtkIdType vtkMap::PickMarker(int displayCoords[2])
 {
