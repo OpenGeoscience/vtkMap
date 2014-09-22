@@ -61,9 +61,14 @@ public:
   vtkSetVector2Macro(Center, double);
 
   // Description:
-  //
+  // Get/Set tile cache path
   vtkGetStringMacro(CacheDirectory);
   vtkSetStringMacro(CacheDirectory);
+
+  // Description:
+  // Get/Set export scene directory path
+  vtkGetStringMacro(ExportSceneDirectory);
+  vtkSetStringMacro(ExportSceneDirectory);
 
   // Description:
   // Update the renderer with relevant tiles to draw the Map
@@ -94,6 +99,10 @@ public:
   // If the map projection is EPSG 4326 or EPSG 3857, then returned
   // points will have the following format: [latitude, longitude, elevation]
   vtkPoints* displayToGcs(vtkPoints* points);
+
+  // Description:
+  // Export scene as png image
+  void ExportScene();
 
 protected:
   vtkMap();
@@ -137,6 +146,9 @@ protected:
 
   // Directory for caching map tiles
   char *CacheDirectory;
+
+  // Directory for exported screenshots
+  char *ExportSceneDirectory;
 
   // Description:
   // Cached tiles

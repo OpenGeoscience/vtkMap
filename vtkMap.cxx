@@ -31,7 +31,11 @@
 #include <vtkPoints.h>
 #include <vtkPlaneSource.h>
 #include <vtksys/SystemTools.hxx>
+#include <vtkWindowToImageFilter.h>
+#include <vtkPNGWriter.h>
+#include <vtkTimerLog.h>
 
+#include <time.h>
 #include <algorithm>
 #include <math.h>
 #include <sstream>
@@ -139,6 +143,7 @@ void vtkMap::PrintSelf(ostream &os, vtkIndent indent)
      << "Zoom Level: " << this->Zoom
      << "Center: " << this->Center[0] << " " << this->Center[1] << std::endl;
   os << "CacheDirectory: " << this->CacheDirectory << std::endl;
+  os << "Export Scene Directory: " << this->ExportSceneDirectory << std::endl;
 }
 
 //----------------------------------------------------------------------------
@@ -250,6 +255,36 @@ void vtkMap::Draw()
       std::cerr << "Create tile cache directory " << this->CacheDirectory
                 << std::endl;
       vtksys::SystemTools::MakeDirectory(this->CacheDirectory);
+      }
+
+    // Make sure Export scene directory specified
+    if (!this->ExportSceneDirectory || "" == this->ExportSceneDirectory)
+      {
+      // Use vtksys::SplitPath() to expand home directory
+      std::vector<std::string> exportPath;
+      vtksys::SystemTools::SplitPath("~/", exportPath);
+      exportPath.push_back(".vtkmap");
+      exportPath.push_back("export");
+      this->SetExportSceneDirectory(vtksys::SystemTools::JoinPath(exportPath).c_str());
+      std::cerr << "Set Export Scene directory to " << this->ExportSceneDirectory << std::endl;
+      }
+
+    // Make sure Export scene directory specified with unix separators
+    std::string sExportDir(this->ExportSceneDirectory);  // for convenience
+    vtksys::SystemTools::ConvertToUnixSlashes(sExportDir);
+    // If trailing slash char, strip it off
+    if (*sExportDir.rbegin() == '/')
+       {
+       sExportDir.erase(sExportDir.end()-1);
+       this->SetExportSceneDirectory(sExportDir.c_str());
+       }
+
+    // Make sure Export Scene directory exists
+    if(!vtksys::SystemTools::FileIsDirectory(this->ExportSceneDirectory))
+      {
+      std::cerr << "Create tile cache directory " << this->ExportSceneDirectory
+                << std::endl;
+      vtksys::SystemTools::MakeDirectory(this->ExportSceneDirectory);
       }
 
     // Initialize graphics
@@ -556,4 +591,32 @@ vtkPoints* vtkMap::displayToGcs(vtkPoints* points)
     }
 
   return newPoints;
+}
+
+//----------------------------------------------------------------------------
+void vtkMap::ExportScene()
+{
+    vtkWindowToImageFilter *windowToImageFilter = vtkWindowToImageFilter::New();
+    windowToImageFilter->SetInput(this->Renderer->GetRenderWindow());
+    windowToImageFilter->Update();
+
+    // Generate filename with time stamp
+    // Improve if possible
+    time_t rawtime;
+    struct tm * timeinfo;
+    char buffer [80];
+    time (&rawtime);
+    timeinfo = localtime (&rawtime);
+    strftime (buffer,80,"Screenshot %c.png",timeinfo);
+
+    // Generate file path to export scene in appropriate directory
+    std::string filename = buffer;
+    std::string separator = "/";
+    std::string path = this->ExportSceneDirectory + separator +filename;
+
+    // Write the RenderWindow Image at the generated path
+    vtkPNGWriter *writer = vtkPNGWriter::New();
+    writer->SetFileName(path.c_str());
+    writer->SetInputConnection(windowToImageFilter->GetOutputPort());
+    writer->Write();
 }

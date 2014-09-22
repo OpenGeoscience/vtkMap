@@ -18,7 +18,8 @@
 #include <vtkRenderWindowInteractor.h>
 #include <vtkRendererCollection.h>
 #include <vtkRegularPolygonSource.h>
-
+#include <vtkWindowToImageFilter.h>
+#include <vtkPNGWriter.h>
 #include <iostream>
 
 using namespace std;
@@ -26,6 +27,9 @@ using namespace std;
 static void callbackFunction ( vtkObject* caller, long unsigned int eventId,
           void* clientData, void* callData );
 
+
+static void exportSceneCallbackFunction(vtkObject* caller, long unsigned int vtkNotUsed(eventId),
+                      void* clientData, void* vtkNotUsed(callData) );
 int main()
 {
   vtkNew<vtkMap> map;
@@ -69,8 +73,14 @@ int main()
   vtkNew<vtkCallbackCommand> callback;
   callback->SetClientData(map.GetPointer());
   callback->SetCallback(callbackFunction);
+
+  vtkNew<vtkCallbackCommand> exportSceneCallback;
+  exportSceneCallback->SetClientData(map.GetPointer());
+  exportSceneCallback->SetCallback(exportSceneCallbackFunction);
+
   intr->AddObserver(vtkCommand::MouseWheelForwardEvent, callback.GetPointer());
   intr->AddObserver(vtkCommand::MouseWheelBackwardEvent, callback.GetPointer());
+  intr->AddObserver(vtkCommand::KeyPressEvent, exportSceneCallback.GetPointer());
   intr->Start();
 }
 
@@ -80,4 +90,12 @@ void callbackFunction(vtkObject* caller, long unsigned int vtkNotUsed(eventId),
   // Prove that we can access the sphere source
   vtkMap* map = static_cast<vtkMap*>(clientData);
   map->Draw();
+}
+
+void exportSceneCallbackFunction(vtkObject* caller, long unsigned int vtkNotUsed(eventId),
+                      void* clientData, void* vtkNotUsed(callData) )
+{
+  // Prove that we can access the sphere source
+  vtkMap* map = static_cast<vtkMap*>(clientData);
+  map->ExportScene();
 }
