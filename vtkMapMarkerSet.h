@@ -22,6 +22,7 @@
 #include <vtkObject.h>
 
 class vtkActor;
+class vtkMapClusteredMarkerSource;
 class vtkMapper;
 class vtkPicker;
 class vtkPolyDataMapper;
@@ -60,12 +61,10 @@ public:
   // The renderer used to draw maps
   vtkRenderer* Renderer;
 
-  // Description:
-  // The polydata used to store marker coordinates
-  vtkPolyData *MarkerPolyData;
+  vtkPolyDataMapper *MarkerMapper;
+  vtkActor *MarkerActor;
 
-  vtkPolyDataMapper *Mapper;
-  vtkActor *Actor;
+  vtkMapClusteredMarkerSource *MarkerSource;
 };
 
 #endif // __vtkMapMarkerSet_h

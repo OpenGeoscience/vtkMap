@@ -14,6 +14,7 @@
 =========================================================================*/
 
 #include "vtkMapMarkerSet.h"
+#include "vtkMapClusteredMarkerSource.h"
 #include "vtkTeardropSource.h"
 #include <vtkActor.h>
 #include <vtkDataArray.h>
@@ -38,9 +39,9 @@ vtkStandardNewMacro(vtkMapMarkerSet)
 vtkMapMarkerSet::vtkMapMarkerSet()
 {
   this->Renderer = NULL;
-  this->MarkerPolyData = NULL;
-  this->Mapper = NULL;
-  this->Actor = NULL;
+  this->MarkerSource = vtkMapClusteredMarkerSource::New();
+  this->MarkerMapper = NULL;
+  this->MarkerActor = NULL;
 }
 
 //----------------------------------------------------------------------------
@@ -52,30 +53,24 @@ void vtkMapMarkerSet::PrintSelf(ostream &os, vtkIndent indent)
 //----------------------------------------------------------------------------
 vtkMapMarkerSet::~vtkMapMarkerSet()
 {
+  if (this->MarkerSource)
+    {
+    MarkerSource->Delete();
+    }
 }
 
 //----------------------------------------------------------------------------
 void vtkMapMarkerSet::SetRenderer(vtkRenderer *renderer)
 {
   this->Renderer = renderer;
-  this->MarkerPolyData = vtkPolyData::New();
 
-  // Initialize rendering pipeline
-  vtkNew<vtkPoints> points;
-  points->SetDataTypeToDouble();
-  this->MarkerPolyData->SetPoints(points.GetPointer());
-
-  // Data array for marker color
-  vtkNew<vtkUnsignedCharArray> colors;
-  colors->SetName("Colors");
-  colors->SetNumberOfComponents(3);
-  this->MarkerPolyData->GetPointData()->AddArray(colors.GetPointer());
+  // Setup rendering pipeline
 
   // Use DistanceToCamera filter to scale markers to constant screen size
   vtkNew<vtkDistanceToCamera> dFilter;
   dFilter->SetScreenSize(50.0);
   dFilter->SetRenderer(this->Renderer);
-  dFilter->SetInputData(this->MarkerPolyData);
+  dFilter->SetInputConnection(this->MarkerSource->GetOutputPort(0));
 
   // Instantiate marker glyph
   vtkNew<vtkTeardropSource> marker;
@@ -99,54 +94,24 @@ void vtkMapMarkerSet::SetRenderer(vtkRenderer *renderer)
   glyph->SetSourceTransform(transform.GetPointer());
 
   // Setup mapper and actor
-  this->Mapper = vtkPolyDataMapper::New();
-  this->Mapper->SetInputConnection(glyph->GetOutputPort());
-  this->Actor = vtkActor::New();
-  this->Actor->SetMapper(this->Mapper);
-  this->Renderer->AddActor(this->Actor);
+  this->MarkerMapper = vtkPolyDataMapper::New();
+  this->MarkerMapper->SetInputConnection(glyph->GetOutputPort());
+  this->MarkerActor = vtkActor::New();
+  this->MarkerActor->SetMapper(this->MarkerMapper);
+  this->Renderer->AddActor(this->MarkerActor);
 }
 
 //----------------------------------------------------------------------------
 vtkIdType vtkMapMarkerSet::AddMarker(double Latitude, double Longitude)
 {
-  // Cannot add markers until renderer is set
-  if (this->MarkerPolyData == NULL)
-    {
-    return -1;
-    }
-
-  vtkPoints *points = this->MarkerPolyData->GetPoints();
-  vtkIdType id = points->GetNumberOfPoints();  // return value
-  double x = Longitude;
-  double y = lat2y(Latitude);
-  points->InsertNextPoint(x, y, 0.0);
-
-  unsigned char kwBlue[] = {0, 83, 155};
-  vtkDataArray *data =
-    this->MarkerPolyData->GetPointData()->GetArray("Colors");
-  vtkUnsignedCharArray *colors = vtkUnsignedCharArray::SafeDownCast(data);
-  colors->InsertNextTupleValue(kwBlue);
-
-  this->MarkerPolyData->Modified();
+  vtkIdType id = this->MarkerSource->AddMarker(Latitude, Longitude);
   return id;
 }
 
 //----------------------------------------------------------------------------
 void vtkMapMarkerSet::RemoveMapMarkers()
 {
-   if (this->MarkerPolyData == NULL)
-    {
-    return;
-    }
-
-  vtkPoints *points = this->MarkerPolyData->GetPoints();
-  points->Reset();
-
-  vtkDataArray *data =
-    this->MarkerPolyData->GetPointData()->GetArray("Colors");
-  data->Reset();
-
-  this->MarkerPolyData->Modified();
+  this->MarkerSource->RemoveMapMarkers();
 }
 
 //----------------------------------------------------------------------------
