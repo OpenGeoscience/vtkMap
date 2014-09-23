@@ -129,6 +129,14 @@ vtkMap::~vtkMap()
     {
     this->InteractorStyle->Delete();
     }
+  if (this->MapMarkerSet)
+    {
+    this->MapMarkerSet->Delete();
+    }
+  if (this->Picker)
+    {
+    this->Picker->Delete();
+    }
 }
 
 //----------------------------------------------------------------------------

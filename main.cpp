@@ -93,12 +93,13 @@ int main()
   map->GetCenter(center);
 
   // Initialize test marker
-  vtkPoints* testPoints = vtkPoints::New(VTK_DOUBLE);
+  vtkNew<vtkPoints> testPoints;
+  testPoints->SetDataTypeToDouble();
   double kwLatitude = 42.849604;
   double kwLongitude = -73.758345;
   //testPoints->InsertNextPoint(0.0, 0.0, 0.0);
   testPoints->InsertNextPoint(kwLatitude, kwLongitude, 0.0);
-  vtkPoints *displayPoints = map->gcsToDisplay(testPoints);
+  vtkPoints *displayPoints = map->gcsToDisplay(testPoints.GetPointer());
   vtkPoints *gcsPoints = map->displayToGcs(displayPoints);
   double coords[3];
   gcsPoints->GetPoint(0, coords);
@@ -141,9 +142,10 @@ int main()
   intr->AddObserver(vtkCommand::MouseWheelForwardEvent, callback.GetPointer());
   intr->AddObserver(vtkCommand::MouseWheelBackwardEvent, callback.GetPointer());
 
-  PickCallback *pickCallback = PickCallback::New();
+  //PickCallback *pickCallback = PickCallback::New();
+  vtkNew<PickCallback> pickCallback;
   pickCallback->SetMap(map.GetPointer());
-  intr->AddObserver(vtkCommand::LeftButtonPressEvent, pickCallback);
+  intr->AddObserver(vtkCommand::LeftButtonPressEvent, pickCallback.GetPointer());
 
   intr->Start();
 
