@@ -14,18 +14,18 @@
 =========================================================================*/
 #include "vtkTeardropSource.h"
 
-#include "vtkCellArray.h"
-#include "vtkDoubleArray.h"
-//#include "vtkFloatArray.h"
-#include "vtkInformation.h"
-#include "vtkInformationVector.h"
-#include "vtkMath.h"
-#include "vtkObjectFactory.h"
-#include "vtkPointData.h"
-#include "vtkPoints.h"
-#include "vtkPolyData.h"
-#include "vtkStreamingDemandDrivenPipeline.h"
-#include "vtkTransform.h"
+#include <vtkCellArray.h>
+#include <vtkDoubleArray.h>
+//#include <vtkFloatArray.h>
+#include <vtkInformation.h>
+#include <vtkInformationVector.h>
+#include <vtkMath.h>
+#include <vtkObjectFactory.h>
+#include <vtkPointData.h>
+#include <vtkPoints.h>
+#include <vtkPolyData.h>
+#include <vtkStreamingDemandDrivenPipeline.h>
+#include <vtkTransform.h>
 
 #include <iomanip>
 #include <iostream>
@@ -140,19 +140,6 @@ int vtkTeardropSource::RequestData(
 
   return 1;
 }
-
-//----------------------------------------------------------------------------
-int vtkTeardropSource::RequestInformation(
-  vtkInformation *vtkNotUsed(request),
-  vtkInformationVector **vtkNotUsed(inputVector),
-  vtkInformationVector *outputVector)
-{
-  vtkInformation *outInfo = outputVector->GetInformationObject(0);
-  outInfo->Set(vtkStreamingDemandDrivenPipeline::MAXIMUM_NUMBER_OF_PIECES(),
-               -1);
-  return 1;
-}
-
 
 //----------------------------------------------------------------------------
 void vtkTeardropSource::PrintSelf(ostream& os, vtkIndent indent)
