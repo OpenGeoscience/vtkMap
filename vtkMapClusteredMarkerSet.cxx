@@ -28,6 +28,7 @@
 #include <vector>
 
 double lat2y(double);
+double y2lat(double);
 const int NumberOfClusterLevels = 20;
 
 //----------------------------------------------------------------------------
@@ -37,6 +38,7 @@ public:
   //int ClusterId;  // TBD
   double Latitude;
   double Longitude;
+  double gcsCoords[2];
   // int ZoomLevel // TBD
   std::set<MapCluster*> ChildrenClusters;
   int NumberOfMarkers;
@@ -101,28 +103,51 @@ vtkIdType vtkMapClusteredMarkerSet::AddMarker(double latitude,
   // Set marker id
   int markerId = this->Internals->NumberOfMarkers++;
 
-  // Create MapCluster for each level of ClusterTable, starting at max level
-  double gcsCoords[2];
+  // Instantiate cluster at max level
+  int level = this->Internals->ClusterTable.size() -1;
+  MapCluster *cluster = new MapCluster;
+  cluster->Latitude = latitude;
+  cluster->Longitude = longitude;
+  cluster->gcsCoords[0] = longitude;
+  cluster->gcsCoords[1] = lat2y(latitude);
+  cluster->NumberOfMarkers = 1;
+  cluster->MarkerId = markerId;
+  this->Internals->ClusterTable[level].insert(cluster);
+
+  // Each level up, either (i) copy cluster or (ii) merge with another cluster
+  level--;
   double threshold = this->Internals->ClusterDistance;
-  for (int i=this->Internals->ClusterTable.size()-1; i>=0; i--)
+  for (; level >= 0; level--)
     {
-    // Can the point be clustered at this level?
-    gcsCoords[0] = longitude;
-    gcsCoords[1] = lat2y(latitude);
-    MapCluster *cluster = this->FindClosestCluster(gcsCoords, i, threshold);
-    if (cluster)
+    MapCluster *closest =
+      this->FindClosestCluster(cluster->gcsCoords, level, threshold);
+    if (closest)
       {
-      // Update cluster
+      // Merge cluster into closest, use weighted sum for coordinates
+      for (int i=0; i<2; i++)
+        {
+        double numerator = closest->gcsCoords[i] * closest->NumberOfMarkers +
+          cluster->gcsCoords[i] * cluster->NumberOfMarkers;
+        double denominator = closest->NumberOfMarkers + cluster->NumberOfMarkers;
+        cluster->gcsCoords[i] = numerator/denominator;
+        }
+      closest->Longitude = closest->gcsCoords[0];
+      closest->Latitude = y2lat(closest->gcsCoords[1]);
+      closest->NumberOfMarkers += cluster->NumberOfMarkers;
+      cluster = closest;
       }
     else
       {
-      // Instantiate MapCluster instance
-      MapCluster *cluster = new MapCluster;
-      cluster->Latitude = latitude;
-      cluster->Longitude = longitude;
-      cluster->NumberOfMarkers = 1;
-      cluster->MarkerId = markerId;
-      this->Internals->ClusterTable[i].insert(cluster);
+      // Copy cluster and insert at this level
+      MapCluster *newCluster = new MapCluster;
+      newCluster->Latitude = cluster->Latitude;
+      newCluster->Longitude = cluster->Longitude;
+      newCluster->gcsCoords[0] = cluster->gcsCoords[0];
+      newCluster->gcsCoords[1] = cluster->gcsCoords[0];
+      newCluster->NumberOfMarkers = cluster->NumberOfMarkers;
+      newCluster->MarkerId = cluster->MarkerId;
+      this->Internals->ClusterTable[level].insert(newCluster);
+      cluster = newCluster;
       }
     }
 
@@ -242,9 +267,33 @@ vtkMapClusteredMarkerSet::MapCluster*
 vtkMapClusteredMarkerSet::
 FindClosestCluster(double gcsCoords[2], int zoomLevel, double distanceThreshold)
 {
-  // MapCluster *cluster = new MapCluster;
-  // return cluster;
-  return NULL;
+  // Convert distanceThreshold from image to gcs coords
+  double level0Scale = 360.0 / 256.0;  // 360 degress <==> 256 tile pixels
+  double scale = level0Scale / static_cast<double>(2^zoomLevel);
+  double gcsThreshold = scale * distanceThreshold;
+  double gcsThreshold2 = gcsThreshold * gcsThreshold;
+
+  MapCluster *closestCluster = NULL;
+  double closestDistance2 = gcsThreshold2;
+  std::set<MapCluster*> clusterSet = this->Internals->ClusterTable[zoomLevel];
+  std::set<MapCluster*>::const_iterator setIter = clusterSet.begin();
+  for (; setIter != clusterSet.end(); setIter++)
+    {
+    MapCluster *cluster = *setIter;
+    double d2 = 0.0;
+    for (int i=0; i<2; i++)
+      {
+      double d1 = gcsCoords[i] - cluster->gcsCoords[i];
+      d2 += d1 * d1;
+      }
+    if (d2 < closestDistance2)
+      {
+      closestCluster = cluster;
+      closestDistance2 = d2;
+      }
+    }
+
+  return closestCluster;
 }
 
 //----------------------------------------------------------------------------
