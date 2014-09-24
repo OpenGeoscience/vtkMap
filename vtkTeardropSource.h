@@ -77,7 +77,6 @@ protected:
   ~vtkTeardropSource() {}
 
   virtual int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *);
-  int RequestInformation(vtkInformation *, vtkInformationVector **, vtkInformationVector *);
 
   double TailHeight;
   double TipStrength;

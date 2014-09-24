@@ -142,19 +142,6 @@ int vtkTeardropSource::RequestData(
 }
 
 //----------------------------------------------------------------------------
-int vtkTeardropSource::RequestInformation(
-  vtkInformation *vtkNotUsed(request),
-  vtkInformationVector **vtkNotUsed(inputVector),
-  vtkInformationVector *outputVector)
-{
-  vtkInformation *outInfo = outputVector->GetInformationObject(0);
-  outInfo->Set(vtkStreamingDemandDrivenPipeline::MAXIMUM_NUMBER_OF_PIECES(),
-               -1);
-  return 1;
-}
-
-
-//----------------------------------------------------------------------------
 void vtkTeardropSource::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os,indent);
