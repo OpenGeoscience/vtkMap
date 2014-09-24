@@ -15,8 +15,6 @@
 
 #include "vtkMapClusteredMarkerSource.h"
 #include <vtkIdTypeArray.h>
-#include <vtkInformation.h>
-#include <vtkInformationVector.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
 #include <vtkPoints.h>
@@ -52,6 +50,8 @@ namespace
 class vtkMapClusteredMarkerSource::MapClusteredMarkerSourceInternals
 {
 public:
+  bool Changed;
+  int ZoomLevel;
   std::vector<MapCluster*> ClusterList;
   std::vector<std::set<MapCluster*> > ClusterTable;
   int NumberOfMarkers;
@@ -63,8 +63,10 @@ vtkStandardNewMacro(vtkMapClusteredMarkerSource)
 //----------------------------------------------------------------------------
 vtkMapClusteredMarkerSource::vtkMapClusteredMarkerSource()
 {
-  this->SetNumberOfInputPorts(0);
+  this->PolyData = vtkPolyData::New();
   this->Internals = new MapClusteredMarkerSourceInternals;
+  this->Internals->Changed = false;
+  this->Internals->ZoomLevel = -1;
   std::set<MapCluster*> clusterSet;
   std::fill_n(std::back_inserter(this->Internals->ClusterTable),
               NumberOfClusterLevels, clusterSet);
@@ -89,76 +91,6 @@ vtkMapClusteredMarkerSource::~vtkMapClusteredMarkerSource()
 {
   this->RemoveMapMarkers();
   delete this->Internals;
-}
-
-//----------------------------------------------------------------------------
-int vtkMapClusteredMarkerSource::RequestData(
-  vtkInformation *vtkNotUsed(request),
-  vtkInformationVector **vtkNotUsed(inputVector),
-  vtkInformationVector *outputVector)
-{
-  // Get output polydata object
-  vtkInformation *info = outputVector->GetInformationObject(0);
-  vtkPolyData *polyData = vtkPolyData::SafeDownCast(
-    info->Get(vtkDataObject::DATA_OBJECT()));
-
-  // Setup ClusterId array
-  const char* clusterIdName = "ClusterId";
-  if (!polyData->GetPointData()->HasArray(clusterIdName))
-    {
-    vtkNew<vtkIdTypeArray> newArray;
-    newArray->SetName(clusterIdName);
-    polyData->GetPointData()->AddArray(newArray.GetPointer());
-    }
-  vtkDataArray *data = polyData->GetPointData()->GetArray(clusterIdName);
-  vtkIdTypeArray *clusterIds = vtkIdTypeArray::SafeDownCast(data);
-  clusterIds->Reset();
-
-  // Setup "MarkerType" point data array (1 component vector)
-  vtkUnsignedCharArray *types =
-    this->SetupUCharArray(polyData, "MarkerType", 1);
-
-  // Setup "Color" array as point data (vector)
-  vtkUnsignedCharArray *colors = this->SetupUCharArray(polyData, "Color", 3);
-  unsigned char kwBlue[] = {0, 83, 155};
-  unsigned char kwGreen[] = {0, 169, 179};
-
-  // Copy cluster info into polydata
-  vtkNew<vtkPoints> points;
-  double coord[3];
-  unsigned char markerType[1];
-  markerType[0] = 0;
-
-  std::set<MapCluster*> clusterSet = this->Internals->ClusterTable[0];
-  std::set<MapCluster*>::const_iterator iter;
-  for (iter = clusterSet.begin(); iter != clusterSet.end(); iter++)
-    {
-    MapCluster *cluster = *iter;
-    coord[0] = cluster->Longitude;
-    coord[1] = lat2y(cluster->Latitude);
-    coord[2] = 0.0;
-    points->InsertNextPoint(coord);
-    clusterIds->InsertNextValue(cluster->ClusterId);
-    if (cluster->NumberOfMarkers == 1)  // point marker
-      {
-      markerType[0] = 0;
-      types->InsertNextTupleValue(markerType);
-      colors->InsertNextTupleValue(kwBlue);
-      }
-    else  // cluster marker
-      {
-      markerType[0] = 1;
-      types->InsertNextTupleValue(markerType);
-      colors->InsertNextTupleValue(kwGreen);
-      }
-    }
-  polyData->Reset();
-  polyData->SetPoints(points.GetPointer());
-
-  //std::cout << "Marker pts " << markerPoints->GetNumberOfPoints() << std::endl;
-  //std::cout << "Cluster pts " << clusterPoints->GetNumberOfPoints() << std::endl;
-
-  return 1;
 }
 
 //----------------------------------------------------------------------------
@@ -191,7 +123,7 @@ vtkIdType vtkMapClusteredMarkerSource::AddMarker(double latitude,
   // Hard code to level 0 for now
   this->Internals->ClusterTable[0].insert(cluster);
 
-  this->Modified();
+  this->Internals->Changed = true;
   return markerId;
 }
 
@@ -215,7 +147,64 @@ void vtkMapClusteredMarkerSource::RemoveMapMarkers()
   this->Internals->ClusterList.clear();
 
   this->Internals->NumberOfMarkers = 0;
-  this->Modified();
+  this->Internals->Changed = true;
+}
+
+//----------------------------------------------------------------------------
+void vtkMapClusteredMarkerSource::Update(int zoomLevel)
+{
+  if (!this->Internals->Changed && (zoomLevel == this->Internals->ZoomLevel))
+    {
+    return;
+    }
+
+  // Setup "MarkerType" point data array (1 component vector)
+  vtkUnsignedCharArray *types =
+    this->SetupUCharArray(this->PolyData, "MarkerType", 1);
+
+  // Setup "Color" array as point data (vector)
+  vtkUnsignedCharArray *colors =
+    this->SetupUCharArray(this->PolyData, "Color", 3);
+  unsigned char kwBlue[] = {0, 83, 155};
+  unsigned char kwGreen[] = {0, 169, 179};
+
+  // Copy cluster info into polydata
+  vtkNew<vtkPoints> points;
+  double coord[3];
+  unsigned char markerType[1];
+  markerType[0] = 0;
+
+  zoomLevel = 0;  // Todo for dev only
+  std::set<MapCluster*> clusterSet = this->Internals->ClusterTable[zoomLevel];
+  std::set<MapCluster*>::const_iterator iter;
+  for (iter = clusterSet.begin(); iter != clusterSet.end(); iter++)
+    {
+    MapCluster *cluster = *iter;
+    coord[0] = cluster->Longitude;
+    coord[1] = lat2y(cluster->Latitude);
+    coord[2] = 0.0;
+    points->InsertNextPoint(coord);
+    if (cluster->NumberOfMarkers == 1)  // point marker
+      {
+      markerType[0] = 0;
+      types->InsertNextTupleValue(markerType);
+      colors->InsertNextTupleValue(kwBlue);
+      }
+    else  // cluster marker
+      {
+      markerType[0] = 1;
+      types->InsertNextTupleValue(markerType);
+      colors->InsertNextTupleValue(kwGreen);
+      }
+    }
+  this->PolyData->Reset();
+  this->PolyData->SetPoints(points.GetPointer());
+
+  //std::cout << "Marker pts " << markerPoints->GetNumberOfPoints() << std::endl;
+  //std::cout << "Cluster pts " << clusterPoints->GetNumberOfPoints() << std::endl;
+
+  this->Internals->Changed = false;
+  this->Internals->ZoomLevel = zoomLevel;
 }
 
 //----------------------------------------------------------------------------

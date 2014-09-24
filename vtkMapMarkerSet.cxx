@@ -82,7 +82,7 @@ void vtkMapMarkerSet::SetRenderer(vtkRenderer *renderer)
   vtkNew<vtkDistanceToCamera> dFilter;
   dFilter->SetScreenSize(50.0);
   dFilter->SetRenderer(this->Renderer);
-  dFilter->SetInputConnection(this->MarkerSource->GetOutputPort());
+  dFilter->SetInputData(this->MarkerSource->GetPolyData());
 
   // Use teardrop shape for individual markers
   vtkNew<vtkTeardropSource> markerGlyphSource;
@@ -138,6 +138,12 @@ vtkIdType vtkMapMarkerSet::AddMarker(double Latitude, double Longitude)
 void vtkMapMarkerSet::RemoveMapMarkers()
 {
   this->MarkerSource->RemoveMapMarkers();
+}
+
+//----------------------------------------------------------------------------
+void vtkMapMarkerSet::Update(int zoomLevel)
+{
+  this->MarkerSource->Update(zoomLevel);
 }
 
 //----------------------------------------------------------------------------

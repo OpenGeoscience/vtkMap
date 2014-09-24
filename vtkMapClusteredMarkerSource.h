@@ -16,26 +16,27 @@
 // .SECTION Description
 // Computes 2 vtkPolyData for (i) individual map markers, and (ii) map
 // marker clusters. The computed polydata contains point sets and
-// point data (i.e., no cells).
+// point data (i.e., no cells). Point data arrays are named:
+// "MarkerType", which specifies 0 for point marker, 1 for cluster marker
+// "Color", which specifies RGB for each marker.
 
 
 #ifndef __vtkMapClusteredMarkerSource_h
 #define __vtkMapClusteredMarkerSource_h
 
-#include <vtkPolyDataAlgorithm.h>
+#include <vtkObject.h>
 #include <vtkType.h>
 
-class vtkInformation;
-class vtkInformationVector;
 class vtkPolyData;
 class vtkUnsignedCharArray;
 
-class vtkMapClusteredMarkerSource : public vtkPolyDataAlgorithm
+class vtkMapClusteredMarkerSource : public vtkObject
 {
 public:
   static vtkMapClusteredMarkerSource *New();
   virtual void PrintSelf(ostream &os, vtkIndent indent);
   vtkTypeMacro(vtkMapClusteredMarkerSource, vtkObject);
+  vtkGetMacro(PolyData, vtkPolyData*);
 
   // Description:
   // Add marker coordinates
@@ -45,11 +46,23 @@ public:
   // Removes all map markers
   void RemoveMapMarkers();
 
+  // Description:
+  // Updates polydata based on zoom level
+  void Update(int ZoomLevel);
+
+  // Description
+  // Returns marker type for specified point id
+  int GetMarkerType(int pointId);
+
+  // Description
+  // Returns marker id for specified point id (returns -1 for clusters)
+  int GetMarkerId(int pointId);
+
  protected:
   vtkMapClusteredMarkerSource();
   ~vtkMapClusteredMarkerSource();
 
-  virtual int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *);
+  vtkPolyData *PolyData;
 
   vtkUnsignedCharArray *SetupUCharArray(vtkPolyData *polyData, const char *name,
                                         int numberOfComponents=3);

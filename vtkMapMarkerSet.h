@@ -49,6 +49,10 @@ public:
   void RemoveMapMarkers();
 
   // Description:
+  // Update the marker geometry to draw the map
+  void Update(int zoomLevel);
+
+  // Description:
   // Returns id of marker at specified display coordinates
   vtkIdType PickMarker(vtkRenderer *renderer, vtkPicker *picker,
     int displayCoords[2]);

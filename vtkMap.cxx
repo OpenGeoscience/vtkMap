@@ -192,6 +192,7 @@ void vtkMap::Update()
 
   RemoveTiles();
   AddTiles();
+  this->MapMarkerSet->Update(this->TileZoom);
 }
 
 //----------------------------------------------------------------------------

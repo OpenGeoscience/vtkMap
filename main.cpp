@@ -133,7 +133,7 @@ int main()
     double lon = latlonCoords[i][1];
     markerSet->AddMarker(lat, lon);
     }
-  //map->Draw();
+  map->Draw();
 
   // Set callbacks
   vtkNew<vtkCallbackCommand> callback;
