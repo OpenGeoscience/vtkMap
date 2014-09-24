@@ -29,7 +29,9 @@
 #include <vtkPolyData.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkRenderer.h>
+#include <vtkSphereSource.h>
 #include <vtkTransform.h>
+#include <vtkTransformFilter.h>
 
 double lat2y(double);
 
@@ -40,8 +42,8 @@ vtkMapMarkerSet::vtkMapMarkerSet()
 {
   this->Renderer = NULL;
   this->MarkerSource = vtkMapClusteredMarkerSource::New();
-  this->MarkerMapper = NULL;
-  this->MarkerActor = NULL;
+  this->Mapper = NULL;
+  this->Actor = NULL;
 }
 
 //----------------------------------------------------------------------------
@@ -57,6 +59,14 @@ vtkMapMarkerSet::~vtkMapMarkerSet()
     {
     MarkerSource->Delete();
     }
+  if (this->Mapper)
+    {
+    this->Mapper->Delete();
+    }
+  if (this->Actor)
+    {
+    this->Actor->Delete();
+    }
 }
 
 //----------------------------------------------------------------------------
@@ -64,19 +74,37 @@ void vtkMapMarkerSet::SetRenderer(vtkRenderer *renderer)
 {
   this->Renderer = renderer;
 
-  // Setup rendering pipeline
+  //
+  // Setup the marker-glyph pipeline
+  //
 
   // Use DistanceToCamera filter to scale markers to constant screen size
   vtkNew<vtkDistanceToCamera> dFilter;
   dFilter->SetScreenSize(50.0);
   dFilter->SetRenderer(this->Renderer);
-  dFilter->SetInputConnection(this->MarkerSource->GetOutputPort(0));
+  dFilter->SetInputConnection(this->MarkerSource->GetOutputPort());
 
-  // Instantiate marker glyph
-  vtkNew<vtkTeardropSource> marker;
+  // Use teardrop shape for individual markers
+  vtkNew<vtkTeardropSource> markerGlyphSource;
+  // Rotate to point downward (parallel to y axis)
+  vtkNew<vtkTransformFilter> rotateMarker;
+  rotateMarker->SetInputConnection(markerGlyphSource->GetOutputPort());
+  vtkNew<vtkTransform> transform;
+  transform->RotateZ(90.0);
+  rotateMarker->SetTransform(transform.GetPointer());
+
+  // Use sphere for cluster markers
+  vtkNew<vtkSphereSource> clusterGlyphSource;
+  clusterGlyphSource->SetPhiResolution(12);
+  clusterGlyphSource->SetThetaResolution(12);
+  clusterGlyphSource->SetRadius(0.25);
+
+  // Setup glyph
   vtkNew<vtkGlyph3D> glyph;
+  glyph->SetSourceConnection(0, rotateMarker->GetOutputPort());
+  glyph->SetSourceConnection(1, clusterGlyphSource->GetOutputPort());
   glyph->SetInputConnection(dFilter->GetOutputPort());
-  glyph->SetSourceConnection(marker->GetOutputPort());
+  glyph->SetIndexModeToVector();
   glyph->ScalingOn();
   glyph->SetScaleFactor(1.0);
   glyph->SetScaleModeToScaleByScalar();
@@ -85,20 +113,18 @@ void vtkMapMarkerSet::SetRenderer(vtkRenderer *renderer)
   glyph->SetInputArrayToProcess(
     0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "DistanceToCamera");
   glyph->SetInputArrayToProcess(
-    3, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "Colors");
+    1, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "MarkerType");
+  glyph->SetInputArrayToProcess(
+    3, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "Color");
   glyph->GeneratePointIdsOn();
 
-  // Rotate the glyph to point downward (parallel to y axis)
-  vtkNew<vtkTransform> transform;
-  transform->RotateZ(90.0);
-  glyph->SetSourceTransform(transform.GetPointer());
 
   // Setup mapper and actor
-  this->MarkerMapper = vtkPolyDataMapper::New();
-  this->MarkerMapper->SetInputConnection(glyph->GetOutputPort());
-  this->MarkerActor = vtkActor::New();
-  this->MarkerActor->SetMapper(this->MarkerMapper);
-  this->Renderer->AddActor(this->MarkerActor);
+  this->Mapper = vtkPolyDataMapper::New();
+  this->Mapper->SetInputConnection(glyph->GetOutputPort());
+  this->Actor = vtkActor::New();
+  this->Actor->SetMapper(this->Mapper);
+  this->Renderer->AddActor(this->Actor);
 }
 
 //----------------------------------------------------------------------------

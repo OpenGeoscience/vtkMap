@@ -27,6 +27,8 @@
 
 class vtkInformation;
 class vtkInformationVector;
+class vtkPolyData;
+class vtkUnsignedCharArray;
 
 class vtkMapClusteredMarkerSource : public vtkPolyDataAlgorithm
 {
@@ -48,7 +50,8 @@ public:
   ~vtkMapClusteredMarkerSource();
 
   virtual int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *);
-  int RequestInformation(vtkInformation *, vtkInformationVector **, vtkInformationVector *);
+
+  vtkUnsignedCharArray *SetupColorsArray(vtkPolyData *polyData);
 
   class MapClusteredMarkerSourceInternals;
   MapClusteredMarkerSourceInternals* Internals;

@@ -61,8 +61,8 @@ public:
   // The renderer used to draw maps
   vtkRenderer* Renderer;
 
-  vtkPolyDataMapper *MarkerMapper;
-  vtkActor *MarkerActor;
+  vtkPolyDataMapper *Mapper;
+  vtkActor *Actor;
 
   vtkMapClusteredMarkerSource *MarkerSource;
 };

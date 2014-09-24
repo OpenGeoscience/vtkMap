@@ -61,7 +61,6 @@ vtkStandardNewMacro(vtkMapClusteredMarkerSource)
 vtkMapClusteredMarkerSource::vtkMapClusteredMarkerSource()
 {
   this->SetNumberOfInputPorts(0);
-  this->SetNumberOfOutputPorts(2);
   this->Internals = new MapClusteredMarkerSourceInternals;
   std::set<MapCluster*> clusterSet;
   std::fill_n(std::back_inserter(this->Internals->ClusterTable),
@@ -88,32 +87,37 @@ int vtkMapClusteredMarkerSource::RequestData(
   vtkInformationVector **vtkNotUsed(inputVector),
   vtkInformationVector *outputVector)
 {
-  // get the info objects
-  vtkInformation *markerInfo = outputVector->GetInformationObject(0);
-  vtkInformation *clusterInfo = outputVector->GetInformationObject(1);
+  // get the info object
+  vtkInformation *info = outputVector->GetInformationObject(0);
 
-  // get the outputs
-  vtkPolyData *markerPolyData = vtkPolyData::SafeDownCast(
-    markerInfo->Get(vtkDataObject::DATA_OBJECT()));
-  vtkPolyData *clusterPolyData = vtkPolyData::SafeDownCast(
-    markerInfo->Get(vtkDataObject::DATA_OBJECT()));
+  // get the output
+  vtkPolyData *polyData = vtkPolyData::SafeDownCast(
+    info->Get(vtkDataObject::DATA_OBJECT()));
 
-  // check for Colors in output point data
-  if (!markerPolyData->GetPointData()->HasArray("Colors"))
+  // Setup "MarkerType" as point data (vector)
+  const char *arrayName = "MarkerType";
+  // Check for array in point data
+  if (!polyData->GetPointData()->HasArray(arrayName))
     {
-    vtkNew<vtkUnsignedCharArray> colors;
-    colors->SetName("Colors");
-    colors->SetNumberOfComponents(3);
-    markerPolyData->GetPointData()->AddArray(colors.GetPointer());
+    vtkNew<vtkUnsignedCharArray> newArray;
+    newArray->SetName(arrayName);
+    newArray->SetNumberOfComponents(3);
+    polyData->GetPointData()->AddArray(newArray.GetPointer());
     }
-  vtkDataArray *data = markerPolyData->GetPointData()->GetArray("Colors");
-  vtkUnsignedCharArray *colors = vtkUnsignedCharArray::SafeDownCast(data);
-  colors->Reset();
-  unsigned char kwBlue[] = {0, 83, 155};
+  vtkDataArray *data = polyData->GetPointData()->GetArray(arrayName);
+  vtkUnsignedCharArray *types = vtkUnsignedCharArray::SafeDownCast(data);
+  types->Reset();
 
-  // copy clusters into markerPolyData
-  vtkNew<vtkPoints> markerPoints;
+  // Setup "Colors" array as point data
+  vtkUnsignedCharArray *colors = this->SetupColorsArray(polyData);
+  unsigned char kwBlue[] = {0, 83, 155};
+  unsigned char kwGreen[] = {0, 169, 179};
+
+  // copy clusters into polyData
+  vtkNew<vtkPoints> points;
   double coord[3];
+  unsigned char markerTypeVector[3];
+  markerTypeVector[0] = markerTypeVector[1] = markerTypeVector[2] = 0;
 
   std::set<MapCluster*> clusterSet = this->Internals->ClusterTable[0];
   std::set<MapCluster*>::const_iterator iter;
@@ -123,27 +127,26 @@ int vtkMapClusteredMarkerSource::RequestData(
     coord[0] = cluster->Longitude;
     coord[1] = lat2y(cluster->Latitude);
     coord[2] = 0.0;
-    markerPoints->InsertNextPoint(coord);
-    colors->InsertNextTupleValue(kwBlue);
+    points->InsertNextPoint(coord);
+    if (cluster->NumberOfMarkers == 1)  // marker
+      {
+      markerTypeVector[0] = 0;
+      types->InsertNextTupleValue(markerTypeVector);
+      colors->InsertNextTupleValue(kwBlue);
+      }
+    else  // cluster
+      {
+      markerTypeVector[0] = 1;
+      types->InsertNextTupleValue(markerTypeVector);
+      colors->InsertNextTupleValue(kwGreen);
+      }
     }
-  markerPolyData->Reset();
-  markerPolyData->SetPoints(markerPoints.GetPointer());
+  polyData->Reset();
+  polyData->SetPoints(points.GetPointer());
 
-  return 1;
-}
+  //std::cout << "Marker pts " << markerPoints->GetNumberOfPoints() << std::endl;
+  //std::cout << "Cluster pts " << clusterPoints->GetNumberOfPoints() << std::endl;
 
-//----------------------------------------------------------------------------
-int vtkMapClusteredMarkerSource::RequestInformation(
-  vtkInformation *vtkNotUsed(request),
-  vtkInformationVector **vtkNotUsed(inputVector),
-  vtkInformationVector *outputVector)
-{
-  vtkInformation *markerInfo = outputVector->GetInformationObject(0);
-  markerInfo->Set(vtkStreamingDemandDrivenPipeline::MAXIMUM_NUMBER_OF_PIECES(),
-               -1);
-  vtkInformation *clusterInfo = outputVector->GetInformationObject(1);
-  clusterInfo->Set(vtkStreamingDemandDrivenPipeline::MAXIMUM_NUMBER_OF_PIECES(),
-               -1);
   return 1;
 }
 
@@ -155,7 +158,8 @@ vtkIdType vtkMapClusteredMarkerSource::AddMarker(double latitude,
   MapCluster *cluster = new MapCluster;
   cluster->Latitude = latitude;
   cluster->Longitude = longitude;
-  cluster->NumberOfMarkers = 1;
+  //cluster->NumberOfMarkers = 1;
+  cluster->NumberOfMarkers = 1 + (this->Internals->NumberOfMarkers % 2);
   cluster->MarkerId = this->Internals->NumberOfMarkers++;
 
   // Hard code to level 0 for now
@@ -182,5 +186,24 @@ void vtkMapClusteredMarkerSource::RemoveMapMarkers()
     }
   this->Internals->NumberOfMarkers = 0;
   this->Modified();
+}
+
+//----------------------------------------------------------------------------
+vtkUnsignedCharArray *
+vtkMapClusteredMarkerSource::SetupColorsArray(vtkPolyData *polyData)
+{
+  const char *arrayName = "Color";
+  // Check for array in point data
+  if (!polyData->GetPointData()->HasArray(arrayName))
+    {
+    vtkNew<vtkUnsignedCharArray> newArray;
+    newArray->SetName(arrayName);
+    newArray->SetNumberOfComponents(3);
+    polyData->GetPointData()->AddArray(newArray.GetPointer());
+    }
+  vtkDataArray *data = polyData->GetPointData()->GetArray(arrayName);
+  vtkUnsignedCharArray *colors = vtkUnsignedCharArray::SafeDownCast(data);
+  colors->Reset();
+  return colors;
 }
 
