@@ -14,7 +14,7 @@
 =========================================================================*/
 
 #include "vtkMapMarkerSet.h"
-#include "vtkMapClusteredMarkerSource.h"
+#include "vtkMapClusteredMarkerSet.h"
 #include "vtkTeardropSource.h"
 #include <vtkActor.h>
 #include <vtkDataArray.h>
@@ -41,7 +41,7 @@ vtkStandardNewMacro(vtkMapMarkerSet)
 vtkMapMarkerSet::vtkMapMarkerSet()
 {
   this->Renderer = NULL;
-  this->MarkerSource = vtkMapClusteredMarkerSource::New();
+  this->MarkerSet = vtkMapClusteredMarkerSet::New();
   this->Mapper = NULL;
   this->Actor = NULL;
 }
@@ -55,9 +55,9 @@ void vtkMapMarkerSet::PrintSelf(ostream &os, vtkIndent indent)
 //----------------------------------------------------------------------------
 vtkMapMarkerSet::~vtkMapMarkerSet()
 {
-  if (this->MarkerSource)
+  if (this->MarkerSet)
     {
-    MarkerSource->Delete();
+    MarkerSet->Delete();
     }
   if (this->Mapper)
     {
@@ -82,7 +82,7 @@ void vtkMapMarkerSet::SetRenderer(vtkRenderer *renderer)
   vtkNew<vtkDistanceToCamera> dFilter;
   dFilter->SetScreenSize(50.0);
   dFilter->SetRenderer(this->Renderer);
-  dFilter->SetInputData(this->MarkerSource->GetPolyData());
+  dFilter->SetInputData(this->MarkerSet->GetPolyData());
 
   // Use teardrop shape for individual markers
   vtkNew<vtkTeardropSource> markerGlyphSource;
@@ -130,20 +130,20 @@ void vtkMapMarkerSet::SetRenderer(vtkRenderer *renderer)
 //----------------------------------------------------------------------------
 vtkIdType vtkMapMarkerSet::AddMarker(double Latitude, double Longitude)
 {
-  vtkIdType id = this->MarkerSource->AddMarker(Latitude, Longitude);
+  vtkIdType id = this->MarkerSet->AddMarker(Latitude, Longitude);
   return id;
 }
 
 //----------------------------------------------------------------------------
 void vtkMapMarkerSet::RemoveMapMarkers()
 {
-  this->MarkerSource->RemoveMapMarkers();
+  this->MarkerSet->RemoveMapMarkers();
 }
 
 //----------------------------------------------------------------------------
 void vtkMapMarkerSet::Update(int zoomLevel)
 {
-  this->MarkerSource->Update(zoomLevel);
+  this->MarkerSet->Update(zoomLevel);
 }
 
 //----------------------------------------------------------------------------

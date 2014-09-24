@@ -22,7 +22,7 @@
 #include <vtkObject.h>
 
 class vtkActor;
-class vtkMapClusteredMarkerSource;
+class vtkMapClusteredMarkerSet;
 class vtkMapper;
 class vtkPicker;
 class vtkPolyDataMapper;
@@ -68,7 +68,7 @@ public:
   vtkPolyDataMapper *Mapper;
   vtkActor *Actor;
 
-  vtkMapClusteredMarkerSource *MarkerSource;
+  vtkMapClusteredMarkerSet *MarkerSet;
 };
 
 #endif // __vtkMapMarkerSet_h

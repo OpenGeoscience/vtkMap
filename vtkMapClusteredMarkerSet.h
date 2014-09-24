@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkMapClusteredMarkerSource.h
+  Module:    vtkMapClusteredMarkerSet.h
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -12,17 +12,17 @@
    PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
-// .NAME vtkMapClusteredMarkerSource - points source for map markers
+// .NAME vtkMapClusteredMarkerSet - collection of map markers
 // .SECTION Description
-// Computes 2 vtkPolyData for (i) individual map markers, and (ii) map
-// marker clusters. The computed polydata contains point sets and
+// Computes 2 vtkPolyData for (i) individual "point" map markers, and (ii)
+// "cluster" map markers. The computed polydata contains point sets and
 // point data (i.e., no cells). Point data arrays are named:
-// "MarkerType", which specifies 0 for point marker, 1 for cluster marker
-// "Color", which specifies RGB for each marker.
+// "MarkerType", which specifies 0 for point marker, 1 for cluster marker,
+// and "Color", which specifies RGB for each marker.
 
 
-#ifndef __vtkMapClusteredMarkerSource_h
-#define __vtkMapClusteredMarkerSource_h
+#ifndef __vtkMapClusteredMarkerSet_h
+#define __vtkMapClusteredMarkerSet_h
 
 #include <vtkObject.h>
 #include <vtkType.h>
@@ -30,12 +30,12 @@
 class vtkPolyData;
 class vtkUnsignedCharArray;
 
-class vtkMapClusteredMarkerSource : public vtkObject
+class vtkMapClusteredMarkerSet : public vtkObject
 {
 public:
-  static vtkMapClusteredMarkerSource *New();
+  static vtkMapClusteredMarkerSet *New();
   virtual void PrintSelf(ostream &os, vtkIndent indent);
-  vtkTypeMacro(vtkMapClusteredMarkerSource, vtkObject);
+  vtkTypeMacro(vtkMapClusteredMarkerSet, vtkObject);
   vtkGetMacro(PolyData, vtkPolyData*);
 
   // Description:
@@ -59,19 +59,19 @@ public:
   int GetMarkerId(int pointId);
 
  protected:
-  vtkMapClusteredMarkerSource();
-  ~vtkMapClusteredMarkerSource();
+  vtkMapClusteredMarkerSet();
+  ~vtkMapClusteredMarkerSet();
 
   vtkPolyData *PolyData;
 
   vtkUnsignedCharArray *SetupUCharArray(vtkPolyData *polyData, const char *name,
                                         int numberOfComponents=3);
 
-  class MapClusteredMarkerSourceInternals;
-  MapClusteredMarkerSourceInternals* Internals;
+  class MapClusteredMarkerSetInternals;
+  MapClusteredMarkerSetInternals* Internals;
 private:
-  vtkMapClusteredMarkerSource(const vtkMapClusteredMarkerSource&);  // not implemented
-  void operator=(const vtkMapClusteredMarkerSource);  // not implemented
+  vtkMapClusteredMarkerSet(const vtkMapClusteredMarkerSet&);  // not implemented
+  void operator=(const vtkMapClusteredMarkerSet);  // not implemented
 };
 
-#endif // __vtkMapClusteredMarkerSource_h
+#endif // __vtkMapClusteredMarkerSet_h

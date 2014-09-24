@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkMapClusteredMarkerSource.cxx
+  Module:    vtkMapClusteredMarkerSet.cxx
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -13,7 +13,7 @@
 
 =========================================================================*/
 
-#include "vtkMapClusteredMarkerSource.h"
+#include "vtkMapClusteredMarkerSet.h"
 #include <vtkIdTypeArray.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
@@ -47,7 +47,7 @@ namespace
 }
 
 //----------------------------------------------------------------------------
-class vtkMapClusteredMarkerSource::MapClusteredMarkerSourceInternals
+class vtkMapClusteredMarkerSet::MapClusteredMarkerSetInternals
 {
 public:
   bool Changed;
@@ -58,13 +58,13 @@ public:
 };
 
 //----------------------------------------------------------------------------
-vtkStandardNewMacro(vtkMapClusteredMarkerSource)
+vtkStandardNewMacro(vtkMapClusteredMarkerSet)
 
 //----------------------------------------------------------------------------
-vtkMapClusteredMarkerSource::vtkMapClusteredMarkerSource()
+vtkMapClusteredMarkerSet::vtkMapClusteredMarkerSet()
 {
   this->PolyData = vtkPolyData::New();
-  this->Internals = new MapClusteredMarkerSourceInternals;
+  this->Internals = new MapClusteredMarkerSetInternals;
   this->Internals->Changed = false;
   this->Internals->ZoomLevel = -1;
   std::set<MapCluster*> clusterSet;
@@ -74,12 +74,12 @@ vtkMapClusteredMarkerSource::vtkMapClusteredMarkerSource()
 }
 
 //----------------------------------------------------------------------------
-void vtkMapClusteredMarkerSource::PrintSelf(ostream &os, vtkIndent indent)
+void vtkMapClusteredMarkerSet::PrintSelf(ostream &os, vtkIndent indent)
 {
   Superclass::PrintSelf(os, indent);
   int numberOfClusters = this->Internals->ClusterList.size() -
     this->Internals->NumberOfMarkers;
-  os << indent << "vtkMapClusteredMarkerSource" << "\n"
+  os << indent << "vtkMapClusteredMarkerSet" << "\n"
      << indent << "NumberOfClusterLevels: " << NumberOfClusterLevels << "\n"
      << indent << "NumberOfMarkers: " << this->Internals->NumberOfMarkers << "\n"
      << indent << "Number of clusters: " << numberOfClusters << "\n"
@@ -87,14 +87,14 @@ void vtkMapClusteredMarkerSource::PrintSelf(ostream &os, vtkIndent indent)
 }
 
 //----------------------------------------------------------------------------
-vtkMapClusteredMarkerSource::~vtkMapClusteredMarkerSource()
+vtkMapClusteredMarkerSet::~vtkMapClusteredMarkerSet()
 {
   this->RemoveMapMarkers();
   delete this->Internals;
 }
 
 //----------------------------------------------------------------------------
-vtkIdType vtkMapClusteredMarkerSource::AddMarker(double latitude,
+vtkIdType vtkMapClusteredMarkerSet::AddMarker(double latitude,
                                                  double longitude)
 {
   // Set marker id
@@ -128,7 +128,7 @@ vtkIdType vtkMapClusteredMarkerSource::AddMarker(double latitude,
 }
 
 //----------------------------------------------------------------------------
-void vtkMapClusteredMarkerSource::RemoveMapMarkers()
+void vtkMapClusteredMarkerSet::RemoveMapMarkers()
 {
   std::vector<std::set<MapCluster*> >::iterator tableIter =
     this->Internals->ClusterTable.begin();
@@ -151,7 +151,7 @@ void vtkMapClusteredMarkerSource::RemoveMapMarkers()
 }
 
 //----------------------------------------------------------------------------
-void vtkMapClusteredMarkerSource::Update(int zoomLevel)
+void vtkMapClusteredMarkerSet::Update(int zoomLevel)
 {
   if (!this->Internals->Changed && (zoomLevel == this->Internals->ZoomLevel))
     {
@@ -209,7 +209,7 @@ void vtkMapClusteredMarkerSource::Update(int zoomLevel)
 
 //----------------------------------------------------------------------------
 vtkUnsignedCharArray *
-vtkMapClusteredMarkerSource::
+vtkMapClusteredMarkerSet::
 SetupUCharArray(vtkPolyData *polyData, const char *name, int numberOfComponents)
 {
   // Check for array in point data
