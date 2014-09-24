@@ -27,12 +27,14 @@ add_definitions("-DMARKER_IMAGE_FILE=\"${CMAKE_SOURCE_DIR}/markerteal.png\"")
 
 set (SOURCES
     main.cpp
-    vtkMapMarker.cxx
-    vtkMapMarker.h
+    vtkMapMarkerSet.cxx
+    vtkMapMarkerSet.h
     vtkMapTile.cxx
     vtkMapTile.h
     vtkMap.cxx
     vtkMap.h
+    vtkTeardropSource.cxx
+    vtkTeardropSource.h
 )
 
 add_executable(vtkMap ${SOURCES})

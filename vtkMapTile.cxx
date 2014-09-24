@@ -101,6 +101,7 @@ void vtkMapTile::Init(const char *cacheDirectory)
   this->Actor = vtkActor::New();
   this->Actor->SetMapper(Mapper);
   this->Actor->SetTexture(texture.GetPointer());
+  this->Actor->PickableOff();
 }
 
 //----------------------------------------------------------------------------

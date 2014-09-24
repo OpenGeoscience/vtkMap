@@ -25,7 +25,8 @@
 class vtkActor;
 class vtkInteractorStyle;
 class vtkMapTile;
-class vtkMapMarker;
+class vtkMapMarkerSet;
+class vtkPicker;
 class vtkPoints;
 class vtkRenderer;
 
@@ -49,6 +50,11 @@ public:
   // Get/Set the interactor style in which map tiles will be added
   vtkGetMacro(InteractorStyle, vtkInteractorStyle*)
   vtkSetMacro(InteractorStyle, vtkInteractorStyle*)
+
+  // Description:
+  // Get/Set the picker used for picking map markers
+  vtkGetMacro(Picker, vtkPicker*)
+  vtkSetMacro(Picker, vtkPicker*)
 
   // Description:
   // Get/Set the detailing level
@@ -75,11 +81,15 @@ public:
 
   // Description:
   // Add marker to map
-  vtkMapMarker* AddMarker(double Latitude, double Longitude);
+  vtkIdType AddMarker(double Latitude, double Longitude);
 
   // Description:
   // Removes all map markers
   void RemoveMapMarkers();
+
+  // Description:
+  // Returns id of marker at specified display coordinates
+  vtkIdType PickMarker(int displayCoords[2]);
 
   // Description:
   // Transform from map coordiantes to display coordinates
@@ -120,12 +130,16 @@ protected:
   vtkMapTile* GetCachedTile(int zoom, int x, int y);
 
   // Description:
-  // Set the renderer to draww the maps
+  // The renderer used to draw the maps
   vtkRenderer* Renderer;
 
   // Description:
   // The interactor style used by the map
   vtkInteractorStyle* InteractorStyle;
+
+  // Description:
+  // The picker used for picking map markers
+  vtkPicker* Picker;
 
   // Description:
   // Set Zoom level, which determines the level of detailing
@@ -145,7 +159,9 @@ protected:
 
   std::vector<vtkMapTile*> NewPendingTiles;
 
-  std::vector<vtkMapMarker*> MapMarkers;
+  // Description:
+  // The map marker manager
+  vtkMapMarkerSet *MapMarkerSet;
 
 protected:
   bool Initialized;

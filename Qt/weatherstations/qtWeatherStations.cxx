@@ -20,9 +20,13 @@
 #include <vtkCallbackCommand.h>
 #include <vtkInteractorStyleImage.h>
 #include <vtkNew.h>
+#include <vtkPicker.h>
 #include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
+
+#include <QMessageBox>
+#include <QString>
 #include <QVBoxLayout>
 #include <curl/curl.h>
 #include <cJSON/cJSON.h>
@@ -56,6 +60,9 @@ public:
 
   virtual void Execute(vtkObject *caller, unsigned long eventId, void *callData)
   {
+    vtkRenderWindowInteractor *interactor =
+      vtkRenderWindowInteractor::SafeDownCast(caller);
+
     switch (eventId)
       {
       case vtkCommand::MouseWheelForwardEvent:
@@ -67,6 +74,13 @@ public:
       case vtkCommand::ModifiedEvent:
         // Update markers for interactor-modified events
         this->App->updateMap();
+        break;
+
+      case vtkCommand::LeftButtonPressEvent:
+        {
+        int *pos = interactor->GetEventPosition();
+        this->App->pickMarker(pos);
+        }
         break;
 
       default:
@@ -98,19 +112,20 @@ qtWeatherStations::qtWeatherStations(QWidget *parent)
 
   // Initialize Map instance
   this->Map = vtkMap::New();
-  vtkNew<vtkRenderer> mapRenderer;
-  this->Map->SetRenderer(mapRenderer.GetPointer());
+  this->Renderer = vtkRenderer::New();
+  this->Map->SetRenderer(this->Renderer);
   //this->resetMapCoords();
   //this->Map->SetCenter(32.2, -90.9);  // approx ERDC coords
   this->Map->SetCenter(42.849604, -73.758345);  // KHQ coords
   this->Map->SetZoom(5);
 
   vtkNew<vtkRenderWindow> mapRenderWindow;
-  mapRenderWindow->AddRenderer(mapRenderer.GetPointer());
+  mapRenderWindow->AddRenderer(this->Renderer);
   this->MapWidget->SetRenderWindow(mapRenderWindow.GetPointer());
 
   vtkRenderWindowInteractor *intr = this->MapWidget->GetInteractor();
   intr->SetInteractorStyle(this->Map->GetInteractorStyle());
+  intr->SetPicker(this->Map->GetPicker());
   intr->Initialize();
 
   // Pass *all* callbacks to MapCallback instance
@@ -137,6 +152,14 @@ qtWeatherStations::qtWeatherStations(QWidget *parent)
 qtWeatherStations::~qtWeatherStations()
 {
   curl_global_cleanup();
+  if (this->Map)
+    {
+    this->Map->Delete();
+    }
+  if (this->Renderer)
+    {
+    this->Renderer->Delete();
+    }
 }
 
 // ------------------------------------------------------------
@@ -173,20 +196,43 @@ void qtWeatherStations::resizeMapWidget()
 void qtWeatherStations::showStations()
 {
   this->UI->StationText->setFontFamily("Courier New");
-  this->UI->StationText->clear();
-  this->UI->StationText->setText("Retrieving station data");
-  // Todo is there any way to update the display *now* ???
 
-  std::stringstream textData;
+  // Clear out current station data
+  this->UI->StationText->clear();
+  this->UI->StationText->setText("Retrieving station data.");
+  // Todo is there any way to update StationText (QTextEdit) *now* ???
+
+  this->Map->RemoveMapMarkers();
+  this->StationMap.clear();
+
+  // Request weather station data
+  cJSON *json = this->RequestStationData();
+  if (!json)
+    {
+    return;
+    }
+
+  std::vector<StationReport> stationList = this->ParseStationData(json);
+  this->DisplayStationData(stationList);
+  this->DisplayStationMarkers(stationList);
+  cJSON_Delete(json);
+}
+
+// ------------------------------------------------------------
+cJSON *qtWeatherStations::RequestStationData()
+{
+  std::stringstream ss;
+
+  // Get current map coordinates
   double center[2];
   this->Map->GetCenter(center);
   int zoom = this->Map->GetZoom();
   this->UI->MapCoordinatesWidget->setCoordinates(center, zoom);
   double lat = center[0];
   double lon = center[1];
-  textData << "Map coordinates (lat, lon) are"
-           << " (" << lat << ", " << lon << ")"
-           ", zoom " << zoom << "\n";
+  ss << "Map coordinates (lat, lon) are"
+     << " (" << lat << ", " << lon << ")"
+    ", zoom " << zoom;
 
   // Construct openweathermaps request
   int count = this->UI->StationCountSpinBox->value();
@@ -202,8 +248,8 @@ void qtWeatherStations::showStations()
   curl_easy_setopt(curl, CURLOPT_URL, url);
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, handle_curl_input);
 
-  std::stringstream ss;
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &ss);
+  std::stringstream curlStream;
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &curlStream);
 
   //curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
   //std::cout << "Start request" << std::endl;
@@ -212,97 +258,115 @@ void qtWeatherStations::showStations()
   //std::cout << "Request end, return value " << res << std::endl;
   curl_easy_cleanup(curl);
 
-
   // Parse input string (json)
-  ss.seekp(0L);
-  std::string ssData = ss.str();
+  curlStream.seekp(0L);
+  std::string curlData = curlStream.str();
 
-  cJSON *json = cJSON_Parse(ssData.c_str());
+  cJSON *json = cJSON_Parse(curlData.c_str());
   if (!json)
     {
+    ss << "\n" << "Error parsing input data - see console for more info.";
     std::cerr << "Error before: [" << cJSON_GetErrorPtr() << "]" << std::endl;
-    textData << ssData.c_str();
-    this->UI->StationText->setText(textData.str().c_str());
-    return;
     }
+  this->UI->StationText->append(QString::fromStdString(ss.str()));
 
   // char *out = cJSON_Print(json);
   // printf("%s\n",out);
   // free(out);
 
-  cJSON *stationList = cJSON_GetObjectItem(json, "list");
-  if (!stationList)
-    {
-    std::cerr << "No list element found" << std::endl;
-    textData << ssData.c_str();
-    this->UI->StationText->setText(textData.str().c_str());
-    return;
-    }
-  int stationListSize = cJSON_GetArraySize(stationList);
-  textData << "Station list size " << stationListSize << "\n";
-
-  this->DisplayStationMarkers(stationList);
-
-  // Todo: refactor following code into DisplayStationData() method
-
-  // Dump info for returned stations
-  for (int i=0; i<stationListSize; ++i)
-    {
-    // Station ID & name
-    cJSON *station = cJSON_GetArrayItem(stationList, i);
-    cJSON *idNode = cJSON_GetObjectItem(station, "id");
-    cJSON *nameNode = cJSON_GetObjectItem(station, "name");
-    textData << std::setw(3) << i+1
-             << ". " << idNode->valueint
-             << "  " << std::setw(20) << nameNode->valuestring;
-
-    // Current temp
-    cJSON *mainNode = cJSON_GetObjectItem(station, "main");
-    cJSON *tempNode = cJSON_GetObjectItem(mainNode, "temp");
-    textData << "  " << std::setiosflags(std::ios_base::fixed)
-             << std::setprecision(1) << tempNode->valuedouble << "F";
-
-    // Geo coords
-    cJSON *coordNode = cJSON_GetObjectItem(station, "coord");
-    cJSON *latNode = cJSON_GetObjectItem(coordNode, "lat");
-    cJSON *lonNode = cJSON_GetObjectItem(coordNode, "lon");
-    textData << "  (" << std::setiosflags(std::ios_base::fixed)
-             << std::setprecision(6) << latNode->valuedouble
-             << ", " << std::setiosflags(std::ios_base::fixed)
-             << std::setprecision(6) << lonNode->valuedouble << ")";
-
-    // Datetime
-    cJSON *dtNode = cJSON_GetObjectItem(station, "dt");
-    time_t dt(dtNode->valueint);  // dt units are seconds
-    textData << "  " << ctime(&dt);  // includes newline
-    //textData  << "\n";
-    }
-  this->UI->StationText->setText(textData.str().c_str());
-
-  cJSON_Delete(json);
+  return json;
 }
 
 // ------------------------------------------------------------
-void qtWeatherStations::DisplayStationMarkers(cJSON *stationList)
+// Parses json object and returns list of station reports
+std::vector<StationReport> qtWeatherStations::ParseStationData(cJSON *json)
 {
-  this->Map->RemoveMapMarkers();
+  std::vector<StationReport> stationList;  // return value
 
-  int stationListSize = cJSON_GetArraySize(stationList);
+  cJSON *stationListNode = cJSON_GetObjectItem(json, "list");
+  if (!stationListNode)
+    {
+    return stationList;
+    }
 
-  // Create map markers for each station
+  int stationListSize = cJSON_GetArraySize(stationListNode);
   for (int i=0; i<stationListSize; ++i)
     {
-    cJSON *station = cJSON_GetArrayItem(stationList, i);
-    cJSON *coordNode = cJSON_GetObjectItem(station, "coord");
+    StationReport station;
+
+    // Station ID & name
+    cJSON *stationNode = cJSON_GetArrayItem(stationListNode, i);
+
+    cJSON *idNode = cJSON_GetObjectItem(stationNode, "id");
+    station.id = idNode->valueint;
+
+    cJSON *nameNode = cJSON_GetObjectItem(stationNode, "name");
+    station.name = nameNode->valuestring;
+
+    // Geo coords
+    cJSON *coordNode = cJSON_GetObjectItem(stationNode, "coord");
     cJSON *latNode = cJSON_GetObjectItem(coordNode, "lat");
     cJSON *lonNode = cJSON_GetObjectItem(coordNode, "lon");
+    station.latitude = latNode->valuedouble;
+    station.longitude = lonNode->valuedouble;
 
-    double lat = latNode->valuedouble;
-    double lon = lonNode->valuedouble;
-    // std::cout << "Adding marker at lat/lon "
-    //           << lat << ", " << lon << std::endl;
-    this->Map->AddMarker(lat, lon);
+    // Datetime
+    cJSON *dtNode = cJSON_GetObjectItem(stationNode, "dt");
+    station.datetime = time_t(dtNode->valueint);  // dt units are seconds
+
+    // Current temp
+    cJSON *mainNode = cJSON_GetObjectItem(stationNode, "main");
+    cJSON *tempNode = cJSON_GetObjectItem(mainNode, "temp");
+    station.temperature = tempNode->valuedouble;
+
+    stationList.push_back(station);
     }
+
+  return stationList;
+}
+
+// ------------------------------------------------------------
+// Writes station info to StationText (QTextEdit)
+void qtWeatherStations::
+DisplayStationData(std::vector<StationReport> stationList)
+{
+  std::stringstream ss;
+  for (int i=0; i<stationList.size(); ++i)
+    {
+    StationReport station = stationList[i];
+    ss << std::setw(3) << i+1
+       << ". " << station.id
+       << "  " << std::setw(20) << station.name
+
+       << "  " << std::setiosflags(std::ios_base::fixed)
+       << std::setprecision(1) << station.temperature << "F"
+
+       << "  (" << std::setiosflags(std::ios_base::fixed)
+       << std::setprecision(6) << station.latitude
+       << "  " << std::setiosflags(std::ios_base::fixed)
+       << std::setprecision(6) << station.longitude << ")"
+
+       << "  " << ctime(&station.datetime);
+    }
+
+  this->UI->StationText->append(QString::fromStdString(ss.str()));
+}
+
+// ------------------------------------------------------------
+// Updates display to show marker for each station in input list
+// Updates internal Stations dictionary
+void qtWeatherStations::
+DisplayStationMarkers(std::vector<StationReport> stationList)
+{
+  // Create map markers for each station
+  for (int i=0; i<stationList.size(); ++i)
+    {
+    StationReport station = stationList[i];
+    vtkIdType id = this->Map->AddMarker(station.latitude, station.longitude);
+    if (id >= 0)
+      this->StationMap[id] = station;
+    }
+  this->drawMap();
  }
 
 
@@ -332,5 +396,33 @@ void qtWeatherStations::updateMap()
     //std::cout << "GetCenter " << center[0] << ", " << center[1] << std::endl;
     int zoom = this->Map->GetZoom();
     this->UI->MapCoordinatesWidget->setCoordinates(center, zoom);
+    }
+}
+
+// ------------------------------------------------------------
+// Returns vtkRenderer
+vtkRenderer *qtWeatherStations::getRenderer() const
+{
+  return this->Renderer;
+}
+
+// ------------------------------------------------------------
+// Handles left-click event
+void qtWeatherStations::pickMarker(int displayCoords[2])
+{
+  vtkIdType markerId = this->Map->PickMarker(displayCoords);
+  std::map<vtkIdType, StationReport>::iterator stationIter =
+    this->StationMap.find(markerId);
+  if (stationIter != this->StationMap.end())
+    {
+    StationReport station = stationIter->second;
+    std::stringstream ss;
+    ss << "Station: " << station.name << "\n"
+       << "Current Temp: " << std::setiosflags(std::ios_base::fixed)
+       << std::setprecision(1) << station.temperature << "F"
+       <<  std::endl;
+
+    QMessageBox::information(this->MapWidget, "Marker clicked",
+      QString::fromStdString(ss.str()));
     }
 }
