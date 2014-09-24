@@ -35,10 +35,10 @@ namespace
   class MapCluster
   {
   public:
-    int ClusterId;  // position in ClusterList vector
+    //int ClusterId;  // TBD
     double Latitude;
     double Longitude;
-    // int ZoomLevel TBD
+    // int ZoomLevel // TBD
     std::set<MapCluster*> ChildrenClusters;
     int NumberOfMarkers;
     int MarkerId;  // only relevant for single-marker clusters
@@ -52,9 +52,10 @@ class vtkMapClusteredMarkerSet::MapClusteredMarkerSetInternals
 public:
   bool Changed;
   int ZoomLevel;
-  std::vector<MapCluster*> ClusterList;
+  std::vector<MapCluster*> CurrentClusters;  // currently in PolyData
   std::vector<std::set<MapCluster*> > ClusterTable;
   int NumberOfMarkers;
+  int NumberOfClusters;
 };
 
 //----------------------------------------------------------------------------
@@ -71,18 +72,19 @@ vtkMapClusteredMarkerSet::vtkMapClusteredMarkerSet()
   std::fill_n(std::back_inserter(this->Internals->ClusterTable),
               NumberOfClusterLevels, clusterSet);
   this->Internals->NumberOfMarkers = 0;
+  this->Internals->NumberOfClusters = 0;
 }
 
 //----------------------------------------------------------------------------
 void vtkMapClusteredMarkerSet::PrintSelf(ostream &os, vtkIndent indent)
 {
   Superclass::PrintSelf(os, indent);
-  int numberOfClusters = this->Internals->ClusterList.size() -
-    this->Internals->NumberOfMarkers;
   os << indent << "vtkMapClusteredMarkerSet" << "\n"
      << indent << "NumberOfClusterLevels: " << NumberOfClusterLevels << "\n"
-     << indent << "NumberOfMarkers: " << this->Internals->NumberOfMarkers << "\n"
-     << indent << "Number of clusters: " << numberOfClusters << "\n"
+     << indent << "NumberOfMarkers: "
+     << this->Internals->NumberOfMarkers << "\n"
+     << indent << "NumberOfClusters: "
+     << this->Internals->NumberOfClusters << "\n"
      << std::endl;
 }
 
@@ -95,7 +97,7 @@ vtkMapClusteredMarkerSet::~vtkMapClusteredMarkerSet()
 
 //----------------------------------------------------------------------------
 vtkIdType vtkMapClusteredMarkerSet::AddMarker(double latitude,
-                                                 double longitude)
+                                              double longitude)
 {
   // Set marker id
   int markerId = this->Internals->NumberOfMarkers++;
@@ -117,8 +119,6 @@ vtkIdType vtkMapClusteredMarkerSet::AddMarker(double latitude,
     cluster->NumberOfMarkers = 1;
     cluster->MarkerId = markerId;
     }
-  cluster->ClusterId = this->Internals->ClusterList.size();
-  this->Internals->ClusterList.push_back(cluster);
 
   // Hard code to level 0 for now
   this->Internals->ClusterTable[0].insert(cluster);
@@ -135,18 +135,17 @@ void vtkMapClusteredMarkerSet::RemoveMapMarkers()
   for (; tableIter != this->Internals->ClusterTable.end(); tableIter++)
     {
     std::set<MapCluster*> clusterSet = *tableIter;
+    std::set<MapCluster*>::iterator clusterIter = clusterSet.begin();
+    for (; clusterIter != clusterSet.end(); clusterIter++)
+      {
+      delete *clusterIter;
+      }
     clusterSet.empty();
     }
 
-  std::vector<MapCluster*>::iterator listIter =
-    this->Internals->ClusterList.begin();
-  for (; listIter != this->Internals->ClusterList.end(); listIter++)
-    {
-    delete *listIter;
-    }
-  this->Internals->ClusterList.clear();
-
+  this->Internals->CurrentClusters.clear();
   this->Internals->NumberOfMarkers = 0;
+  this->Internals->NumberOfClusters = 0;
   this->Internals->Changed = true;
 }
 
@@ -174,6 +173,7 @@ void vtkMapClusteredMarkerSet::Update(int zoomLevel)
   unsigned char markerType[1];
   markerType[0] = 0;
 
+  this->Internals->CurrentClusters.clear();
   zoomLevel = 0;  // Todo for dev only
   std::set<MapCluster*> clusterSet = this->Internals->ClusterTable[zoomLevel];
   std::set<MapCluster*>::const_iterator iter;
@@ -184,6 +184,7 @@ void vtkMapClusteredMarkerSet::Update(int zoomLevel)
     coord[1] = lat2y(cluster->Latitude);
     coord[2] = 0.0;
     points->InsertNextPoint(coord);
+    this->Internals->CurrentClusters.push_back(cluster);
     if (cluster->NumberOfMarkers == 1)  // point marker
       {
       markerType[0] = 0;
@@ -205,6 +206,33 @@ void vtkMapClusteredMarkerSet::Update(int zoomLevel)
 
   this->Internals->Changed = false;
   this->Internals->ZoomLevel = zoomLevel;
+}
+
+//----------------------------------------------------------------------------
+int vtkMapClusteredMarkerSet::GetMarkerType(int glyphNumber)
+{
+  if ((glyphNumber < 0) ||
+      (glyphNumber >= this->Internals->CurrentClusters.size()))
+    {
+    vtkWarningMacro("Invalid glyph number " << glyphNumber);
+    return -1;
+    }
+  MapCluster *cluster = this->Internals->CurrentClusters[glyphNumber];
+  int markerType = cluster->NumberOfMarkers > 1 ? 1 : 0;
+  return markerType;
+}
+
+//----------------------------------------------------------------------------
+int vtkMapClusteredMarkerSet::GetMarkerId(int glyphNumber)
+{
+  if ((glyphNumber < 0) ||
+      (glyphNumber >= this->Internals->CurrentClusters.size()))
+    {
+    vtkWarningMacro("Invalid glyph number " << glyphNumber);
+    return -1;
+    }
+  MapCluster *cluster = this->Internals->CurrentClusters[glyphNumber];
+  return cluster->MarkerId;
 }
 
 //----------------------------------------------------------------------------

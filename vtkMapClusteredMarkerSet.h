@@ -51,12 +51,14 @@ public:
   void Update(int ZoomLevel);
 
   // Description
-  // Returns marker type for specified point id
-  int GetMarkerType(int pointId);
+  // Returns marker type for specified glyph number (in current display)
+  // 0 == point marker, 1 == cluster marker (-1 == invalid glyph number)
+  int GetMarkerType(int glyphNumber);
 
   // Description
-  // Returns marker id for specified point id (returns -1 for clusters)
-  int GetMarkerId(int pointId);
+  // Returns marker id for specified glyph number (in current display)
+  // If glyph is a cluster or glyphNumber is invalid, returns -1
+  int GetMarkerId(int glyphNumber);
 
  protected:
   vtkMapClusteredMarkerSet();

@@ -169,11 +169,15 @@ PickMarker(vtkRenderer *renderer, vtkPicker *picker, int displayCoords[2])
       vtkIdTypeArray *glyphIdArray = vtkIdTypeArray::SafeDownCast(dataArray);
       if (glyphIdArray)
         {
-        markerId = glyphIdArray->GetValue(pointId);
-        //std::cout << "Point id " << pointId
-        //          << " - Data " << markerId << std::endl;
+        int glyphId = glyphIdArray->GetValue(pointId);
+        // std::cout << "Point id " << pointId
+        //           << " - Data " << glyphId << std::endl;
+        //int markerType = this->MarkerSet->GetMarkerType(glyphId);
+        markerId = this->MarkerSet->GetMarkerId(glyphId);
+        // std::cout << "Marker type " << markerType
+        //           << ", MarkerId " << markerId
+        //           << std::endl;
         }
-
       }
     }
 

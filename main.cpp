@@ -53,6 +53,10 @@ public:
         {
         std::cout << "Picked marker " << markerId << std::endl;
         }
+      else
+        {
+        std::cout << "Picked cluster" << std::endl;
+        }
     }
 
   void SetMap(vtkMap *map)
