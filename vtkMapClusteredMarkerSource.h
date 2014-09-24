@@ -51,7 +51,8 @@ public:
 
   virtual int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *);
 
-  vtkUnsignedCharArray *SetupColorsArray(vtkPolyData *polyData);
+  vtkUnsignedCharArray *SetupUCharArray(vtkPolyData *polyData, const char *name,
+                                        int numberOfComponents=3);
 
   class MapClusteredMarkerSourceInternals;
   MapClusteredMarkerSourceInternals* Internals;
