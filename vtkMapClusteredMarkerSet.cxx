@@ -28,23 +28,20 @@
 #include <vector>
 
 double lat2y(double);
+const int NumberOfClusterLevels = 20;
 
 //----------------------------------------------------------------------------
-namespace
+class vtkMapClusteredMarkerSet::MapCluster
 {
-  class MapCluster
-  {
-  public:
-    //int ClusterId;  // TBD
-    double Latitude;
-    double Longitude;
-    // int ZoomLevel // TBD
-    std::set<MapCluster*> ChildrenClusters;
-    int NumberOfMarkers;
-    int MarkerId;  // only relevant for single-marker clusters
-  };
-  const int NumberOfClusterLevels = 1;
-}
+public:
+  //int ClusterId;  // TBD
+  double Latitude;
+  double Longitude;
+  // int ZoomLevel // TBD
+  std::set<MapCluster*> ChildrenClusters;
+  int NumberOfMarkers;
+  int MarkerId;  // only relevant for single-marker clusters
+};
 
 //----------------------------------------------------------------------------
 class vtkMapClusteredMarkerSet::MapClusteredMarkerSetInternals
@@ -56,6 +53,7 @@ public:
   std::vector<std::set<MapCluster*> > ClusterTable;
   int NumberOfMarkers;
   int NumberOfClusters;
+  double ClusterDistance;
 };
 
 //----------------------------------------------------------------------------
@@ -73,6 +71,7 @@ vtkMapClusteredMarkerSet::vtkMapClusteredMarkerSet()
               NumberOfClusterLevels, clusterSet);
   this->Internals->NumberOfMarkers = 0;
   this->Internals->NumberOfClusters = 0;
+  this->Internals->ClusterDistance = 80.0;
 }
 
 //----------------------------------------------------------------------------
@@ -102,26 +101,30 @@ vtkIdType vtkMapClusteredMarkerSet::AddMarker(double latitude,
   // Set marker id
   int markerId = this->Internals->NumberOfMarkers++;
 
-  // Instantiate MapCluster instance
-  MapCluster *cluster = new MapCluster;
-  cluster->Latitude = latitude;
-  cluster->Longitude = longitude;
-
-  // Todo - insert into cluster table
-  // For now, make every other one a cluster
-  if (this->Internals->NumberOfMarkers % 2)
+  // Create MapCluster for each level of ClusterTable, starting at max level
+  double gcsCoords[2];
+  double threshold = this->Internals->ClusterDistance;
+  for (int i=this->Internals->ClusterTable.size()-1; i>=0; i--)
     {
-    cluster->NumberOfMarkers = 2 + markerId;
-    cluster->MarkerId = -1;
+    // Can the point be clustered at this level?
+    gcsCoords[0] = longitude;
+    gcsCoords[1] = lat2y(latitude);
+    MapCluster *cluster = this->FindClosestCluster(gcsCoords, i, threshold);
+    if (cluster)
+      {
+      // Update cluster
+      }
+    else
+      {
+      // Instantiate MapCluster instance
+      MapCluster *cluster = new MapCluster;
+      cluster->Latitude = latitude;
+      cluster->Longitude = longitude;
+      cluster->NumberOfMarkers = 1;
+      cluster->MarkerId = markerId;
+      this->Internals->ClusterTable[i].insert(cluster);
+      }
     }
-  else
-    {
-    cluster->NumberOfMarkers = 1;
-    cluster->MarkerId = markerId;
-    }
-
-  // Hard code to level 0 for now
-  this->Internals->ClusterTable[0].insert(cluster);
 
   this->Internals->Changed = true;
   return markerId;
@@ -174,7 +177,6 @@ void vtkMapClusteredMarkerSet::Update(int zoomLevel)
   markerType[0] = 0;
 
   this->Internals->CurrentClusters.clear();
-  zoomLevel = 0;  // Todo for dev only
   std::set<MapCluster*> clusterSet = this->Internals->ClusterTable[zoomLevel];
   std::set<MapCluster*>::const_iterator iter;
   for (iter = clusterSet.begin(); iter != clusterSet.end(); iter++)
@@ -233,6 +235,16 @@ int vtkMapClusteredMarkerSet::GetMarkerId(int glyphNumber)
     }
   MapCluster *cluster = this->Internals->CurrentClusters[glyphNumber];
   return cluster->MarkerId;
+}
+
+//----------------------------------------------------------------------------
+vtkMapClusteredMarkerSet::MapCluster*
+vtkMapClusteredMarkerSet::
+FindClosestCluster(double gcsCoords[2], int zoomLevel, double distanceThreshold)
+{
+  // MapCluster *cluster = new MapCluster;
+  // return cluster;
+  return NULL;
 }
 
 //----------------------------------------------------------------------------

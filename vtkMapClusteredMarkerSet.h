@@ -66,12 +66,14 @@ public:
 
   vtkPolyData *PolyData;
 
+  class MapCluster;
+  MapCluster *FindClosestCluster(double gcsCoords[2], int zoomLevel,
+                                 double distanceThreshold);
   vtkUnsignedCharArray *SetupUCharArray(vtkPolyData *polyData, const char *name,
                                         int numberOfComponents=3);
-
+private:
   class MapClusteredMarkerSetInternals;
   MapClusteredMarkerSetInternals* Internals;
-private:
   vtkMapClusteredMarkerSet(const vtkMapClusteredMarkerSet&);  // not implemented
   void operator=(const vtkMapClusteredMarkerSet);  // not implemented
 };
