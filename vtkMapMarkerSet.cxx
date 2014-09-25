@@ -42,6 +42,7 @@ vtkMapMarkerSet::vtkMapMarkerSet()
 {
   this->Renderer = NULL;
   this->MarkerSet = vtkMapClusteredMarkerSet::New();
+  //this->MarkerSet->DebugOn();
   this->Mapper = NULL;
   this->Actor = NULL;
 }

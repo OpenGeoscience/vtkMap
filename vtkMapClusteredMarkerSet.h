@@ -69,6 +69,7 @@ public:
   class MapCluster;
   MapCluster *FindClosestCluster(double gcsCoords[2], int zoomLevel,
                                  double distanceThreshold);
+  void MergeClusterData(MapCluster *src, MapCluster *dest, int level);
   vtkUnsignedCharArray *SetupUCharArray(vtkPolyData *polyData, const char *name,
                                         int numberOfComponents=3);
 private:
