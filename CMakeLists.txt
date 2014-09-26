@@ -27,8 +27,6 @@ add_definitions("-DMARKER_IMAGE_FILE=\"${CMAKE_SOURCE_DIR}/markerteal.png\"")
 
 set (SOURCES
     main.cpp
-    vtkMapClusteredMarkerSet.cxx
-    vtkMapClusteredMarkerSet.h
     vtkMapMarkerSet.cxx
     vtkMapMarkerSet.h
     vtkMapPickResult.cxx

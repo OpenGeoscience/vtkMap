@@ -39,15 +39,23 @@ public:
 
   // Description:
   // Set the renderer in which map markers will be added
-  void SetRenderer(vtkRenderer *renderer);
+  vtkSetMacro(Renderer, vtkRenderer *);
+
+  // Description:
+  // Set/get whether to apply hierarchical clustering to map markers.
+  // The default is off, and once turned on, behavior is undefined if
+  // clustering is turned off.
+  vtkSetMacro(MarkerClustering, bool);
+  vtkGetMacro(MarkerClustering, bool);
+  vtkBooleanMacro(MarkerClustering, bool);
 
   // Description:
   // Add marker to map, returns id
-  vtkIdType AddMarker(double Latitude, double Longitude);
+  vtkIdType AddMarker(double latitude, double longitude);
 
   // Description:
   // Removes all map markers
-  void RemoveMapMarkers();
+  void RemoveMarkers();
 
   // Description:
   // Update the marker geometry to draw the map
@@ -56,20 +64,40 @@ public:
   // Description:
   // Returns id of marker at specified display coordinates
   void PickPoint(vtkRenderer *renderer, vtkPicker *picker,
-            int displayCoords[2], vtkMapPickResult *result);
+           int displayCoords[2], vtkMapPickResult *result);
 
  protected:
   vtkMapMarkerSet();
   ~vtkMapMarkerSet();
 
+  void InitializeRenderingPipeline();
+  void InitializeMarkerClustering();
+  void UpdateMarkerClustering(int zoomLevel);
+
+  // Description:
+  // Indicates that internal logic & pipeline have been initialized
+  bool Initialized;
+
+  // Description:
+  // Flag to enable/disable marker clustering logic
+  bool MarkerClustering;
+
   // Description:
   // The renderer used to draw maps
   vtkRenderer* Renderer;
 
+  vtkPolyData *PolyData;
   vtkPolyDataMapper *Mapper;
   vtkActor *Actor;
 
-  vtkMapClusteredMarkerSet *MarkerSet;
+  class MapMarker;
+
+ private:
+  class MapMarkerSetInternals;
+  MapMarkerSetInternals* Internals;
+
+  vtkMapMarkerSet(const vtkMapMarkerSet&);  // not implemented
+  void operator=(const vtkMapMarkerSet);  // not implemented
 };
 
 #endif // __vtkMapMarkerSet_h
