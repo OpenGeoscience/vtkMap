@@ -45,9 +45,9 @@ public:
   // Set/get whether to apply hierarchical clustering to map markers.
   // The default is off, and once turned on, behavior is undefined if
   // clustering is turned off.
-  vtkSetMacro(MarkerClustering, bool);
-  vtkGetMacro(MarkerClustering, bool);
-  vtkBooleanMacro(MarkerClustering, bool);
+  vtkSetMacro(Clustering, bool);
+  vtkGetMacro(Clustering, bool);
+  vtkBooleanMacro(Clustering, bool);
 
   // Description:
   // Add marker to map, returns id
@@ -71,8 +71,6 @@ public:
   ~vtkMapMarkerSet();
 
   void InitializeRenderingPipeline();
-  void InitializeMarkerClustering();
-  void UpdateMarkerClustering(int zoomLevel);
 
   // Description:
   // Indicates that internal logic & pipeline have been initialized
@@ -80,7 +78,7 @@ public:
 
   // Description:
   // Flag to enable/disable marker clustering logic
-  bool MarkerClustering;
+  bool Clustering;
 
   // Description:
   // The renderer used to draw maps
@@ -91,6 +89,9 @@ public:
   vtkActor *Actor;
 
   class MapMarker;
+  MapMarker *FindClosestMarker(double gcsCoords[2], int zoomLevel,
+                               double distanceThreshold);
+  void MergeClusterData(MapMarker *src, MapMarker *dest, int level);
 
  private:
   class MapMarkerSetInternals;

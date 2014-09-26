@@ -148,6 +148,7 @@ int main()
     32.301393, -90.871495   // ERDC
   };
   vtkMapMarkerSet *markerSet = map->GetMapMarkerSet();
+  markerSet->ClusteringOn();
   unsigned numMarkers = sizeof(latlonCoords) / sizeof(double) / 2;
   for (unsigned i=0; i<numMarkers; ++i)
     {

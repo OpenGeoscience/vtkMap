@@ -121,6 +121,8 @@ qtWeatherStations::qtWeatherStations(QWidget *parent)
   this->Map->SetCenter(42.849604, -73.758345);  // KHQ coords
   this->Map->SetZoom(5);
 
+  this->Map->GetMapMarkerSet()->ClusteringOn();
+
   vtkNew<vtkRenderWindow> mapRenderWindow;
   mapRenderWindow->AddRenderer(this->Renderer);
   this->MapWidget->SetRenderWindow(mapRenderWindow.GetPointer());
@@ -204,7 +206,7 @@ void qtWeatherStations::showStations()
   this->UI->StationText->setText("Retrieving station data.");
   // Todo is there any way to update StationText (QTextEdit) *now* ???
 
-  this->Map->GetMapMarkerSet()->RemoveMapMarkers();
+  this->Map->GetMapMarkerSet()->RemoveMarkers();
   this->StationMap.clear();
 
   // Request weather station data
