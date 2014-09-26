@@ -1,5 +1,6 @@
 #include "vtkMap.h"
 #include "vtkMapMarkerSet.h"
+#include "vtkMapPickResult.h"
 
 #include <vtkActor.h>
 #include <vtkCallbackCommand.h>
@@ -48,14 +49,31 @@ public:
       //std::cout << "Event position: " << pos[0] << ", " << pos[1] << std::endl;
       //std::cout << interactor->GetPicker()->GetClassName() << std::endl;
 
-      vtkIdType markerId = this->Map->PickMarker(pos);
-      if (markerId >= 0)
+      vtkNew<vtkMapPickResult> pickResult;
+
+      this->Map->PickPoint(pos, pickResult.GetPointer());
+      switch (pickResult->GetMapFeatureType())
         {
-        std::cout << "Picked marker " << markerId << std::endl;
-        }
-      else
-        {
-        std::cout << "Picked cluster" << std::endl;
+        case VTK_MAP_FEATURE_NONE:
+          break;
+
+        case VTK_MAP_FEATURE_MARKER:
+          std::cout << "Picked marker " << pickResult->GetMapFeatureId()
+                    << std::endl;
+          break;
+
+        case VTK_MAP_FEATURE_CLUSTER:
+          std::cout << "Picked cluster containing "
+                    << pickResult->GetNumberOfMarkers() << " markers"
+                    << std::endl;
+        break;
+
+        default:
+          //vtkWarningMacro("Unrecognized map feature type "
+          //                << pickResult->GetMapFeatureType());
+          std::cerr << "Unrecognized map feature type "
+                    << pickResult->GetMapFeatureType() << std::endl;
+          break;
         }
     }
 

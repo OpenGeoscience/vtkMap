@@ -26,6 +26,7 @@ class vtkActor;
 class vtkInteractorStyle;
 class vtkMapTile;
 class vtkMapMarkerSet;
+class vtkMapPickResult;
 class vtkPicker;
 class vtkPoints;
 class vtkRenderer;
@@ -85,8 +86,8 @@ public:
   void Draw();
 
   // Description:
-  // Returns id of marker at specified display coordinates
-  vtkIdType PickMarker(int displayCoords[2]);
+  // Returns info at specified display coordinates
+  void PickPoint(int displayCoords[2], vtkMapPickResult* result);
 
   // Description:
   // Transform from map coordiantes to display coordinates

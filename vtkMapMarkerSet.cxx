@@ -15,6 +15,7 @@
 
 #include "vtkMapMarkerSet.h"
 #include "vtkMapClusteredMarkerSet.h"
+#include "vtkMapPickResult.h"
 #include "vtkTeardropSource.h"
 #include <vtkActor.h>
 #include <vtkDataArray.h>
@@ -148,10 +149,15 @@ void vtkMapMarkerSet::Update(int zoomLevel)
 }
 
 //----------------------------------------------------------------------------
-vtkIdType vtkMapMarkerSet::
-PickMarker(vtkRenderer *renderer, vtkPicker *picker, int displayCoords[2])
+void vtkMapMarkerSet::
+PickPoint(vtkRenderer *renderer, vtkPicker *picker, int displayCoords[2],
+    vtkMapPickResult *result)
 {
-  vtkIdType markerId = -1;  // return value
+  result->SetDisplayCoordinates(displayCoords);
+  // TODO Need display <--> gcs coords
+  result->SetMapFeatureType(VTK_MAP_FEATURE_NONE);
+  result->SetNumberOfMarkers(0);
+  result->SetMapFeatureId(-1);
 
   vtkPointPicker *pointPicker = vtkPointPicker::SafeDownCast(picker);
   if (pointPicker &&
@@ -174,13 +180,24 @@ PickMarker(vtkRenderer *renderer, vtkPicker *picker, int displayCoords[2])
         // std::cout << "Point id " << pointId
         //           << " - Data " << glyphId << std::endl;
         //int markerType = this->MarkerSet->GetMarkerType(glyphId);
-        markerId = this->MarkerSet->GetMarkerId(glyphId);
+        int markerId = this->MarkerSet->GetMarkerId(glyphId);
         // std::cout << "Marker type " << markerType
         //           << ", MarkerId " << markerId
         //           << std::endl;
+
+        if (markerId >= 0)
+          {
+          result->SetMapFeatureType(VTK_MAP_FEATURE_MARKER);
+          result->SetMapFeatureId(markerId);
+          }
+        else
+          {
+          result->SetMapFeatureType(VTK_MAP_FEATURE_CLUSTER);
+          //result->NumberOfMarkers = TBD;
+          }
+
         }
       }
     }
 
-  return markerId;
 }

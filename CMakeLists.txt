@@ -31,6 +31,8 @@ set (SOURCES
     vtkMapClusteredMarkerSet.h
     vtkMapMarkerSet.cxx
     vtkMapMarkerSet.h
+    vtkMapPickResult.cxx
+    vtkMapPickResult.h
     vtkMapTile.cxx
     vtkMapTile.h
     vtkMap.cxx

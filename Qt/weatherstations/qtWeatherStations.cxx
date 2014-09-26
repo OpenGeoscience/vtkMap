@@ -17,6 +17,7 @@
 #include "ui_qtWeatherStations.h"
 #include "vtkMap.h"
 #include "vtkMapMarkerSet.h"
+#include "vtkMapPickResult.h"
 #include <QVTKWidget.h>
 #include <vtkCallbackCommand.h>
 #include <vtkInteractorStyleImage.h>
@@ -412,19 +413,32 @@ vtkRenderer *qtWeatherStations::getRenderer() const
 // Handles left-click event
 void qtWeatherStations::pickMarker(int displayCoords[2])
 {
-  vtkIdType markerId = this->Map->PickMarker(displayCoords);
-  std::map<vtkIdType, StationReport>::iterator stationIter =
-    this->StationMap.find(markerId);
-  if (stationIter != this->StationMap.end())
-    {
-    StationReport station = stationIter->second;
-    std::stringstream ss;
-    ss << "Station: " << station.name << "\n"
-       << "Current Temp: " << std::setiosflags(std::ios_base::fixed)
-       << std::setprecision(1) << station.temperature << "F"
-       <<  std::endl;
+  std::stringstream ss;
+  vtkNew<vtkMapPickResult> pickResult;
+  this->Map->PickPoint(displayCoords, pickResult.GetPointer());
 
-    QMessageBox::information(this->MapWidget, "Marker clicked",
-      QString::fromStdString(ss.str()));
+  switch (pickResult->GetMapFeatureType())
+    {
+    case VTK_MAP_FEATURE_MARKER:
+      {
+      std::map<vtkIdType, StationReport>::iterator stationIter =
+        this->StationMap.find(pickResult->GetMapFeatureId());
+      if (stationIter != this->StationMap.end())
+        {
+        StationReport station = stationIter->second;
+        ss << "Station: " << station.name << "\n"
+           << "Current Temp: " << std::setiosflags(std::ios_base::fixed)
+           << std::setprecision(1) << station.temperature << "F";
+        QMessageBox::information(this->MapWidget, "Marker clicked",
+                                 QString::fromStdString(ss.str()));
+        }
+      }
+      break;
+
+    case VTK_MAP_FEATURE_CLUSTER:
+      ss << "Cluster of " << pickResult->GetNumberOfMarkers() << " stations.";
+      QMessageBox::information(this->MapWidget, "Cluster clicked",
+                               QString::fromStdString(ss.str()));
+      break;
     }
 }

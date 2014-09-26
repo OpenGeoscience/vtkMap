@@ -455,9 +455,10 @@ vtkMapTile *vtkMap::GetCachedTile(int zoom, int x, int y)
 }
 
 //----------------------------------------------------------------------------
-vtkIdType vtkMap::PickMarker(int displayCoords[2])
+void vtkMap::PickPoint(int displayCoords[2], vtkMapPickResult* result)
 {
-  return this->MapMarkerSet->PickMarker(this->Renderer, this->Picker, displayCoords);
+  this->MapMarkerSet->PickPoint(this->Renderer, this->Picker, displayCoords,
+      result);
 }
 
 //----------------------------------------------------------------------------
