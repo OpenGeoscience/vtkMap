@@ -44,16 +44,15 @@ double y2lat(double);
 const int NumberOfClusterLevels = 20;
 
 //----------------------------------------------------------------------------
-class vtkMapMarkerSet::MapMarker
+class vtkMapMarkerSet::ClusteringNode
 {
 public:
-  //int ClusterId;  // TBD
-  double Latitude;
-  double Longitude;
+  int NodeId;  // for dev use
   double gcsCoords[2];
   // int ZoomLevel // TBD
-  MapMarker *Parent;
-  int NumberOfMarkers;  // 1 for single-point markers, >1 for clusters
+  ClusteringNode *Parent;
+  std::set<ClusteringNode*> Children;
+  int NumberOfMarkers;  // 1 for single-point nodes, >1 for clusters
   int MarkerId;  // only relevant for single-point markers (not clusters)
 };
 
@@ -65,14 +64,14 @@ class vtkMapMarkerSet::MapMarkerSetInternals
 {
 public:
   bool MarkersChanged;
-  std::vector<MapMarker*> CurrentMarkers;  // currently in PolyData
+  std::vector<ClusteringNode*> CurrentNodes;  // in this->PolyData
 
   // Used for marker clustering:
   int ZoomLevel;
-  std::vector<std::set<MapMarker*> > MarkerTable;
+  std::vector<std::set<ClusteringNode*> > NodeTable;
   int NumberOfMarkers;
-  int NumberOfClusters;
   double ClusterDistance;
+  int NumberOfNodes;  // for dev use
 };
 
 //----------------------------------------------------------------------------
@@ -88,12 +87,12 @@ vtkMapMarkerSet::vtkMapMarkerSet()
   this->Internals = new MapMarkerSetInternals;
   this->Internals->MarkersChanged = false;
   this->Internals->ZoomLevel = -1;
-  std::set<MapMarker*> clusterSet;
-  std::fill_n(std::back_inserter(this->Internals->MarkerTable),
+  std::set<ClusteringNode*> clusterSet;
+  std::fill_n(std::back_inserter(this->Internals->NodeTable),
               NumberOfClusterLevels, clusterSet);
   this->Internals->NumberOfMarkers = 0;
-  this->Internals->NumberOfClusters = 0;
   this->Internals->ClusterDistance = 80.0;
+  this->Internals->NumberOfNodes = 0;
 }
 
 //----------------------------------------------------------------------------
@@ -132,52 +131,53 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
   int markerId = this->Internals->NumberOfMarkers++;
   vtkDebugMacro("Adding marker " << markerId);
 
-  // Instantiate MapMarker
-  MapMarker *marker = new MapMarker;
-  marker->Latitude = latitude;
-  marker->Longitude = longitude;
-  marker->gcsCoords[0] = longitude;
-  marker->gcsCoords[1] = lat2y(latitude);
-  marker->NumberOfMarkers = 1;
-  marker->Parent = 0;
-  marker->MarkerId = markerId;
+  // Instantiate ClusteringNode
+  ClusteringNode *node = new ClusteringNode;
+  node->NodeId = this->Internals->NumberOfNodes++;
+  node->gcsCoords[0] = longitude;
+  node->gcsCoords[1] = lat2y(latitude);
+  node->NumberOfMarkers = 1;
+  node->Parent = 0;
+  node->MarkerId = markerId;
+  vtkDebugMacro("Created ClusteringNode id " << node->NodeId);
 
   // todo calc initial cluster distance here and divide down
   if (this->Clustering)
     {
-    // Populate MarkerTable
-    int level = this->Internals->MarkerTable.size() - 1;
-    this->Internals->MarkerTable[level].insert(marker);
+    // Populate NodeTable
+    int level = this->Internals->NodeTable.size() - 1;
+    this->Internals->NodeTable[level].insert(node);
 
     level--;
     double threshold = this->Internals->ClusterDistance;
     for (; level >= 0; level--)
       {
-      MapMarker *closest =
-        this->FindClosestMarker(marker->gcsCoords, level, threshold);
+      ClusteringNode *closest =
+        this->FindClosestNode(node->gcsCoords, level, threshold);
     if (closest)
       {
       // Recursively merge cluster into closest
-      this->MergeClusterData(marker, closest, level);
-      //vtkDebugMacro("Level " << level << " MERGE, # pts " << cluster->NumberOfMarkers);
+      vtkDebugMacro("Level " << level << " MERGE " << node->NodeId
+                    << " into " << closest->NodeId);
+      this->MergeNodes(node, closest, level);
       break;
       }
     else
       {
       // Copy cluster and insert at this level
-      MapMarker *newCluster = new MapMarker;
-      newCluster->Latitude = marker->Latitude;
-      newCluster->Longitude = marker->Longitude;
-      newCluster->gcsCoords[0] = marker->gcsCoords[0];
-      newCluster->gcsCoords[1] = marker->gcsCoords[1];
-      newCluster->NumberOfMarkers = marker->NumberOfMarkers;
-      newCluster->MarkerId = marker->MarkerId;
-      newCluster->Parent = marker->Parent;  // really?
-      this->Internals->MarkerTable[level].insert(newCluster);
+      ClusteringNode *newNode = new ClusteringNode;
+      newNode->NodeId = this->Internals->NumberOfNodes++;
+      newNode->gcsCoords[0] = node->gcsCoords[0];
+      newNode->gcsCoords[1] = node->gcsCoords[1];
+      newNode->NumberOfMarkers = node->NumberOfMarkers;
+      newNode->MarkerId = node->MarkerId;
+      newNode->Parent = node->Parent;  // really?
+      this->Internals->NodeTable[level].insert(newNode);
+      vtkDebugMacro("Level " << level << " COPY " << node->NodeId
+                    << " --> " << newNode->NodeId);
 
-      marker->Parent = newCluster;
-      marker = newCluster;
-      vtkDebugMacro("Level " << level << " COPY, # pts " << marker->NumberOfMarkers);
+      node->Parent = newNode;
+      node = newNode;
       }
     }
 
@@ -186,7 +186,7 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
   else
     {
     // When not clustering, use table row 0
-    this->Internals->MarkerTable[0].insert(marker);
+    this->Internals->NodeTable[0].insert(node);
     }
 
   this->Internals->MarkersChanged = true;
@@ -196,24 +196,24 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
 //----------------------------------------------------------------------------
 void vtkMapMarkerSet::RemoveMarkers()
 {
-  // Explicitly delete MapMarker instances in the table
-  std::vector<std::set<MapMarker*> >::iterator tableIter =
-    this->Internals->MarkerTable.begin();
-  for (; tableIter != this->Internals->MarkerTable.end(); tableIter++)
+  // Explicitly delete node instances in the table
+  std::vector<std::set<ClusteringNode*> >::iterator tableIter =
+    this->Internals->NodeTable.begin();
+  for (; tableIter != this->Internals->NodeTable.end(); tableIter++)
     {
-    std::set<MapMarker*> markerSet = *tableIter;
-    std::set<MapMarker*>::iterator markerIter = markerSet.begin();
-    for (; markerIter != markerSet.end(); markerIter++)
+    std::set<ClusteringNode*> nodeSet = *tableIter;
+    std::set<ClusteringNode*>::iterator nodeIter = nodeSet.begin();
+    for (; nodeIter != nodeSet.end(); nodeIter++)
       {
-      delete *markerIter;
+      delete *nodeIter;
       }
-    markerSet.clear();
-    tableIter->operator=(markerSet);
+    nodeSet.clear();
+    tableIter->operator=(nodeSet);
     }
 
-  this->Internals->CurrentMarkers.clear();
+  this->Internals->CurrentNodes.clear();
   this->Internals->NumberOfMarkers = 0;
-  this->Internals->NumberOfClusters = 0;
+  this->Internals->NumberOfNodes = 0;
   this->Internals->MarkersChanged = true;
 }
 
@@ -272,15 +272,15 @@ void vtkMapMarkerSet::Update(int zoomLevel)
   unsigned char kwBlue[] = {0, 83, 155};
   unsigned char kwGreen[] = {0, 169, 179};
 
-  this->Internals->CurrentMarkers.clear();
-  std::set<MapMarker*> markerSet = this->Internals->MarkerTable[zoomLevel];
-  std::set<MapMarker*>::const_iterator iter;
-  for (iter = markerSet.begin(); iter != markerSet.end(); iter++)
+  this->Internals->CurrentNodes.clear();
+  std::set<ClusteringNode*> nodeSet = this->Internals->NodeTable[zoomLevel];
+  std::set<ClusteringNode*>::const_iterator iter;
+  for (iter = nodeSet.begin(); iter != nodeSet.end(); iter++)
     {
-    MapMarker *marker = *iter;
-    points->InsertNextPoint(marker->gcsCoords);
-    this->Internals->CurrentMarkers.push_back(marker);
-    if (marker->NumberOfMarkers == 1)  // point marker
+    ClusteringNode *node = *iter;
+    points->InsertNextPoint(node->gcsCoords);
+    this->Internals->CurrentNodes.push_back(node);
+    if (node->NumberOfMarkers == 1)  // point marker
       {
       markerType = 0;
       types->InsertNextValue(markerType);
@@ -292,7 +292,7 @@ void vtkMapMarkerSet::Update(int zoomLevel)
       markerType = 1;
       types->InsertNextValue(markerType);
       colors->InsertNextTupleValue(kwGreen);
-      counts->InsertNextValue(marker->NumberOfMarkers);
+      counts->InsertNextValue(node->NumberOfMarkers);
       }
     }
   this->PolyData->Reset();
@@ -335,18 +335,18 @@ PickPoint(vtkRenderer *renderer, vtkPicker *picker, int displayCoords[2],
         // std::cout << "Point id " << pointId
         //           << " - Data " << glyphId << std::endl;
 
-        MapMarker *marker = this->Internals->CurrentMarkers[glyphId];
+        ClusteringNode *node = this->Internals->CurrentNodes[glyphId];
         // std::cout << "Marker id " << marker->MarkerId
         //           << ", Count " << marker->NumberOfMarkers
         //           << ", at " << marker->Latitude << ", " << marker->Longitude
         //           << std::endl;
-        result->SetNumberOfMarkers(marker->NumberOfMarkers);
-        if (marker->NumberOfMarkers == 1)
+        result->SetNumberOfMarkers(node->NumberOfMarkers);
+        if (node->NumberOfMarkers == 1)
           {
           result->SetMapFeatureType(VTK_MAP_FEATURE_MARKER);
-          result->SetMapFeatureId(marker->MarkerId);
+          result->SetMapFeatureId(node->MarkerId);
           }
-        else if (marker->NumberOfMarkers > 1)
+        else if (node->NumberOfMarkers > 1)
           {
           result->SetMapFeatureType(VTK_MAP_FEATURE_CLUSTER);
           }
@@ -433,9 +433,9 @@ void vtkMapMarkerSet::InitializeRenderingPipeline()
 }
 
 //----------------------------------------------------------------------------
-vtkMapMarkerSet::MapMarker*
+vtkMapMarkerSet::ClusteringNode*
 vtkMapMarkerSet::
-FindClosestMarker(double gcsCoords[2], int zoomLevel, double distanceThreshold)
+FindClosestNode(double gcsCoords[2], int zoomLevel, double distanceThreshold)
 {
   // Convert distanceThreshold from image to gcs coords
   double level0Scale = 360.0 / 256.0;  // 360 degress <==> 256 tile pixels
@@ -443,35 +443,35 @@ FindClosestMarker(double gcsCoords[2], int zoomLevel, double distanceThreshold)
   double gcsThreshold = scale * distanceThreshold;
   double gcsThreshold2 = gcsThreshold * gcsThreshold;
 
-  MapMarker *closestCluster = NULL;
+  ClusteringNode *closestNode = NULL;
   double closestDistance2 = gcsThreshold2;
-  std::set<MapMarker*> clusterSet = this->Internals->MarkerTable[zoomLevel];
-  std::set<MapMarker*>::const_iterator setIter = clusterSet.begin();
-  for (; setIter != clusterSet.end(); setIter++)
+  std::set<ClusteringNode*> nodeSet = this->Internals->NodeTable[zoomLevel];
+  std::set<ClusteringNode*>::const_iterator setIter = nodeSet.begin();
+  for (; setIter != nodeSet.end(); setIter++)
     {
-    MapMarker *cluster = *setIter;
+    ClusteringNode *node = *setIter;
     double d2 = 0.0;
     for (int i=0; i<2; i++)
       {
-      double d1 = gcsCoords[i] - cluster->gcsCoords[i];
+      double d1 = gcsCoords[i] - node->gcsCoords[i];
       d2 += d1 * d1;
       }
     if (d2 < closestDistance2)
       {
-      closestCluster = cluster;
+      closestNode = node;
       closestDistance2 = d2;
       }
     }
 
-  return closestCluster;
+  return closestNode;
 }
 
 //----------------------------------------------------------------------------
 void
 vtkMapMarkerSet::
-MergeClusterData(vtkMapMarkerSet::MapMarker* src,
-                 vtkMapMarkerSet::MapMarker* dest,
-                 int level)
+MergeNodes(ClusteringNode *src,
+           ClusteringNode *dest,
+           int level)
 {
   if (!src || !dest)
     {
@@ -492,24 +492,27 @@ MergeClusterData(vtkMapMarkerSet::MapMarker* src,
           dest->gcsCoords[i] * dest->NumberOfMarkers;
     dest->gcsCoords[i] = numerator/denominator;
     }
-  dest->Longitude = dest->gcsCoords[0];
-  dest->Latitude = y2lat(dest->gcsCoords[1]);
   dest->NumberOfMarkers += src->NumberOfMarkers;
   dest->MarkerId = -1;
+  vtkDebugMacro("At level " << level
+                << " merged " << src->NodeId
+                << " into " << dest->NodeId
+                << " #markers " << dest->NumberOfMarkers);
 
   // Check if src in the current level
-  std::set<MapMarker*> clusterSet = this->Internals->MarkerTable[level];
-  std::set<MapMarker*>::iterator iter = clusterSet.find(src);
-  if (iter == clusterSet.end())
+  std::set<ClusteringNode*> nodeSet = this->Internals->NodeTable[level];
+  std::set<ClusteringNode*>::iterator iter = nodeSet.find(src);
+  if (iter == nodeSet.end())
     {
     // Merge the point
-    this->MergeClusterData(src, dest->Parent, level-1);
+    this->MergeNodes(src, dest->Parent, level-1);
     }
   else
     {
     // Merge src into dest's parent cluster
-    this->MergeClusterData(src->Parent, dest->Parent, level-1);
-    clusterSet.erase(iter);
+    this->MergeNodes(src->Parent, dest->Parent, level-1);
+    nodeSet.erase(iter);
+    vtkDebugMacro("Deleting cluster " << src->NodeId);
     delete *iter;
     }
 

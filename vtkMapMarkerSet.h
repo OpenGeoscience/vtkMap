@@ -88,10 +88,10 @@ public:
   vtkPolyDataMapper *Mapper;
   vtkActor *Actor;
 
-  class MapMarker;
-  MapMarker *FindClosestMarker(double gcsCoords[2], int zoomLevel,
-                               double distanceThreshold);
-  void MergeClusterData(MapMarker *src, MapMarker *dest, int level);
+  class ClusteringNode;
+  ClusteringNode *FindClosestNode(double gcsCoords[2], int zoomLevel,
+                                  double distanceThreshold);
+  void MergeNodes(ClusteringNode *src, ClusteringNode *dest, int level);
 
  private:
   class MapMarkerSetInternals;
