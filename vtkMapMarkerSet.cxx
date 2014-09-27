@@ -102,7 +102,8 @@ void vtkMapMarkerSet::PrintSelf(ostream &os, vtkIndent indent)
   os << this->GetClassName() << "\n"
      << indent << "Initialized: " << this->Initialized << "\n"
      << indent << "Clustering: " << this->Clustering << "\n"
-    //<< indent << ": " << << "\n"
+     << indent << "NumberOfMarkers: "
+     << this->Internals->NumberOfMarkers
      << std::endl;
 }
 
@@ -278,7 +279,7 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
 
   this->Internals->MarkersChanged = true;
 
-  if (true)
+  if (false)
     {
     // Dump all nodes
     for (int i=0; i<this->Internals->AllNodes.size(); i++)

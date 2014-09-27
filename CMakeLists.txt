@@ -43,7 +43,7 @@ add_executable(vtkMap ${SOURCES})
 
 target_link_libraries(vtkMap ${VTK_LIBRARIES} -lcurl)
 
-
+add_subdirectory(Testing)
 if (BUILD_QT_APPS)
   add_subdirectory(Qt)
 endif()
