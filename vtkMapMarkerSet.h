@@ -20,6 +20,7 @@
 #define __vtkMapMarkerSet_h
 
 #include <vtkObject.h>
+#include <set>
 
 class vtkActor;
 class vtkMapClusteredMarkerSet;
@@ -91,7 +92,8 @@ public:
   class ClusteringNode;
   ClusteringNode *FindClosestNode(double gcsCoords[2], int zoomLevel,
                                   double distanceThreshold);
-  void MergeNodes(ClusteringNode *src, ClusteringNode *dest, int level);
+  void MergeNodes(ClusteringNode *node, ClusteringNode *mergingNode,
+                  std::set<ClusteringNode*>& parentsToMerge, int level);
 
  private:
   class MapMarkerSetInternals;

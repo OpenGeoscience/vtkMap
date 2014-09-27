@@ -36,7 +36,6 @@
 #include <vtkUnsignedIntArray.h>
 
 #include <algorithm>
-#include <set>
 #include <vector>
 
 double lat2y(double);
@@ -144,9 +143,11 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
   // todo calc initial cluster distance here and divide down
   if (this->Clustering)
     {
-    // Populate NodeTable
+    // Insertion step: Starting at bottom level, populate NodeTable until
+    // a clustering partner is found.
     int level = this->Internals->NodeTable.size() - 1;
     this->Internals->NodeTable[level].insert(node);
+    double coords[2];
 
     level--;
     double threshold = this->Internals->ClusterDistance;
@@ -154,39 +155,86 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
       {
       ClusteringNode *closest =
         this->FindClosestNode(node->gcsCoords, level, threshold);
-    if (closest)
-      {
-      // Recursively merge cluster into closest
-      vtkDebugMacro("Level " << level << " MERGE " << node->NodeId
-                    << " into " << closest->NodeId);
-      this->MergeNodes(node, closest, level);
-      break;
+      if (closest)
+        {
+        // Todo Update closest node with marker info
+        vtkDebugMacro("Level " << level << " insert marker " << markerId
+                      << " into node " << closest->NodeId);
+
+        closest->NumberOfMarkers++;
+        double denominator = closest->NumberOfMarkers;
+        for (unsigned i=0; i<2; i++)
+          {
+          double numerator = closest->gcsCoords[i]*closest->NumberOfMarkers +
+            node->gcsCoords[i];
+          closest->gcsCoords[i] = numerator/denominator;
+          }
+        closest->Children.insert(node);
+
+        // Insertion step ends with first clustering
+        node = closest;
+        break;
+        }
+      else
+        {
+        // Copy node and add to this level
+        ClusteringNode *newNode = new ClusteringNode;
+        newNode->NodeId = this->Internals->NumberOfNodes++;
+        newNode->gcsCoords[0] = node->gcsCoords[0];
+        newNode->gcsCoords[1] = node->gcsCoords[1];
+        newNode->NumberOfMarkers = node->NumberOfMarkers;
+        newNode->MarkerId = node->MarkerId;
+        newNode->Parent = NULL;
+        newNode->Children.insert(node);
+        this->Internals->NodeTable[level].insert(newNode);
+        vtkDebugMacro("Level " << level << " add node " << node->NodeId
+                      << " --> " << newNode->NodeId);
+
+        node->Parent = newNode;
+        node = newNode;
+        }
       }
-    else
+
+    level--;
+    // Refinement step: Continue iterating up while
+    // * Merge any nodes identified in previous iteration
+    // * Update node coordinates
+    // * Check for closest node
+    std::set<ClusteringNode*> nodesToMerge;
+    std::set<ClusteringNode*> parentsToMerge;
+    while (level >= 0)
       {
-      // Copy cluster and insert at this level
-      ClusteringNode *newNode = new ClusteringNode;
-      newNode->NodeId = this->Internals->NumberOfNodes++;
-      newNode->gcsCoords[0] = node->gcsCoords[0];
-      newNode->gcsCoords[1] = node->gcsCoords[1];
-      newNode->NumberOfMarkers = node->NumberOfMarkers;
-      newNode->MarkerId = node->MarkerId;
-      newNode->Parent = node->Parent;  // really?
-      this->Internals->NodeTable[level].insert(newNode);
-      vtkDebugMacro("Level " << level << " COPY " << node->NodeId
-                    << " --> " << newNode->NodeId);
+      // Merge nodes identified in previous iteration
+      std::set<ClusteringNode*>::iterator mergingNodeIter =
+        nodesToMerge.begin();
+      for (; mergingNodeIter != nodesToMerge.end(); mergingNodeIter++)
+        {
+        ClusteringNode *mergingNode = *mergingNodeIter;
+        if (node == mergingNode)
+          {
+          vtkWarningMacro("Node & merging node the same " << node->NodeId);
+          }
+        else
+          {
+          this->MergeNodes(node, mergingNode, parentsToMerge, level);
+          }
+        }
 
-      node->Parent = newNode;
-      node = newNode;
+      // Check for new clustering partner
+      ClusteringNode *closest =
+        this->FindClosestNode(node->gcsCoords, level, threshold);
+      if (closest)
+        {
+        this->MergeNodes(node, closest, parentsToMerge, level);
+        }
+
+      // Setup for next iteration
+      nodesToMerge.clear();
+      nodesToMerge = parentsToMerge;
+      parentsToMerge.clear();
+      node = node->Parent;
+      level--;
       }
-    }
-
-
-    }
-  else
-    {
-    // When not clustering, use table row 0
-    this->Internals->NodeTable[0].insert(node);
     }
 
   this->Internals->MarkersChanged = true;
@@ -469,51 +517,50 @@ FindClosestNode(double gcsCoords[2], int zoomLevel, double distanceThreshold)
 //----------------------------------------------------------------------------
 void
 vtkMapMarkerSet::
-MergeNodes(ClusteringNode *src,
-           ClusteringNode *dest,
-           int level)
+MergeNodes(ClusteringNode *node, ClusteringNode *mergingNode,
+           std::set<ClusteringNode*>& parentsToMerge, int level)
 {
-  if (!src || !dest)
+  // Update gcsCoords
+  int numMarkers = node->NumberOfMarkers + mergingNode->NumberOfMarkers;
+  double denominator = static_cast<double>(numMarkers);
+  for (unsigned i=0; i<2; i++)
     {
-    return;
+    double numerator = node->gcsCoords[i]*node->NumberOfMarkers +
+      mergingNode->gcsCoords[i]*mergingNode->NumberOfMarkers;
+    node->gcsCoords[i] = numerator/denominator;
+    }
+  node->NumberOfMarkers = numMarkers;
+
+  // Update links to/from children of merging node
+  // Make a working copy of the child set
+  std::set<ClusteringNode*> childNodeSet(mergingNode->Children);
+  std::set<ClusteringNode*>::iterator childNodeIter =
+    childNodeSet.begin();
+  for (; childNodeIter != childNodeSet.end(); childNodeIter++)
+    {
+    ClusteringNode *childNode = *childNodeIter;
+    node->Children.insert(childNode);
+    childNode->Parent = node;
     }
 
-  // Recursion also ends when pointers are the same
-  if (src == dest)
+  // Remember parent node if different than node's parent
+  if (mergingNode->Parent && mergingNode->Parent != node->Parent)
     {
-    return;
+    parentsToMerge.insert(node->Parent);
     }
 
-  // Update gcsCoords as weighted average
-  double denominator = src->NumberOfMarkers + dest->NumberOfMarkers;
-  for (int i=0; i<2; i++)
+  // Delete mergingNode
+  // todo only delete if valid level specified?
+  int count = this->Internals->NodeTable[level].count(mergingNode);
+  if (count == 1)
     {
-    double numerator = src->gcsCoords[i] * src->NumberOfMarkers +
-          dest->gcsCoords[i] * dest->NumberOfMarkers;
-    dest->gcsCoords[i] = numerator/denominator;
-    }
-  dest->NumberOfMarkers += src->NumberOfMarkers;
-  dest->MarkerId = -1;
-  vtkDebugMacro("At level " << level
-                << " merged " << src->NodeId
-                << " into " << dest->NodeId
-                << " #markers " << dest->NumberOfMarkers);
-
-  // Check if src in the current level
-  std::set<ClusteringNode*> nodeSet = this->Internals->NodeTable[level];
-  std::set<ClusteringNode*>::iterator iter = nodeSet.find(src);
-  if (iter == nodeSet.end())
-    {
-    // Merge the point
-    this->MergeNodes(src, dest->Parent, level-1);
+    //this->Internals->NodeTable[level].erase(mergingNode);
     }
   else
     {
-    // Merge src into dest's parent cluster
-    this->MergeNodes(src->Parent, dest->Parent, level-1);
-    nodeSet.erase(iter);
-    vtkDebugMacro("Deleting cluster " << src->NodeId);
-    delete *iter;
+    vtkErrorMacro("Node " << mergingNode->NodeId
+                  << " not found at level " << level);
     }
-
+  // todo Check CurrentNodes too?
+  delete mergingNode;
 }
