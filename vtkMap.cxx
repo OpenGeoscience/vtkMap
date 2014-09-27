@@ -113,6 +113,7 @@ int computeZoomLevel(vtkCamera* cam)
 //----------------------------------------------------------------------------
 vtkMap::vtkMap()
 {
+  this->CacheDirectory = NULL;
   this->Renderer = NULL;
   this->InteractorStyle = vtkInteractorStyleImage::New();
   this->Picker = vtkPointPicker::New();
