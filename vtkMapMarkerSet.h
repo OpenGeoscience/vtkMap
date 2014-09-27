@@ -90,7 +90,7 @@ public:
   vtkActor *Actor;
 
   class ClusteringNode;
-  ClusteringNode *FindClosestNode(double gcsCoords[2], int zoomLevel,
+  ClusteringNode *FindClosestNode(ClusteringNode *node, int zoomLevel,
                                   double distanceThreshold);
   void MergeNodes(ClusteringNode *node, ClusteringNode *mergingNode,
                   std::set<ClusteringNode*>& parentsToMerge, int level);
