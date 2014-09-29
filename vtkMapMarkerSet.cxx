@@ -19,6 +19,7 @@
 #include <vtkActor.h>
 #include <vtkDataArray.h>
 #include <vtkDistanceToCamera.h>
+#include <vtkDoubleArray.h>
 #include <vtkIdTypeArray.h>
 #include <vtkGlyph3D.h>
 #include <vtkNew.h>
@@ -43,6 +44,8 @@ double y2lat(double);
 const int NumberOfClusterLevels = 20;
 
 //----------------------------------------------------------------------------
+// Internal class for cluster tree nodes
+// Each node represents either one marker or a cluster of nodes
 class vtkMapMarkerSet::ClusteringNode
 {
 public:
@@ -83,6 +86,7 @@ vtkMapMarkerSet::vtkMapMarkerSet()
   this->Mapper = NULL;
   this->Actor = NULL;
   this->Clustering = false;
+  this->MaxClusterScaleFactor = 2.0;
 
   this->Internals = new MapMarkerSetInternals;
   this->Internals->MarkersChanged = false;
@@ -144,6 +148,7 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
   node->MarkerId = markerId;
   vtkDebugMacro("Created ClusteringNode id " << node->NodeId);
 
+  // todo refactor into separate method
   // todo calc initial cluster distance here and divide down
   if (this->Clustering)
     {
@@ -376,12 +381,19 @@ void vtkMapMarkerSet::Update(int zoomLevel)
   array = this->PolyData->GetPointData()->GetArray("MarkerType");
   vtkUnsignedCharArray *types = vtkUnsignedCharArray::SafeDownCast(array);
   types->Reset();
-  array = this->PolyData->GetPointData()->GetArray("MarkerCount");
-  vtkUnsignedIntArray *counts = vtkUnsignedIntArray::SafeDownCast(array);
-  counts->Reset();
+  array = this->PolyData->GetPointData()->GetArray("MarkerScale");
+  vtkDoubleArray *scales = vtkDoubleArray::SafeDownCast(array);
+  scales->Reset();
 
   unsigned char kwBlue[] = {0, 83, 155};
   unsigned char kwGreen[] = {0, 169, 179};
+
+  // Coefficients for scaling cluster size, using simple 2nd order model
+  // The equation is y = k*x^2 / (x^2 + b), where k,b are coefficients
+  // Logic hard-codes the min cluster factor to 1, i.e., y(2) = 1.0
+  // Max value is k, which sets the horizontal asymptote.
+  double k = this->MaxClusterScaleFactor;
+  double b = 4.0*k - 4.0;
 
   this->Internals->CurrentNodes.clear();
   std::set<ClusteringNode*> nodeSet = this->Internals->NodeTable[zoomLevel];
@@ -396,14 +408,16 @@ void vtkMapMarkerSet::Update(int zoomLevel)
       markerType = 0;
       types->InsertNextValue(markerType);
       colors->InsertNextTupleValue(kwBlue);
-      counts->InsertNextValue(1);
+      scales->InsertNextValue(1.0);
       }
     else  // cluster marker
       {
       markerType = 1;
       types->InsertNextValue(markerType);
       colors->InsertNextTupleValue(kwGreen);
-      counts->InsertNextValue(node->NumberOfMarkers);
+      double x = static_cast<double>(node->NumberOfMarkers);
+      double scale = k*x*x / (x*x + b);
+      scales->InsertNextValue(scale);
       }
     }
   this->PolyData->Reset();
@@ -489,20 +503,24 @@ void vtkMapMarkerSet::InitializeRenderingPipeline()
   types->SetNumberOfComponents(1);
   this->PolyData->GetPointData()->AddArray(types.GetPointer());
 
-  // Add "MarkerCount" array to polydata - to scale cluster glyph size
-  const char *countName = "MarkerCount";
-  vtkNew<vtkUnsignedIntArray> counts;
-  counts->SetName(countName);
-  counts->SetNumberOfComponents(1);
-  this->PolyData->GetPointData()->AddArray(counts.GetPointer());
+  // Add "MarkerScale" to scale cluster glyph size
+  const char *scaleName = "MarkerScale";
+  vtkNew<vtkDoubleArray> scales;
+  scales->SetName(scaleName);
+  scales->SetNumberOfComponents(1);
+  this->PolyData->GetPointData()->AddArray(scales.GetPointer());
 
   // Use DistanceToCamera filter to scale markers to constant screen size
   vtkNew<vtkDistanceToCamera> dFilter;
   dFilter->SetScreenSize(50.0);
   dFilter->SetRenderer(this->Renderer);
   dFilter->SetInputData(this->PolyData);
-
-  // Todo Use ProgrammableAttributeDataFilter to scale cluster glyphs
+  if (this->Clustering)
+    {
+    dFilter->ScalingOn();
+    dFilter->SetInputArrayToProcess(
+      0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "MarkerScale");
+    }
 
   // Use teardrop shape for individual markers
   vtkNew<vtkTeardropSource> markerGlyphSource;

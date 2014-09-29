@@ -51,6 +51,14 @@ public:
   vtkBooleanMacro(Clustering, bool);
 
   // Description:
+  // Max scale factor to apply to cluster markers, default is 2.0
+  // The scale function is 2nd order model: y = k*x^2 / (x^2 + b).
+  // Coefficient k sets the max scale factor, i.e., y(inf) = k
+  // Coefficient b is computed to set min to 1, i.e., y(2) = 1.0
+  vtkSetClampMacro(MaxClusterScaleFactor, double, 1.0, 100.0);
+  vtkGetMacro(MaxClusterScaleFactor, double);
+
+  // Description:
   // Add marker to map, returns id
   vtkIdType AddMarker(double latitude, double longitude);
 
@@ -80,6 +88,10 @@ public:
   // Description:
   // Flag to enable/disable marker clustering logic
   bool Clustering;
+
+  // Description:
+  // Sets the max size to render cluster glyphs (based on marker count)
+  double MaxClusterScaleFactor;
 
   // Description:
   // The renderer used to draw maps
