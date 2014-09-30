@@ -50,6 +50,7 @@ class qtWeatherStations : public QMainWindow
   std::vector<StationReport> ParseStationData(cJSON *data);
   void DisplayStationData(std::vector<StationReport> statonList);
   void DisplayStationMarkers(std::vector<StationReport> statonList);
+  virtual void resizeEvent(QResizeEvent *event);
 
   vtkMap *Map;               /// Map instance
   vtkRenderer *Renderer;     /// vtk renderer
@@ -59,7 +60,6 @@ class qtWeatherStations : public QMainWindow
 
  protected slots:
    void resetMapCoords();
-   void resizeMapWidget();
    void showStations();
 };
 
