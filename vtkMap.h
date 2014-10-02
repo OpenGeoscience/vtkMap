@@ -26,6 +26,7 @@ class vtkActor;
 class vtkInteractorStyle;
 class vtkMapTile;
 class vtkMapMarkerSet;
+class vtkMapPickResult;
 class vtkPicker;
 class vtkPoints;
 class vtkRenderer;
@@ -52,6 +53,10 @@ public:
   vtkSetMacro(InteractorStyle, vtkInteractorStyle*)
 
   // Description:
+  // Get the map marker layer
+  vtkGetMacro(MapMarkerSet, vtkMapMarkerSet*);
+
+  // Description:
   // Get/Set the picker used for picking map markers
   vtkGetMacro(Picker, vtkPicker*)
   vtkSetMacro(Picker, vtkPicker*)
@@ -67,9 +72,10 @@ public:
   vtkSetVector2Macro(Center, double);
 
   // Description:
-  //
+  // Get/Set the directory used for caching map tiles
   vtkGetStringMacro(CacheDirectory);
   vtkSetStringMacro(CacheDirectory);
+
 
   // Description:
   // Update the renderer with relevant tiles to draw the Map
@@ -80,16 +86,8 @@ public:
   void Draw();
 
   // Description:
-  // Add marker to map
-  vtkIdType AddMarker(double Latitude, double Longitude);
-
-  // Description:
-  // Removes all map markers
-  void RemoveMapMarkers();
-
-  // Description:
-  // Returns id of marker at specified display coordinates
-  vtkIdType PickMarker(int displayCoords[2]);
+  // Returns info at specified display coordinates
+  void PickPoint(int displayCoords[2], vtkMapPickResult* result);
 
   // Description:
   // Transform from map coordiantes to display coordinates

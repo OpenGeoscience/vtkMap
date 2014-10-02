@@ -17,6 +17,7 @@ add_executable(wsmap
   qtWeatherStations.cxx
   qtMapCoordinatesWidget.cxx
   ${CMAKE_SOURCE_DIR}/vtkMapMarkerSet.cxx
+  ${CMAKE_SOURCE_DIR}/vtkMapPickResult.cxx
   ${CMAKE_SOURCE_DIR}/vtkMapTile.cxx
   ${CMAKE_SOURCE_DIR}/vtkMap.cxx
   ${CMAKE_SOURCE_DIR}/vtkTeardropSource.cxx

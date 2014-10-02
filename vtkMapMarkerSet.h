@@ -20,8 +20,11 @@
 #define __vtkMapMarkerSet_h
 
 #include <vtkObject.h>
+#include <set>
 
 class vtkActor;
+class vtkMapClusteredMarkerSet;
+class vtkMapPickResult;
 class vtkMapper;
 class vtkPicker;
 class vtkPolyDataMapper;
@@ -37,35 +40,79 @@ public:
 
   // Description:
   // Set the renderer in which map markers will be added
-  void SetRenderer(vtkRenderer *renderer);
+  vtkSetMacro(Renderer, vtkRenderer *);
+
+  // Description:
+  // Set/get whether to apply hierarchical clustering to map markers.
+  // The default is off, and once turned on, behavior is undefined if
+  // clustering is turned off.
+  vtkSetMacro(Clustering, bool);
+  vtkGetMacro(Clustering, bool);
+  vtkBooleanMacro(Clustering, bool);
+
+  // Description:
+  // Max scale factor to apply to cluster markers, default is 2.0
+  // The scale function is 2nd order model: y = k*x^2 / (x^2 + b).
+  // Coefficient k sets the max scale factor, i.e., y(inf) = k
+  // Coefficient b is computed to set min to 1, i.e., y(2) = 1.0
+  vtkSetClampMacro(MaxClusterScaleFactor, double, 1.0, 100.0);
+  vtkGetMacro(MaxClusterScaleFactor, double);
 
   // Description:
   // Add marker to map, returns id
-  vtkIdType AddMarker(double Latitude, double Longitude);
+  vtkIdType AddMarker(double latitude, double longitude);
 
   // Description:
   // Removes all map markers
-  void RemoveMapMarkers();
+  void RemoveMarkers();
+
+  // Description:
+  // Update the marker geometry to draw the map
+  void Update(int zoomLevel);
 
   // Description:
   // Returns id of marker at specified display coordinates
-  vtkIdType PickMarker(vtkRenderer *renderer, vtkPicker *picker,
-    int displayCoords[2]);
+  void PickPoint(vtkRenderer *renderer, vtkPicker *picker,
+           int displayCoords[2], vtkMapPickResult *result);
 
  protected:
   vtkMapMarkerSet();
   ~vtkMapMarkerSet();
 
+  void InitializeRenderingPipeline();
+
+  // Description:
+  // Indicates that internal logic & pipeline have been initialized
+  bool Initialized;
+
+  // Description:
+  // Flag to enable/disable marker clustering logic
+  bool Clustering;
+
+  // Description:
+  // Sets the max size to render cluster glyphs (based on marker count)
+  double MaxClusterScaleFactor;
+
   // Description:
   // The renderer used to draw maps
   vtkRenderer* Renderer;
 
-  // Description:
-  // The polydata used to store marker coordinates
-  vtkPolyData *MarkerPolyData;
-
+  vtkPolyData *PolyData;
   vtkPolyDataMapper *Mapper;
   vtkActor *Actor;
+
+  class ClusteringNode;
+  ClusteringNode *FindClosestNode(ClusteringNode *node, int zoomLevel,
+                                  double distanceThreshold);
+  void MergeNodes(ClusteringNode *node, ClusteringNode *mergingNode,
+                  std::set<ClusteringNode*>& parentsToMerge, int level);
+
+ private:
+  class MapMarkerSetInternals;
+  MapMarkerSetInternals* Internals;
+
+  vtkMapMarkerSet(const vtkMapMarkerSet&);  // not implemented
+  void operator=(const vtkMapMarkerSet);  // not implemented
 };
 
 #endif // __vtkMapMarkerSet_h

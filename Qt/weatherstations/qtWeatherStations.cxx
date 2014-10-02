@@ -16,6 +16,8 @@
 #include "qtWeatherStations.h"
 #include "ui_qtWeatherStations.h"
 #include "vtkMap.h"
+#include "vtkMapMarkerSet.h"
+#include "vtkMapPickResult.h"
 #include <QVTKWidget.h>
 #include <vtkCallbackCommand.h>
 #include <vtkInteractorStyleImage.h>
@@ -119,6 +121,8 @@ qtWeatherStations::qtWeatherStations(QWidget *parent)
   this->Map->SetCenter(42.849604, -73.758345);  // KHQ coords
   this->Map->SetZoom(5);
 
+  this->Map->GetMapMarkerSet()->ClusteringOn();
+
   vtkNew<vtkRenderWindow> mapRenderWindow;
   mapRenderWindow->AddRenderer(this->Renderer);
   this->MapWidget->SetRenderWindow(mapRenderWindow.GetPointer());
@@ -181,7 +185,7 @@ void qtWeatherStations::showStations()
   this->UI->StationText->setText("Retrieving station data.");
   // Todo is there any way to update StationText (QTextEdit) *now* ???
 
-  this->Map->RemoveMapMarkers();
+  this->Map->GetMapMarkerSet()->RemoveMarkers();
   this->StationMap.clear();
 
   // Request weather station data
@@ -338,10 +342,11 @@ void qtWeatherStations::
 DisplayStationMarkers(std::vector<StationReport> stationList)
 {
   // Create map markers for each station
+  vtkMapMarkerSet *markerLayer = this->Map->GetMapMarkerSet();
   for (int i=0; i<stationList.size(); ++i)
     {
     StationReport station = stationList[i];
-    vtkIdType id = this->Map->AddMarker(station.latitude, station.longitude);
+    vtkIdType id = markerLayer->AddMarker(station.latitude, station.longitude);
     if (id >= 0)
       this->StationMap[id] = station;
     }
@@ -389,20 +394,33 @@ vtkRenderer *qtWeatherStations::getRenderer() const
 // Handles left-click event
 void qtWeatherStations::pickMarker(int displayCoords[2])
 {
-  vtkIdType markerId = this->Map->PickMarker(displayCoords);
-  std::map<vtkIdType, StationReport>::iterator stationIter =
-    this->StationMap.find(markerId);
-  if (stationIter != this->StationMap.end())
-    {
-    StationReport station = stationIter->second;
-    std::stringstream ss;
-    ss << "Station: " << station.name << "\n"
-       << "Current Temp: " << std::setiosflags(std::ios_base::fixed)
-       << std::setprecision(1) << station.temperature << "F"
-       <<  std::endl;
+  std::stringstream ss;
+  vtkNew<vtkMapPickResult> pickResult;
+  this->Map->PickPoint(displayCoords, pickResult.GetPointer());
 
-    QMessageBox::information(this->MapWidget, "Marker clicked",
-      QString::fromStdString(ss.str()));
+  switch (pickResult->GetMapFeatureType())
+    {
+    case VTK_MAP_FEATURE_MARKER:
+      {
+      std::map<vtkIdType, StationReport>::iterator stationIter =
+        this->StationMap.find(pickResult->GetMapFeatureId());
+      if (stationIter != this->StationMap.end())
+        {
+        StationReport station = stationIter->second;
+        ss << "Station: " << station.name << "\n"
+           << "Current Temp: " << std::setiosflags(std::ios_base::fixed)
+           << std::setprecision(1) << station.temperature << "F";
+        QMessageBox::information(this->MapWidget, "Marker clicked",
+                                 QString::fromStdString(ss.str()));
+        }
+      }
+      break;
+
+    case VTK_MAP_FEATURE_CLUSTER:
+      ss << "Cluster of " << pickResult->GetNumberOfMarkers() << " stations.";
+      QMessageBox::information(this->MapWidget, "Cluster clicked",
+                               QString::fromStdString(ss.str()));
+      break;
     }
 }
 

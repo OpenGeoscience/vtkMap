@@ -130,6 +130,14 @@ vtkMap::~vtkMap()
     {
     this->InteractorStyle->Delete();
     }
+  if (this->MapMarkerSet)
+    {
+    this->MapMarkerSet->Delete();
+    }
+  if (this->Picker)
+    {
+    this->Picker->Delete();
+    }
 }
 
 //----------------------------------------------------------------------------
@@ -185,6 +193,7 @@ void vtkMap::Update()
 
   RemoveTiles();
   AddTiles();
+  this->MapMarkerSet->Update(this->TileZoom);
 }
 
 //----------------------------------------------------------------------------
@@ -446,23 +455,11 @@ vtkMapTile *vtkMap::GetCachedTile(int zoom, int x, int y)
   return this->CachedTiles[zoom][x][y];
 }
 
-
 //----------------------------------------------------------------------------
-vtkIdType vtkMap::AddMarker(double Latitude, double Longitude)
+void vtkMap::PickPoint(int displayCoords[2], vtkMapPickResult* result)
 {
-  return this->MapMarkerSet->AddMarker(Latitude, Longitude);
-}
-
-//----------------------------------------------------------------------------
-void vtkMap::RemoveMapMarkers()
-{
-  this->MapMarkerSet->RemoveMapMarkers();
-}
-
-//----------------------------------------------------------------------------
-vtkIdType vtkMap::PickMarker(int displayCoords[2])
-{
-  return this->MapMarkerSet->PickMarker(this->Renderer, this->Picker, displayCoords);
+  this->MapMarkerSet->PickPoint(this->Renderer, this->Picker, displayCoords,
+      result);
 }
 
 //----------------------------------------------------------------------------

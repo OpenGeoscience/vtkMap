@@ -29,6 +29,8 @@ set (SOURCES
     main.cpp
     vtkMapMarkerSet.cxx
     vtkMapMarkerSet.h
+    vtkMapPickResult.cxx
+    vtkMapPickResult.h
     vtkMapTile.cxx
     vtkMapTile.h
     vtkMap.cxx
@@ -41,7 +43,7 @@ add_executable(vtkMap ${SOURCES})
 
 target_link_libraries(vtkMap ${VTK_LIBRARIES} -lcurl)
 
-
+add_subdirectory(Testing)
 if (BUILD_QT_APPS)
   add_subdirectory(Qt)
 endif()
