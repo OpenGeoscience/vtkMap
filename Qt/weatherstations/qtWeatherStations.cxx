@@ -133,12 +133,7 @@ qtWeatherStations::qtWeatherStations(QWidget *parent)
   intr->AddObserver(vtkCommand::AnyEvent, mapCallback);
   intr->Start();
 
-  // Connect manual map-resize button to corresponding slot
-  // Since I cannot figure out how to do this automatically
-  QObject::connect(this->UI->ResizeMapButton, SIGNAL(clicked()),
-                   this, SLOT(resizeMapWidget()));
-
-  // Other connections
+  // Connect UI controls
   QObject::connect(this->UI->ResetButton, SIGNAL(clicked()),
                    this, SLOT(resetMapCoords()));
   QObject::connect(this->UI->ShowStationsButton, SIGNAL(clicked()),
@@ -173,22 +168,6 @@ void qtWeatherStations::resetMapCoords()
     this->Map->SetZoom(5);
     this->drawMap();
     }
-}
-
-// ------------------------------------------------------------
-// Resizes MapWidget to fill its parent frame
-void qtWeatherStations::resizeMapWidget()
-{
-  int margin = 4;
-  QSize sz = this->UI->MapFrame->size();
-  int w = sz.width() - 2*margin;
-  int h = sz.height()- 2*margin;
-
-
-  this->MapWidget->resize(w, h);
-  this->MapWidget->move(margin, margin);
-
-  this->drawMap();
 }
 
 // ------------------------------------------------------------
@@ -424,5 +403,26 @@ void qtWeatherStations::pickMarker(int displayCoords[2])
 
     QMessageBox::information(this->MapWidget, "Marker clicked",
       QString::fromStdString(ss.str()));
+    }
+}
+
+// ------------------------------------------------------------
+// Overrides base class method
+void qtWeatherStations::resizeEvent(QResizeEvent *event)
+{
+  QMainWindow::resizeEvent(event);
+
+  // Resize map widget if it's been initialized
+  if (this->MapWidget)
+    {
+    int margin = 4;
+    QSize sz = this->UI->MapFrame->size();
+    int w = sz.width() - 2*margin;
+    int h = sz.height()- 2*margin;
+
+    this->MapWidget->resize(w, h);
+    this->MapWidget->move(margin, margin);
+
+    this->drawMap();
     }
 }
