@@ -53,11 +53,15 @@ public:
   vtkSetMacro(Visible, int)
 
   // Description:
+  vtkBooleanMacro(Base, int)
+  vtkGetMacro(Base, int)
+  vtkSetMacro(Base, int)
+
+  // Description:
   vtkGetObjectMacro(Map, vtkMap)
   vtkSetObjectMacro(Map, vtkMap)
 
   // Description:
-  // Update the renderer with relevant tiles to draw the Map
   virtual void Update() = 0;
 
 protected:
@@ -66,6 +70,7 @@ protected:
 
   double Opacity;
   int Visible;
+  int Base;
 
   std::string Name;
   std::string Id;

@@ -37,6 +37,8 @@ set (SOURCES
     vtkMap.h
     vtkLayer.cxx
     vtkLayer.h
+    vtkOsmLayer.cxx
+    vtkOsmLayer.h
     vtkTeardropSource.cxx
     vtkTeardropSource.h
 )

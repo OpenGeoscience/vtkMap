@@ -13,59 +13,24 @@
 
 =========================================================================*/
 
-#include "vtkLayer.h"
+#include "vtkOsmLayer.h"
 
 //----------------------------------------------------------------------------
-vtkLayer::vtkLayer() : vtkObject()
-{
-  this->Visible = 1;
-  this->Opacity = 1.0;
-  this->Renderer = NULL;
-}
-
-//----------------------------------------------------------------------------
-vtkLayer::~vtkLayer()
+vtkOsmLayer::vtkOsmLayer() : vtkLayer()
 {
 }
 
 //----------------------------------------------------------------------------
-void vtkLayer::PrintSelf(ostream& os, vtkIndent indent)
+vtkOsmLayer::~vtkOsmLayer()
 {
-  // TODO
 }
 
 //----------------------------------------------------------------------------
-std::string vtkLayer::GetName()
+void vtkOsmLayer::PrintSelf(ostream& os, vtkIndent indent)
 {
-  return this->Name;
 }
 
 //----------------------------------------------------------------------------
-void vtkLayer::SetName(const std::string& name)
+void vtkOsmLayer::Update()
 {
-  if (name == this->Name)
-    {
-    return;
-    }
-
-  this->Name = name;
-  this->Modified();
-}
-
-//----------------------------------------------------------------------------
-std::string vtkLayer::GetId()
-{
-  return this->Id;
-}
-
-//----------------------------------------------------------------------------
-void vtkLayer::SetId(const std::string& id)
-{
-  if (id == this->Id)
-    {
-    return;
-    }
-
-  this->Id = id;
-  this->Modified();
 }
