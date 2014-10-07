@@ -14,8 +14,11 @@
 =========================================================================*/
 
 #include "vtkMap.h"
+
+#include "vtkLayer.h"
 #include "vtkMapMarkerSet.h"
 #include "vtkMapTile.h"
+#include "vtkMercator.h"
 
 // VTK Includes
 #include <vtkActor2D.h>
@@ -35,57 +38,11 @@
 
 #include <algorithm>
 #include <iomanip>
+#include <iterator>
 #include <math.h>
 #include <sstream>
 
 vtkStandardNewMacro(vtkMap)
-
-//----------------------------------------------------------------------------
-int long2tilex(double lon, int z)
-{
-  return (int)(floor((lon + 180.0) / 360.0 * pow(2.0, z)));
-}
-
-//----------------------------------------------------------------------------
-int lat2tiley(double lat, int z)
-{
-  return (int)(floor((1.0 - log( tan(lat * M_PI/180.0) + 1.0 /
-    cos(lat * M_PI/180.0)) / M_PI) / 2.0 * pow(2.0, z)));
-}
-
-//----------------------------------------------------------------------------
-double tilex2long(int x, int z)
-{
-  return x / pow(2.0, z) * 360.0 - 180;
-}
-
-//----------------------------------------------------------------------------
-double tiley2lat(int y, int z)
-{
-  double n = M_PI - 2.0 * M_PI * y / pow(2.0, z);
-  return 180.0 / M_PI * atan(0.5 * (exp(n) - exp(-n)));
-}
-
-//----------------------------------------------------------------------------
-double y2lat(double a)
-{
-  return 180 / M_PI * (2 * atan(exp(a * M_PI / 180.0)) - M_PI / 2.0);
-}
-
-//----------------------------------------------------------------------------
-double lat2y(double a)
-{
-  return 180.0 / M_PI * log(tan(M_PI / 4.0 + a * (M_PI / 180.0) / 2.0));
-}
-
-//----------------------------------------------------------------------------
-struct sortTiles
-{
-  inline bool operator() (vtkMapTile* tile1,  vtkMapTile* tile2)
-  {
-    return (tile1->GetBin() < tile2->GetBin());
-  }
-};
 
 //----------------------------------------------------------------------------
 double computeCameraDistance(vtkCamera* cam, int zoomLevel)
@@ -119,8 +76,10 @@ vtkMap::vtkMap()
   this->Picker = vtkPointPicker::New();
   this->Zoom = 1;
   this->Center[0] = this->Center[1] = 0.0;
-  this->Initialized = false;
   this->MapMarkerSet = vtkMapMarkerSet::New();
+  this->Initialized = false;
+  this->TileZoom = 1;
+  this->BaseLayer = NULL;
 }
 
 //----------------------------------------------------------------------------
@@ -152,11 +111,11 @@ void vtkMap::PrintSelf(ostream &os, vtkIndent indent)
   double *camPosition = this->Renderer->GetActiveCamera()->GetPosition();
   double *focalPosition = this->Renderer->GetActiveCamera()->GetFocalPoint();
   os << "  Zoom Level: " << this->Zoom << "\n"
-     << "  Center Lat/Lon: " << y2lat(this->Center[0]) << " "
+     << "  Center Lat/Lon: " << vtkMercator::y2lat(this->Center[0]) << " "
      << this->Center[1] << "\n"
-     << "  Camera Lat/Lon/Z: " << y2lat(camPosition[1]) << " "
+     << "  Camera Lat/Lon/Z: " << vtkMercator::y2lat(camPosition[1]) << " "
      << camPosition[0] << " " << camPosition[2] << "\n"
-     << "  Focal Lat/Lon/Z: " << y2lat(focalPosition[1]) << " "
+     << "  Focal Lat/Lon/Z: " << vtkMercator::y2lat(focalPosition[1]) << " "
      << focalPosition[0] << " " << focalPosition[2] << "\n"
      << std::endl;
 }
@@ -177,22 +136,70 @@ void vtkMap::GetCenter(double (&latlngPoint)[2])
     worldPoint[2] /= worldPoint[3];
     }
 
-  worldPoint[1] = y2lat(worldPoint[1]);
+  worldPoint[1] = vtkMercator::y2lat(worldPoint[1]);
   latlngPoint[0] = worldPoint[1];
   latlngPoint[1] = worldPoint[0];
 }
 
 //----------------------------------------------------------------------------
+void vtkMap::AddLayer(vtkLayer* layer)
+{
+  if (layer->GetBase())
+    {
+    if (this->BaseLayer)
+      {
+      this->Layers.push_back(this->BaseLayer);
+      }
+    this->BaseLayer = layer;
+    }
+  else
+    {
+    std::vector<vtkLayer*>::iterator it = std::find(this->Layers.begin(),
+                                                    this->Layers.end(), layer);
+    if (it != this->Layers.end())
+      {
+      // TODO Use bin numbers to sort layer and its actors
+      this->Layers.push_back(layer);
+      }
+    }
+  layer->SetMap(this);
+}
+
+//----------------------------------------------------------------------------
+void vtkMap::RemoveLayer(vtkLayer* layer)
+{
+  if (layer == this->BaseLayer)
+    {
+    vtkErrorMacro("[error] Cannot remove base layer");
+    return;
+    }
+
+  this->Layers.erase(std::remove(this->Layers.begin(),
+                                 this->Layers.end(), layer));
+}
+
+//----------------------------------------------------------------------------
 void vtkMap::Update()
 {
+  if (!this->BaseLayer)
+    {
+    return;
+    }
+
   // Compute the zoom level here
   this->SetZoom(computeZoomLevel(this->Renderer->GetActiveCamera()));
 
   // Update the tile zoom
   this->TileZoom = this->Zoom + 1;
 
-  RemoveTiles();
-  AddTiles();
+  // Update the base layer first
+  this->BaseLayer->Update();
+
+  for (size_t i = 0; i < this->Layers.size(); ++i)
+    {
+    this->Layers[i]->Update();
+    }
+
   this->MapMarkerSet->Update(this->TileZoom);
 }
 
@@ -235,7 +242,7 @@ void vtkMap::Draw()
       }
 
     // Initialize graphics
-    this->Center[0] = lat2y(this->Center[0]);
+    this->Center[0] = vtkMercator::lat2y(this->Center[0]);
     this->Renderer->GetActiveCamera()->SetPosition(
       this->Center[1],
       this->Center[0],
@@ -250,209 +257,11 @@ void vtkMap::Draw()
 }
 
 //----------------------------------------------------------------------------
-void vtkMap::RemoveTiles()
-{
-  // To do.
-}
-
-//----------------------------------------------------------------------------
-void vtkMap::AddTiles()
-{
-  double focusDisplayPoint[3], bottomLeft[4], topRight[4];
-  int width, height, llx, lly;
-
-  this->Renderer->SetWorldPoint(0.0, 0.0, 0.0, 1.0);
-  this->Renderer->WorldToDisplay();
-  this->Renderer->GetDisplayPoint(focusDisplayPoint);
-
-  this->Renderer->GetTiledSizeAndOrigin(&width, &height, &llx, &lly);
-  this->Renderer->SetDisplayPoint(llx, lly, focusDisplayPoint[2]);
-  this->Renderer->DisplayToWorld();
-  this->Renderer->GetWorldPoint(bottomLeft);
-
-  if (bottomLeft[3] != 0.0)
-    {
-    bottomLeft[0] /= bottomLeft[3];
-    bottomLeft[1] /= bottomLeft[3];
-    bottomLeft[2] /= bottomLeft[3];
-    }
-
-  //std::cerr << "Before bottomLeft " << bottomLeft[0] << " " << bottomLeft[1] << std::endl;
-
-  bottomLeft[0] = std::max(bottomLeft[0], -180.0);
-  bottomLeft[0] = std::min(bottomLeft[0],  180.0);
-  bottomLeft[1] = std::max(bottomLeft[1], -180.0);
-  bottomLeft[1] = std::min(bottomLeft[1],  180.0);
-
-  this->Renderer->SetDisplayPoint(llx + width, lly + height, focusDisplayPoint[2]);
-  this->Renderer->DisplayToWorld();
-  this->Renderer->GetWorldPoint(topRight);
-
-  if (topRight[3] != 0.0)
-    {
-    topRight[0] /= topRight[3];
-    topRight[1] /= topRight[3];
-    topRight[2] /= topRight[3];
-    }
-
-  topRight[0] = std::max(topRight[0], -180.0);
-  topRight[0] = std::min(topRight[0],  180.0);
-  topRight[1] = std::max(topRight[1], -180.0);
-  topRight[1] = std::min(topRight[1],  180.0);
-
-  int tile1x = long2tilex(bottomLeft[0], this->TileZoom);
-  int tile2x = long2tilex(topRight[0], this->TileZoom);
-
-  int tile1y = lat2tiley(y2lat(bottomLeft[1]), this->TileZoom);
-  int tile2y = lat2tiley(y2lat(topRight[1]), this->TileZoom);
-
-  //std::cerr << "tile1y " << tile1y << " " << tile2y << std::endl;
-
-  if (tile2y > tile1y)
-    {
-    int temp = tile1y;
-    tile1y = tile2y;
-    tile2y = temp;
-    }
-
-  //std::cerr << "Before bottomLeft " << bottomLeft[0] << " " << bottomLeft[1] << std::endl;
-  //std::cerr << "Before topRight " << topRight[0] << " " << topRight[1] << std::endl;
-
-  /// Clamp tilex and tiley
-  tile1x = std::max(tile1x, 0);
-  tile1x = std::min(static_cast<int>(pow(2, this->TileZoom)) - 1, tile1x);
-  tile2x = std::max(tile2x, 0);
-  tile2x = std::min(static_cast<int>(pow(2, this->TileZoom)) - 1, tile2x);
-
-  tile1y = std::max(tile1y, 0);
-  tile1y = std::min(static_cast<int>(pow(2, this->TileZoom)) - 1, tile1y);
-  tile2y = std::max(tile2y, 0);
-  tile2y = std::min(static_cast<int>(pow(2, this->TileZoom)) - 1, tile2y);
-
-  int noOfTilesX = std::max(1, static_cast<int>(pow(2, this->TileZoom)));
-  int noOfTilesY = std::max(1, static_cast<int>(pow(2, this->TileZoom)));
-
-  double lonPerTile = 360.0 / noOfTilesX;
-  double latPerTile = 360.0 / noOfTilesY;
-
-  //std::cerr << "llx " << llx << " lly " << lly << " " << height << std::endl;
-  //std::cerr << "tile1y " << tile1y << " " << tile2y << std::endl;
-
-  //std::cerr << "tile1x " << tile1x << " tile2x " << tile2x << std::endl;
-  //std::cerr << "tile1y " << tile1y << " tile2y " << tile2y << std::endl;
-
-  int xIndex, yIndex;
-  for (int i = tile1x; i <= tile2x; ++i)
-    {
-    for (int j = tile2y; j <= tile1y; ++j)
-      {
-      xIndex = i;
-      yIndex = static_cast<int>(pow(2, this->TileZoom)) - 1 - j;
-
-      vtkMapTile* tile = this->GetCachedTile(this->TileZoom, xIndex, yIndex);
-      if (!tile)
-        {
-        tile = vtkMapTile::New();
-        double llx = -180.0 + xIndex * lonPerTile;
-        double lly = -180.0 + yIndex * latPerTile;
-        double urx = -180.0 + (xIndex + 1) * lonPerTile;
-        double ury = -180.0 + (yIndex + 1) * latPerTile;
-
-        tile->SetCorners(llx, lly, urx, ury);
-
-        std::ostringstream oss;
-        oss << this->TileZoom;
-        std::string zoom = oss.str();
-        oss.str("");
-
-        oss << i;
-        std::string row = oss.str();
-        oss.str("");
-
-        oss << (static_cast<int>(pow(2, this->TileZoom)) - 1 - yIndex);
-        std::string col = oss.str();
-        oss.str("");
-
-        // Set tile texture source
-        oss << zoom << row << col;
-        tile->SetImageKey(oss.str());
-        tile->SetImageSource("http://tile.openstreetmap.org/" + zoom + "/" + row +
-                             "/" + col + ".png");
-        tile->Init(this->CacheDirectory);
-        this->AddTileToCache(this->TileZoom, xIndex, yIndex, tile);
-      }
-    this->NewPendingTiles.push_back(tile);
-    tile->SetVisible(true);
-    }
-  }
-
-  if (this->NewPendingTiles.size() > 0)
-    {
-    std::vector<vtkActor*>::iterator itr = this->CachedActors.begin();
-    for (itr; itr != this->CachedActors.end(); ++itr)
-      {
-      this->Renderer->RemoveActor(*itr);
-      }
-
-    vtkPropCollection* props = this->Renderer->GetViewProps();
-
-    props->InitTraversal();
-    vtkProp* prop = props->GetNextProp();
-    std::vector<vtkProp*> otherProps;
-    while (prop)
-      {
-      otherProps.push_back(prop);
-      prop = props->GetNextProp();
-      }
-
-    this->Renderer->RemoveAllViewProps();
-
-    std::sort(this->NewPendingTiles.begin(), this->NewPendingTiles.end(),
-              sortTiles());
-
-    for (int i = 0; i < this->NewPendingTiles.size(); ++i)
-      {
-      // Add tile to the renderer
-      this->Renderer->AddActor(this->NewPendingTiles[i]->GetActor());
-      }
-
-    std::vector<vtkProp*>::iterator itr2 = otherProps.begin();
-    while (itr2 != otherProps.end())
-      {
-      this->Renderer->AddViewProp(*itr2);
-      ++itr2;
-      }
-
-    this->NewPendingTiles.clear();
-    }
-}
-
-//----------------------------------------------------------------------------
 double vtkMap::Clip(double n, double minValue, double maxValue)
 {
   double max = n > minValue ? n : minValue;
   double min = max > maxValue ? maxValue : max;
   return min;
-}
-
-//----------------------------------------------------------------------------
-void vtkMap::AddTileToCache(int zoom, int x, int y, vtkMapTile* tile)
-{
-  this->CachedTiles[zoom][x][y] = tile;
-  this->CachedActors.push_back(tile->GetActor());
-}
-
-//----------------------------------------------------------------------------
-vtkMapTile *vtkMap::GetCachedTile(int zoom, int x, int y)
-{
-  if (this->CachedTiles.find(zoom) == this->CachedTiles.end() &&
-      this->CachedTiles[zoom].find(x) == this->CachedTiles[zoom].end() &&
-      this->CachedTiles[zoom][x].find(y) == this->CachedTiles[zoom][x].end())
-    {
-    return NULL;
-    }
-
-  return this->CachedTiles[zoom][x][y];
 }
 
 //----------------------------------------------------------------------------
@@ -482,9 +291,9 @@ vtkPoints* vtkMap::gcsToDisplay(vtkPoints* points, std::string srcProjection)
     latitude = inPoint[0];
     longitude = inPoint[1];
     x = longitude;
-    y = lat2y(latitude);
+    y = vtkMercator::lat2y(latitude);
 
-    inPoint[0] = lat2y(inPoint[0]);
+    inPoint[0] = vtkMercator::lat2y(inPoint[0]);
     //this->Renderer->SetWorldPoint(inPoint[1], inPoint[0], inPoint[2], 1.0);
     this->Renderer->SetWorldPoint(x, y, inPoint[2], 1.0);
     this->Renderer->WorldToDisplay();
@@ -519,7 +328,7 @@ vtkPoints* vtkMap::displayToGcs(vtkPoints* points)
       wCoords[3] = 1.0;
       }
 
-    double latitude = y2lat(wCoords[1]);
+    double latitude = vtkMercator::y2lat(wCoords[1]);
     double longitude = wCoords[0];
 
     outPoint[0] = latitude;

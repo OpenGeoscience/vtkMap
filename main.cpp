@@ -1,6 +1,8 @@
 #include "vtkMap.h"
 #include "vtkMapMarkerSet.h"
 #include "vtkMapPickResult.h"
+#include "vtkMercator.h"
+#include "vtkOsmLayer.h"
 
 #include <vtkActor.h>
 #include <vtkCallbackCommand.h>
@@ -86,10 +88,6 @@ protected:
   vtkMap *Map;
 };
 
-
-double lat2y(double);
-
-
 int main()
 {
   vtkNew<vtkMap> map;
@@ -98,6 +96,9 @@ int main()
   map->SetRenderer(rend.GetPointer());
   map->SetCenter(40, -70);
   map->SetZoom(0);
+
+  vtkNew<vtkOsmLayer> osmLayer;
+  map->AddLayer(osmLayer.GetPointer());
 
   vtkNew<vtkRenderWindow> wind;
   wind->AddRenderer(rend.GetPointer());;
@@ -126,7 +127,7 @@ int main()
   double coords[3];
   gcsPoints->GetPoint(0, coords);
   double x = coords[1];         // longitude
-  double y = lat2y(coords[0]);  // latitude
+  double y = vtkMercator::lat2y(coords[0]);  // latitude
   vtkNew<vtkRegularPolygonSource> testPolygon;
   vtkNew<vtkPolyDataMapper> testMapper;
   vtkNew<vtkActor> testActor;

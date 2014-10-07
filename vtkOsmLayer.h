@@ -20,14 +20,19 @@
 #define __vtkOsmLayer_h
 
 #include "vtkLayer.h"
+#include "vtkMapTile.h"
 
 // VTK Includes
 #include <vtkObject.h>
 #include <vtkRenderer.h>
 
+#include <map>
+#include <vector>
+
 class vtkOsmLayer : public vtkLayer
 {
 public:
+  static vtkOsmLayer* New();
   virtual void PrintSelf(ostream &os, vtkIndent indent);
   vtkTypeMacro(vtkOsmLayer, vtkLayer)
 
@@ -38,8 +43,19 @@ protected:
   vtkOsmLayer();
   virtual ~vtkOsmLayer();
 
+  void AddTiles();
+  void RemoveTiles();
+
+  void AddTileToCache(int zoom, int x, int y, vtkMapTile* tile);
+  vtkMapTile* GetCachedTile(int zoom, int x, int y);
+
+protected:
+  std::map< int, std::map< int, std::map <int, vtkMapTile*> > > CachedTiles;
+  std::vector<vtkActor*> CachedActors;
+  std::vector<vtkMapTile*> NewPendingTiles;
+
 private:
-  vtkOsmLayer(const vtkOsmLayer&);  // Not implemented
+  vtkOsmLayer(const vtkOsmLayer&);    // Not implemented
   void operator=(const vtkOsmLayer&); // Not implemented
 };
 

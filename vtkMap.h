@@ -35,6 +35,8 @@ class vtkRenderer;
 #include <string>
 #include <vector>
 
+class vtkLayer;
+
 class vtkMap : public vtkObject
 {
 public:
@@ -67,6 +69,11 @@ public:
   vtkSetMacro(Zoom, int)
 
   // Description:
+  // Get/Set the tile zoom level
+  vtkGetMacro(TileZoom, int)
+  vtkSetMacro(TileZoom, int)
+
+  // Description:
   // Get/Set center of the map
   void GetCenter(double (&latlngPoint)[2]);
   vtkSetVector2Macro(Center, double);
@@ -76,6 +83,10 @@ public:
   vtkGetStringMacro(CacheDirectory);
   vtkSetStringMacro(CacheDirectory);
 
+  // Description:
+  // Add / Remove layer from the map.
+  void AddLayer(vtkLayer* layer);
+  void RemoveLayer(vtkLayer* layer);
 
   // Description:
   // Update the renderer with relevant tiles to draw the Map
@@ -148,14 +159,7 @@ protected:
   double Center[2];
 
   // Directory for caching map tiles
-  char *CacheDirectory;
-
-  // Description:
-  // Cached tiles
-  std::map< int, std::map< int, std::map <int, vtkMapTile*> > > CachedTiles;
-  std::vector<vtkActor*> CachedActors;
-
-  std::vector<vtkMapTile*> NewPendingTiles;
+  char* CacheDirectory;
 
   // Description:
   // The map marker manager
@@ -167,6 +171,15 @@ protected:
   // Description:
   // Effective zoom used by the tiles
   int TileZoom;
+
+  // Description:
+  // Base layer that dictates the coordinate tranformation
+  // and navigation
+  vtkLayer* BaseLayer;
+
+  // Description:
+  // List of layers attached to the map
+  std::vector<vtkLayer*> Layers;
 
 private:
   vtkMap(const vtkMap&);  // Not implemented
