@@ -56,6 +56,16 @@ void vtkOsmLayer::PrintSelf(ostream& os, vtkIndent indent)
 //----------------------------------------------------------------------------
 void vtkOsmLayer::Update()
 {
+  if (!this->Map)
+    {
+    return;
+    }
+
+  if (this->Renderer != this->Map->GetRenderer())
+    {
+    this->Renderer = this->Map->GetRenderer();
+    }
+
   this->AddTiles();
 }
 
