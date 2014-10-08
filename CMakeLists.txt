@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 
 PROJECT(Tiling)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
+option(BUILD_SHARED_LIBS "Build vtkMap with shared libraries" ON)
 
 set (VTK_REQUIRED_COMPONENTS
     # Core components
@@ -26,26 +28,20 @@ include(${VTK_USE_FILE})
 add_definitions("-DMARKER_IMAGE_FILE=\"${CMAKE_SOURCE_DIR}/markerteal.png\"")
 
 set (SOURCES
-    main.cpp
     vtkMapMarkerSet.cxx
-    vtkMapMarkerSet.h
     vtkMapPickResult.cxx
-    vtkMapPickResult.h
     vtkMapTile.cxx
-    vtkMapTile.h
     vtkMap.cxx
-    vtkMap.h
     vtkLayer.cxx
-    vtkLayer.h
     vtkOsmLayer.cxx
-    vtkOsmLayer.h
     vtkTeardropSource.cxx
-    vtkTeardropSource.h
 )
 
-add_executable(vtkMap ${SOURCES})
+add_library(vtkMap ${SOURCES})
+target_link_libraries(vtkMap ${VTK_LIBRARIES} curl)
 
-target_link_libraries(vtkMap ${VTK_LIBRARIES} -lcurl)
+add_executable(example example.cpp)
+target_link_libraries(example vtkMap)
 
 add_subdirectory(Testing)
 if (BUILD_QT_APPS)
