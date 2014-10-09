@@ -89,8 +89,46 @@ void vtkInteractorStyleMap::OnMouseWheelForward()
       {
       zoom++;
       this->Map->SetZoom(zoom);
+      this->SetCurrentRenderer(this->Map->GetRenderer());
+
       vtkCamera *camera = this->Map->GetRenderer()->GetActiveCamera();
-      camera->Dolly(2.0);  // move toward focal point
+
+      // Get current mouse coordinates (to make that screen position constant)
+      int x = this->Interactor->GetEventPosition()[0];
+      int y = this->Interactor->GetEventPosition()[1];
+
+      // Get corresponding world coordinates
+      double zoomCoords[4];
+
+      this->ComputeDisplayToWorld(x, y, 0.0, zoomCoords);
+
+      // Get camera coordinates before zooming in
+      double cameraCoords[3];
+      camera->GetPosition(cameraCoords);
+
+      // Apply the dolly operation (move closer to focal point)
+      camera->Dolly(2.0);
+
+      // Get new camera coordinates
+      double nextCameraCoords[3];
+      camera->GetPosition(nextCameraCoords);
+
+      // Adjust xy position to be proportional to change in z
+      // That way, the zoom point remains stationary
+      double f = 0.5;   // fraction that camera moved closer to origin
+      double losVector[3];  // line-of-sight vector, from camera to zoomCoords
+      vtkMath::Subtract(zoomCoords, cameraCoords, losVector);
+      vtkMath::Normalize(losVector);
+      vtkMath::MultiplyScalar(losVector, 0.5 * cameraCoords[2]);
+      nextCameraCoords[0] = cameraCoords[0] + losVector[0];
+      nextCameraCoords[1] = cameraCoords[1] + losVector[1];
+      camera->SetPosition(nextCameraCoords);
+
+      // Set same xy coords for the focal point
+      nextCameraCoords[2] = 0.0;
+      camera->SetFocalPoint(nextCameraCoords);
+
+      // Redraw the map
       this->Map->Draw();
       }
     }
