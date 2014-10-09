@@ -15,12 +15,15 @@
 
 #include "vtkInteractorStyleMap.h"
 #include "vtkMap.h"
+#include "vtkMapPickResult.h"
 
 #include <vtkCamera.h>
 #include <vtkCommand.h>
 #include <vtkMath.h>
+#include <vtkNew.h>
 #include <vtkObjectFactory.h>
 #include <vtkRenderer.h>
+#include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
 
 vtkStandardNewMacro(vtkInteractorStyleMap)
@@ -48,13 +51,12 @@ void vtkInteractorStyleMap::PrintSelf(ostream &os, vtkIndent indent)
 //----------------------------------------------------------------------------
 void vtkInteractorStyleMap::OnMouseMove()
 {
-  int x = this->Interactor->GetEventPosition()[0];
-  int y = this->Interactor->GetEventPosition()[1];
-
+  int *pos = this->Interactor->GetEventPosition();
   switch (this->State)
     {
     case VTKIS_PAN:
-      this->FindPokedRenderer(x, y);
+      this->FindPokedRenderer(pos[0], pos[1]);
+      this->Interactor->GetRenderWindow()->SetCurrentCursor(VTK_CURSOR_HAND);
       this->Pan();
       this->InvokeEvent(vtkCommand::InteractionEvent, NULL);
       break;
@@ -66,8 +68,25 @@ void vtkInteractorStyleMap::OnMouseMove()
 //----------------------------------------------------------------------------
 void vtkInteractorStyleMap::OnLeftButtonDown()
 {
-  vtkDebugMacro("StartPan()");
-  this->StartPan();
+  int *pos = this->Interactor->GetEventPosition();
+
+  // Check if anything was picked
+  vtkNew<vtkMapPickResult> pickResult;
+  this->Map->PickPoint(pos, pickResult.GetPointer());
+
+  switch (pickResult->GetMapFeatureType())
+    {
+    case VTK_MAP_FEATURE_NONE:
+      vtkDebugMacro("StartPan()");
+      this->StartPan();
+      break;
+
+    case VTK_MAP_FEATURE_MARKER:
+    case VTK_MAP_FEATURE_CLUSTER:
+      // Todo highlight marker (?)
+      break;
+    }
+
   this->Superclass::OnLeftButtonDown();
 }
 
@@ -75,6 +94,7 @@ void vtkInteractorStyleMap::OnLeftButtonDown()
 void vtkInteractorStyleMap::OnLeftButtonUp()
 {
   vtkDebugMacro("EndPan()");
+      this->Interactor->GetRenderWindow()->SetCurrentCursor(VTK_CURSOR_DEFAULT);
   this->EndPan();
   this->Superclass::OnLeftButtonUp();
 }
