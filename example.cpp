@@ -91,12 +91,15 @@ int main()
   double kwLatitude = 42.849604;
   double kwLongitude = -73.758345;
 
+  kwLatitude = 0.25 * 85.0511;
+  kwLongitude = -90.0;
+
   vtkNew<vtkMap> map;
 
   vtkNew<vtkRenderer> rend;
   map->SetRenderer(rend.GetPointer());
   map->SetCenter(kwLatitude, kwLongitude);
-  map->SetZoom(5);
+  map->SetZoom(3);
 
   vtkNew<vtkOsmLayer> osmLayer;
   map->AddLayer(osmLayer.GetPointer());

@@ -47,8 +47,11 @@ vtkStandardNewMacro(vtkMap)
 //----------------------------------------------------------------------------
 double computeCameraDistance(vtkCamera* cam, int zoomLevel)
 {
-  double deg = 360.0 / std::pow(2, zoomLevel);
-  return (deg / std::sin(vtkMath::RadiansFromDegrees(cam->GetViewAngle())));
+  // Set camera distance based on power of 2 relative to zoom 0
+  double viewAngle0 = 30.0;
+  double z0 = 128.0 / std::tan(vtkMath::RadiansFromDegrees(0.5*viewAngle0));
+  double z = z0 / std::pow(2, zoomLevel);
+  return z;
 }
 
 //----------------------------------------------------------------------------
@@ -198,7 +201,8 @@ void vtkMap::Update()
   this->SetZoom(computeZoomLevel(this->Renderer->GetActiveCamera()));
 
   // Update the tile zoom
-  this->TileZoom = this->Zoom + 1;
+  this->TileZoom = this->Zoom;
+  //std::cout << "Setting TileZoom " << this->TileZoom << std::endl;
 
   // Update the base layer first
   this->BaseLayer->Update();
@@ -250,18 +254,32 @@ void vtkMap::Draw()
       }
 
     // Initialize graphics
+    double distance = computeCameraDistance(this->Renderer->GetActiveCamera(),
+                                            this->Zoom);
     this->Center[0] = vtkMercator::lat2y(this->Center[0]);
     this->Renderer->GetActiveCamera()->SetPosition(
       this->Center[1],
       this->Center[0],
-      computeCameraDistance(this->Renderer->GetActiveCamera(), this->Zoom));
+      distance);
     this->Renderer->GetActiveCamera()->SetFocalPoint(this->Center[1],
                                                      this->Center[0],
                                                      0.0);
+
+    // Update view angle based on viewport size
+    // So that textures don't have to be interpolated
+    int *sz = this->Renderer->GetRenderWindow()->GetSize();
+    int windowHeight = sz[1];
+    double tileHeight = 360.0 / std::pow(2.0, this->Zoom);
+    double worldHeight = windowHeight * tileHeight / 256;
+    double tanHalf = worldHeight / 2.0 / distance;
+    double halfTheta = vtkMath::DegreesFromRadians(std::atan(tanHalf));
+    this->Renderer->GetActiveCamera()->SetViewAngle(2.0*halfTheta);
+
     this->Renderer->GetRenderWindow()->Render();
     }
   this->Update();
   this->Renderer->GetRenderWindow()->Render();
+  //this->Renderer->GetActiveCamera()->Print(std::cout);
 }
 
 //----------------------------------------------------------------------------
