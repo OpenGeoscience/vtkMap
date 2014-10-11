@@ -85,6 +85,7 @@ vtkMap::vtkMap()
   this->Initialized = false;
   this->TileZoom = 1;
   this->BaseLayer = NULL;
+  this->WindowHeight = 0;
 }
 
 //----------------------------------------------------------------------------
@@ -190,6 +191,36 @@ void vtkMap::RemoveLayer(vtkLayer* layer)
 }
 
 //----------------------------------------------------------------------------
+void vtkMap::OnResize()
+{
+  if (this->Renderer)
+    {
+    int *sz = this->Renderer->GetRenderWindow()->GetSize();
+    int windowHeight = sz[1];
+    if (windowHeight == this->WindowHeight)
+      {
+      return;
+      }
+    //d::cout << "size " << sz[0] << ", " << sz[1] << std::endl;
+
+    double distance = computeCameraDistance(this->Renderer->GetActiveCamera(),
+                                            this->Zoom);
+    double tileWidth = 360.0 / std::pow(2.0, this->Zoom);
+    double worldHeight = windowHeight * tileWidth / 256;
+    double tanHalf = worldHeight / 2.0 / distance;
+    double halfTheta = vtkMath::DegreesFromRadians(std::atan(tanHalf));
+    //halfTheta = 0.5 * 141.24;
+    this->Renderer->GetActiveCamera()->SetViewAngle(2.0*halfTheta);
+    // std::cout << "Zoom " << this->Zoom
+    //           << "  distance " << distance
+    //           << "  Window height " << windowHeight
+    //           << "  theta " << 2.0*halfTheta
+    //           << std::endl;
+    this->WindowHeight = windowHeight;
+    }
+}
+
+//----------------------------------------------------------------------------
 void vtkMap::Update()
 {
   if (!this->BaseLayer)
@@ -265,16 +296,7 @@ void vtkMap::Draw()
                                                      this->Center[0],
                                                      0.0);
 
-    // Update view angle based on viewport size
-    // So that textures don't have to be interpolated
-    int *sz = this->Renderer->GetRenderWindow()->GetSize();
-    int windowHeight = sz[1];
-    double tileHeight = 360.0 / std::pow(2.0, this->Zoom);
-    double worldHeight = windowHeight * tileHeight / 256;
-    double tanHalf = worldHeight / 2.0 / distance;
-    double halfTheta = vtkMath::DegreesFromRadians(std::atan(tanHalf));
-    this->Renderer->GetActiveCamera()->SetViewAngle(2.0*halfTheta);
-
+    this->OnResize();
     this->Renderer->GetRenderWindow()->Render();
     }
   this->Update();

@@ -91,6 +91,10 @@ public:
   void RemoveLayer(vtkLayer* layer);
 
   // Description:
+  // Recompute view angle when window size changes
+  void OnResize();
+
+  // Description:
   // Update the renderer with relevant tiles to draw the Map
   void Update();
 
@@ -182,6 +186,8 @@ protected:
   // Description:
   // List of layers attached to the map
   std::vector<vtkLayer*> Layers;
+
+  int WindowHeight;
 
 private:
   vtkMap(const vtkMap&);  // Not implemented

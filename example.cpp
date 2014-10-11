@@ -35,6 +35,18 @@
 
 using namespace std;
 
+class ResizeCallback : public vtkCommand
+{
+public:
+  static ResizeCallback *New()
+    { return new ResizeCallback; }
+  virtual void Execute(vtkObject *caller, unsigned long, void*)
+    {
+      this->Map->OnResize();
+    }
+  vtkMap *Map;
+};
+
 class PickCallback : public vtkCommand
 {
 public:
@@ -107,7 +119,7 @@ int main()
   vtkNew<vtkRenderWindow> wind;
   wind->AddRenderer(rend.GetPointer());;
   //wind->SetSize(1920, 1080);
-  wind->SetSize(800, 600);
+  wind->SetSize(600, 600);
 
   vtkNew<vtkRenderWindowInteractor> intr;
   intr->SetRenderWindow(wind.GetPointer());
@@ -166,6 +178,10 @@ int main()
   vtkNew<PickCallback> pickCallback;
   pickCallback->SetMap(map.GetPointer());
   intr->AddObserver(vtkCommand::LeftButtonPressEvent, pickCallback.GetPointer());
+
+  vtkNew<ResizeCallback> resizeCallback;
+  resizeCallback->Map = map.GetPointer();
+  wind->AddObserver(vtkCommand::ModifiedEvent, resizeCallback.GetPointer());
 
   intr->Start();
 
