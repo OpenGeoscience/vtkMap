@@ -15,7 +15,9 @@
 
 #include "vtkMapMarkerSet.h"
 #include "vtkMapPickResult.h"
+#include "vtkMercator.h"
 #include "vtkTeardropSource.h"
+
 #include <vtkActor.h>
 #include <vtkDataArray.h>
 #include <vtkDistanceToCamera.h>
@@ -39,8 +41,6 @@
 #include <algorithm>
 #include <vector>
 
-double lat2y(double);
-double y2lat(double);
 const int NumberOfClusterLevels = 20;
 
 //----------------------------------------------------------------------------
@@ -142,7 +142,7 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
   node->NodeId = this->Internals->NumberOfNodes++;
   node->Level = 0;
   node->gcsCoords[0] = longitude;
-  node->gcsCoords[1] = lat2y(latitude);
+  node->gcsCoords[1] = vtkMercator::lat2y(latitude);
   node->NumberOfMarkers = 1;
   node->Parent = 0;
   node->MarkerId = markerId;
@@ -476,7 +476,7 @@ PickPoint(vtkRenderer *renderer, vtkPicker *picker, int displayCoords[2],
           result->SetMapFeatureType(VTK_MAP_FEATURE_CLUSTER);
           }
 
-        result->SetLatitude(y2lat(node->gcsCoords[1]));
+        result->SetLatitude(vtkMercator::y2lat(node->gcsCoords[1]));
         result->SetLongitude(node->gcsCoords[0]);
         //result->Print(std::cout);
         }
