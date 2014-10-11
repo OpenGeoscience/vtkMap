@@ -22,6 +22,7 @@ vtkLayer::vtkLayer() : vtkObject()
   this->Opacity = 1.0;
   this->Renderer = NULL;
   this->Base = 0;
+  this->Map = NULL;
 }
 
 //----------------------------------------------------------------------------
