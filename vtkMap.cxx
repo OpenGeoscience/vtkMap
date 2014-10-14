@@ -15,6 +15,7 @@
 
 #include "vtkMap.h"
 
+#include "vtkInteractorStyleMap.h"
 #include "vtkLayer.h"
 #include "vtkMapMarkerSet.h"
 #include "vtkMapTile.h"
@@ -23,7 +24,6 @@
 // VTK Includes
 #include <vtkActor2D.h>
 #include <vtkImageInPlaceFilter.h>
-#include <vtkInteractorStyleImage.h>
 #include <vtkObjectFactory.h>
 #include <vtkPointPicker.h>
 #include <vtkPoints.h>
@@ -72,7 +72,9 @@ vtkMap::vtkMap()
 {
   this->CacheDirectory = NULL;
   this->Renderer = NULL;
-  this->InteractorStyle = vtkInteractorStyleImage::New();
+  this->InteractorStyle = vtkInteractorStyleMap::New();
+  this->InteractorStyle->SetMap(this);
+  //this->InteractorStyle->DebugOn();
   this->Picker = vtkPointPicker::New();
   this->Zoom = 1;
   this->Center[0] = this->Center[1] = 0.0;
@@ -118,6 +120,12 @@ void vtkMap::PrintSelf(ostream &os, vtkIndent indent)
      << "  Focal Lat/Lon/Z: " << vtkMercator::y2lat(focalPosition[1]) << " "
      << focalPosition[0] << " " << focalPosition[2] << "\n"
      << std::endl;
+}
+
+//----------------------------------------------------------------------------
+vtkInteractorStyle *vtkMap::GetInteractorStyle()
+{
+  return this->InteractorStyle;
 }
 
 //----------------------------------------------------------------------------

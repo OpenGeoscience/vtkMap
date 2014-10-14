@@ -533,8 +533,8 @@ void vtkMapMarkerSet::InitializeRenderingPipeline()
 
   // Use sphere for cluster markers
   vtkNew<vtkSphereSource> clusterGlyphSource;
-  clusterGlyphSource->SetPhiResolution(12);
-  clusterGlyphSource->SetThetaResolution(12);
+  clusterGlyphSource->SetPhiResolution(20);
+  clusterGlyphSource->SetThetaResolution(20);
   clusterGlyphSource->SetRadius(0.25);
 
   // Setup glyph

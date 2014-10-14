@@ -24,6 +24,7 @@
 
 class vtkActor;
 class vtkInteractorStyle;
+class vtkInteractorStyleMap;
 class vtkMapTile;
 class vtkMapMarkerSet;
 class vtkMapPickResult;
@@ -51,8 +52,9 @@ public:
 
   // Description:
   // Get/Set the interactor style in which map tiles will be added
-  vtkGetMacro(InteractorStyle, vtkInteractorStyle*)
-  vtkSetMacro(InteractorStyle, vtkInteractorStyle*)
+  // Note these are asymmetric on purpose
+  vtkSetMacro(InteractorStyle, vtkInteractorStyleMap*)
+  vtkInteractorStyle *GetInteractorStyle();
 
   // Description:
   // Get the map marker layer
@@ -144,7 +146,7 @@ protected:
 
   // Description:
   // The interactor style used by the map
-  vtkInteractorStyle* InteractorStyle;
+  vtkInteractorStyleMap* InteractorStyle;
 
   // Description:
   // The picker used for picking map markers

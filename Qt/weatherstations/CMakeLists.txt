@@ -16,15 +16,10 @@ add_executable(wsmap
   wsmap.cxx
   qtWeatherStations.cxx
   qtMapCoordinatesWidget.cxx
-  ${CMAKE_SOURCE_DIR}/vtkMapMarkerSet.cxx
-  ${CMAKE_SOURCE_DIR}/vtkMapPickResult.cxx
-  ${CMAKE_SOURCE_DIR}/vtkMapTile.cxx
-  ${CMAKE_SOURCE_DIR}/vtkMap.cxx
-  ${CMAKE_SOURCE_DIR}/vtkTeardropSource.cxx
   ${THIRD_PARTY_DIR}/cJSON/cJSON.c
   ${UISrcs} ${MOCSrcs}
 )
-target_link_libraries(wsmap ${VTK_LIBRARIES} -lcurl)
+target_link_libraries(wsmap vtkMap)
 
 #add_executable(RenderWindowNoUiFile
 #  RenderWindowNoUiFile.cxx

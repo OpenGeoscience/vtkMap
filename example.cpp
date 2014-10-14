@@ -35,9 +35,6 @@
 
 using namespace std;
 
-static void callbackFunction ( vtkObject* caller, long unsigned int eventId,
-          void* clientData, void* callData );
-
 class PickCallback : public vtkCommand
 {
 public:
@@ -90,19 +87,24 @@ protected:
 
 int main()
 {
+  // Kitware geo coords (Clifton Park, NY)
+  double kwLatitude = 42.849604;
+  double kwLongitude = -73.758345;
+
   vtkNew<vtkMap> map;
 
   vtkNew<vtkRenderer> rend;
   map->SetRenderer(rend.GetPointer());
-  map->SetCenter(40, -70);
-  map->SetZoom(0);
+  map->SetCenter(kwLatitude, kwLongitude);
+  map->SetZoom(5);
 
   vtkNew<vtkOsmLayer> osmLayer;
   map->AddLayer(osmLayer.GetPointer());
 
   vtkNew<vtkRenderWindow> wind;
   wind->AddRenderer(rend.GetPointer());;
-  wind->SetSize(1920, 1080);
+  //wind->SetSize(1920, 1080);
+  wind->SetSize(800, 600);
 
   vtkNew<vtkRenderWindowInteractor> intr;
   intr->SetRenderWindow(wind.GetPointer());
@@ -118,8 +120,6 @@ int main()
   // Initialize test marker
   vtkNew<vtkPoints> testPoints;
   testPoints->SetDataTypeToDouble();
-  double kwLatitude = 42.849604;
-  double kwLongitude = -73.758345;
   //testPoints->InsertNextPoint(0.0, 0.0, 0.0);
   testPoints->InsertNextPoint(kwLatitude, kwLongitude, 0.0);
   vtkPoints *displayPoints = map->gcsToDisplay(testPoints.GetPointer());
@@ -160,13 +160,6 @@ int main()
   map->Draw();
 
   // Set callbacks
-  vtkNew<vtkCallbackCommand> callback;
-  callback->SetClientData(map.GetPointer());
-  callback->SetCallback(callbackFunction);
-  intr->AddObserver(vtkCommand::MouseWheelForwardEvent, callback.GetPointer());
-  intr->AddObserver(vtkCommand::MouseWheelBackwardEvent, callback.GetPointer());
-
-  //PickCallback *pickCallback = PickCallback::New();
   vtkNew<PickCallback> pickCallback;
   pickCallback->SetMap(map.GetPointer());
   intr->AddObserver(vtkCommand::LeftButtonPressEvent, pickCallback.GetPointer());
@@ -175,12 +168,4 @@ int main()
 
   //map->Print(std::cout);
   return 0;
-}
-
-void callbackFunction(vtkObject* caller, long unsigned int vtkNotUsed(eventId),
-                      void* clientData, void* vtkNotUsed(callData) )
-{
-  // Prove that we can access the sphere source
-  vtkMap* map = static_cast<vtkMap*>(clientData);
-  map->Draw();
 }

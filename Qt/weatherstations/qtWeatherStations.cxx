@@ -18,6 +18,7 @@
 #include "vtkMap.h"
 #include "vtkMapMarkerSet.h"
 #include "vtkMapPickResult.h"
+#include "vtkOsmLayer.h"
 #include <QVTKWidget.h>
 #include <vtkCallbackCommand.h>
 #include <vtkInteractorStyleImage.h>
@@ -114,6 +115,9 @@ qtWeatherStations::qtWeatherStations(QWidget *parent)
 
   // Initialize Map instance
   this->Map = vtkMap::New();
+  vtkNew<vtkOsmLayer> osmLayer;
+  osmLayer->Register(this->Map);
+  this->Map->AddLayer(osmLayer.GetPointer());
   this->Renderer = vtkRenderer::New();
   this->Map->SetRenderer(this->Renderer);
   //this->resetMapCoords();

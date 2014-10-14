@@ -15,6 +15,7 @@
 
 #include "vtkMap.h"
 #include "vtkMapMarkerSet.h"
+#include "vtkOsmLayer.h"
 #include <vtkCallbackCommand.h>
 #include <vtkInteractorStyle.h>
 #include <vtkNew.h>
@@ -39,6 +40,8 @@ void scrollCallback(vtkObject* caller, long unsigned int vtkNotUsed(eventId),
 int main(int, char*[])
 {
   vtkNew<vtkMap> map;
+  vtkNew<vtkOsmLayer> osmLayer;
+  map->AddLayer(osmLayer.GetPointer());
 
   vtkNew<vtkRenderer> renderer;
   map->SetRenderer(renderer.GetPointer());
