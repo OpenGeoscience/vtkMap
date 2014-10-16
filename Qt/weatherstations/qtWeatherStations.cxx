@@ -445,6 +445,9 @@ void qtWeatherStations::resizeEvent(QResizeEvent *event)
     this->MapWidget->resize(w, h);
     this->MapWidget->move(margin, margin);
 
+    // Resize and redraw the map too
+    this->Map->OnResize();
     this->drawMap();
     }
+
 }

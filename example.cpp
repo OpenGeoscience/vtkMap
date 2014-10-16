@@ -35,6 +35,18 @@
 
 using namespace std;
 
+class ResizeCallback : public vtkCommand
+{
+public:
+  static ResizeCallback *New()
+    { return new ResizeCallback; }
+  virtual void Execute(vtkObject *caller, unsigned long, void*)
+    {
+      this->Map->OnResize();
+    }
+  vtkMap *Map;
+};
+
 class PickCallback : public vtkCommand
 {
 public:
@@ -91,12 +103,15 @@ int main()
   double kwLatitude = 42.849604;
   double kwLongitude = -73.758345;
 
+  kwLatitude = 0.25 * 85.0511;
+  kwLongitude = -90.0;
+
   vtkNew<vtkMap> map;
 
   vtkNew<vtkRenderer> rend;
   map->SetRenderer(rend.GetPointer());
   map->SetCenter(kwLatitude, kwLongitude);
-  map->SetZoom(5);
+  map->SetZoom(3);
 
   vtkNew<vtkOsmLayer> osmLayer;
   map->AddLayer(osmLayer.GetPointer());
@@ -104,7 +119,7 @@ int main()
   vtkNew<vtkRenderWindow> wind;
   wind->AddRenderer(rend.GetPointer());;
   //wind->SetSize(1920, 1080);
-  wind->SetSize(800, 600);
+  wind->SetSize(600, 600);
 
   vtkNew<vtkRenderWindowInteractor> intr;
   intr->SetRenderWindow(wind.GetPointer());
@@ -163,6 +178,10 @@ int main()
   vtkNew<PickCallback> pickCallback;
   pickCallback->SetMap(map.GetPointer());
   intr->AddObserver(vtkCommand::LeftButtonPressEvent, pickCallback.GetPointer());
+
+  vtkNew<ResizeCallback> resizeCallback;
+  resizeCallback->Map = map.GetPointer();
+  wind->AddObserver(vtkCommand::ModifiedEvent, resizeCallback.GetPointer());
 
   intr->Start();
 

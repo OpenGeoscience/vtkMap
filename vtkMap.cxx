@@ -47,8 +47,13 @@ vtkStandardNewMacro(vtkMap)
 //----------------------------------------------------------------------------
 double computeCameraDistance(vtkCamera* cam, int zoomLevel)
 {
-  double deg = 360.0 / std::pow(2, zoomLevel);
-  return (deg / std::sin(vtkMath::RadiansFromDegrees(cam->GetViewAngle())));
+  // Set camera distance based on power of 2 relative to zoom 0
+  // Baseline view angle 30 degrees
+  // Baseline tile size 256x256
+  double viewAngle0 = 30.0;
+  double z0 = 128.0 / std::tan(vtkMath::RadiansFromDegrees(0.5*viewAngle0));
+  double z = z0 / std::pow(2, zoomLevel);
+  return z;
 }
 
 //----------------------------------------------------------------------------
@@ -82,6 +87,7 @@ vtkMap::vtkMap()
   this->Initialized = false;
   this->TileZoom = 1;
   this->BaseLayer = NULL;
+  this->WindowHeight = 0;
 }
 
 //----------------------------------------------------------------------------
@@ -187,6 +193,39 @@ void vtkMap::RemoveLayer(vtkLayer* layer)
 }
 
 //----------------------------------------------------------------------------
+void vtkMap::OnResize()
+{
+  if (this->Renderer)
+    {
+    // Check if window height changed since last resize
+    int *sz = this->Renderer->GetRenderWindow()->GetSize();
+    int windowHeight = sz[1];
+    if (windowHeight == this->WindowHeight)
+      {
+      return;
+      }
+    //d::cout << "size " << sz[0] << ", " << sz[1] << std::endl;
+
+    // Compute view angle based on window height and camera distance
+    // Baseline is 360 world coord units == 1 tile == 256 pixels
+    double distance = computeCameraDistance(this->Renderer->GetActiveCamera(),
+                                            this->Zoom);
+    double tileHeight = 360.0 / std::pow(2.0, this->Zoom);
+    double worldHeight = windowHeight * tileHeight / 256;
+    double tanHalf = worldHeight / 2.0 / distance;
+    double halfTheta = vtkMath::DegreesFromRadians(std::atan(tanHalf));
+    //halfTheta = 0.5 * 141.24;
+    this->Renderer->GetActiveCamera()->SetViewAngle(2.0*halfTheta);
+    // std::cout << "Zoom " << this->Zoom
+    //           << "  distance " << distance
+    //           << "  Window height " << windowHeight
+    //           << "  theta " << 2.0*halfTheta
+    //           << std::endl;
+    this->WindowHeight = windowHeight;
+    }
+}
+
+//----------------------------------------------------------------------------
 void vtkMap::Update()
 {
   if (!this->BaseLayer)
@@ -198,7 +237,8 @@ void vtkMap::Update()
   this->SetZoom(computeZoomLevel(this->Renderer->GetActiveCamera()));
 
   // Update the tile zoom
-  this->TileZoom = this->Zoom + 1;
+  this->TileZoom = this->Zoom;
+  //std::cout << "Setting TileZoom " << this->TileZoom << std::endl;
 
   // Update the base layer first
   this->BaseLayer->Update();
@@ -250,18 +290,23 @@ void vtkMap::Draw()
       }
 
     // Initialize graphics
+    double distance = computeCameraDistance(this->Renderer->GetActiveCamera(),
+                                            this->Zoom);
     this->Center[0] = vtkMercator::lat2y(this->Center[0]);
     this->Renderer->GetActiveCamera()->SetPosition(
       this->Center[1],
       this->Center[0],
-      computeCameraDistance(this->Renderer->GetActiveCamera(), this->Zoom));
+      distance);
     this->Renderer->GetActiveCamera()->SetFocalPoint(this->Center[1],
                                                      this->Center[0],
                                                      0.0);
+
+    this->OnResize();
     this->Renderer->GetRenderWindow()->Render();
     }
   this->Update();
   this->Renderer->GetRenderWindow()->Render();
+  //this->Renderer->GetActiveCamera()->Print(std::cout);
 }
 
 //----------------------------------------------------------------------------
