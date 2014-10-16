@@ -48,6 +48,8 @@ vtkStandardNewMacro(vtkMap)
 double computeCameraDistance(vtkCamera* cam, int zoomLevel)
 {
   // Set camera distance based on power of 2 relative to zoom 0
+  // Baseline view angle 30 degrees
+  // Baseline tile size 256x256
   double viewAngle0 = 30.0;
   double z0 = 128.0 / std::tan(vtkMath::RadiansFromDegrees(0.5*viewAngle0));
   double z = z0 / std::pow(2, zoomLevel);
@@ -195,6 +197,7 @@ void vtkMap::OnResize()
 {
   if (this->Renderer)
     {
+    // Check if window height changed since last resize
     int *sz = this->Renderer->GetRenderWindow()->GetSize();
     int windowHeight = sz[1];
     if (windowHeight == this->WindowHeight)
@@ -203,10 +206,12 @@ void vtkMap::OnResize()
       }
     //d::cout << "size " << sz[0] << ", " << sz[1] << std::endl;
 
+    // Compute view angle based on window height and camera distance
+    // Baseline is 360 world coord units == 1 tile == 256 pixels
     double distance = computeCameraDistance(this->Renderer->GetActiveCamera(),
                                             this->Zoom);
-    double tileWidth = 360.0 / std::pow(2.0, this->Zoom);
-    double worldHeight = windowHeight * tileWidth / 256;
+    double tileHeight = 360.0 / std::pow(2.0, this->Zoom);
+    double worldHeight = windowHeight * tileHeight / 256;
     double tanHalf = worldHeight / 2.0 / distance;
     double halfTheta = vtkMath::DegreesFromRadians(std::atan(tanHalf));
     //halfTheta = 0.5 * 141.24;
