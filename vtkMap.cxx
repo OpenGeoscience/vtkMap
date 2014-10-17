@@ -154,6 +154,11 @@ void vtkMap::AddLayer(vtkLayer* layer)
 {
   if (layer->GetBase())
     {
+    if (layer == this->BaseLayer)
+      {
+      return;
+      }
+
     if (this->BaseLayer)
       {
       this->Layers.push_back(this->BaseLayer);

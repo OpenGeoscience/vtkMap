@@ -37,11 +37,11 @@ public:
 
   // Description:
   std::string GetName();
-  void SetName(const std::string& Name);
+  void SetName(const unsigned int &Name);
 
   // Description:
-  std::string GetId();
-  void SetId(const std::string& id);
+  unsigned int GetId();
+  void SetId(const unsigned int& id);
 
   // Description:
   vtkGetMacro(Opacity, double)
@@ -73,10 +73,12 @@ protected:
   int Base;
 
   std::string Name;
-  std::string Id;
+  unsigned int Id;
 
   vtkMap* Map;
   vtkRenderer* Renderer;
+
+  static unsigned int GlobalId;
 
 private:
   vtkLayer(const vtkLayer&);  // Not implemented

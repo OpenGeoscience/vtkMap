@@ -15,6 +15,8 @@
 
 #include "vtkLayer.h"
 
+unsigned int vtkLayer::GlobalId = 0;
+
 //----------------------------------------------------------------------------
 vtkLayer::vtkLayer() : vtkObject()
 {
@@ -23,6 +25,7 @@ vtkLayer::vtkLayer() : vtkObject()
   this->Renderer = NULL;
   this->Base = 0;
   this->Map = NULL;
+  this->Id = this->GlobalId + 1;
 }
 
 //----------------------------------------------------------------------------
@@ -43,7 +46,7 @@ std::string vtkLayer::GetName()
 }
 
 //----------------------------------------------------------------------------
-void vtkLayer::SetName(const std::string& name)
+void vtkLayer::SetName(const unsigned int& name)
 {
   if (name == this->Name)
     {
@@ -55,13 +58,13 @@ void vtkLayer::SetName(const std::string& name)
 }
 
 //----------------------------------------------------------------------------
-std::string vtkLayer::GetId()
+unsigned int vtkLayer::GetId()
 {
   return this->Id;
 }
 
 //----------------------------------------------------------------------------
-void vtkLayer::SetId(const std::string& id)
+void vtkLayer::SetId(const unsigned int& id)
 {
   if (id == this->Id)
     {
