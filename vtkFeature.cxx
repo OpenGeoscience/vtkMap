@@ -15,11 +15,14 @@
 #include "vtkFeature.h"
 
 //----------------------------------------------------------------------------
-vtkFeature::vtkFeature()
+vtkFeature::vtkFeature() : vtkObject()
 {
   this->Id = 0;
   this->Visibility = 1;
   this->Bin = Visible;
+  this->Gcs = 0;
+  this->Layer = 0;
+
   this->SetGcs("EPSG4326");
 }
 
