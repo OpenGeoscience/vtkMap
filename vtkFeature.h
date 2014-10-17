@@ -20,10 +20,9 @@
 
 #include <vtkObject.h>
 
-#include "vtkLayer.h"
+#include "vtkFeatureLayer.h"
 
 #include <string>
-
 
 class vtkFeature : public vtkObject
 {
@@ -37,6 +36,7 @@ public:
   virtual void PrintSelf(ostream &os, vtkIndent indent);
   vtkTypeMacro(vtkFeature, vtkObject);
 
+  // Expecting it to EPSG codes (EPSG4326)
   vtkGetStringMacro(Gcs);
   vtkSetStringMacro(Gcs);
 
@@ -47,11 +47,12 @@ public:
   vtkGetMacro(Bin, int);
   vtkSetMacro(Bin, int);
 
-  vtkGetObjectMacro(Layer, vtkLayer);
-  vtkSetObjectMacro(Layer, vtkLayer);
+  vtkGetObjectMacro(Layer, vtkFeatureLayer);
+  vtkSetObjectMacro(Layer, vtkFeatureLayer);
 
   // Description:
-  virtual void Init() = 0;
+  // Empty implementation
+  virtual void Init() { }
 
   // Description:
   virtual void CleanUp() = 0;
@@ -70,7 +71,7 @@ protected:
 
   char* Gcs;
 
-  vtkLayer* Layer;
+  vtkFeatureLayer* Layer;
 
 private:
   vtkFeature(const vtkFeature&);  // Not implemented
