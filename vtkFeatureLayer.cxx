@@ -62,9 +62,10 @@ void vtkFeatureLayer::AddFeature(vtkFeature* feature)
   if (itr == this->Impl->Features.end())
     {
     feature->SetLayer(this);
-    feature->Init();
     this->Impl->Features.push_back(feature);
     }
+
+  feature->Init();
 
   this->Modified();
 }

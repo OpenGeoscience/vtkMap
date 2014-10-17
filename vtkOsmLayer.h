@@ -51,8 +51,8 @@ protected:
   vtkMapTile* GetCachedTile(int zoom, int x, int y);
 
 protected:
-  std::map< int, std::map< int, std::map <int, vtkMapTile*> > > CachedTiles;
-  std::vector<vtkActor*> CachedActors;
+  std::map< int, std::map< int, std::map <int, vtkMapTile*> > > CachedTilesMap;
+  std::vector<vtkMapTile*> CachedTiles;
   std::vector<vtkMapTile*> NewPendingTiles;
 
 private:

@@ -46,6 +46,8 @@ vtkOsmLayer::vtkOsmLayer() : vtkFeatureLayer()
 //----------------------------------------------------------------------------
 vtkOsmLayer::~vtkOsmLayer()
 {
+  this->CachedTiles.clear();
+  this->CachedTilesMap.clear();
 }
 
 //----------------------------------------------------------------------------
@@ -219,6 +221,13 @@ void vtkOsmLayer::AddTiles()
 
   if (this->NewPendingTiles.size() > 0)
     {
+    // Remove the old tiles first
+    std::vector<vtkMapTile*>::iterator itr = this->CachedTiles.begin();
+    for (itr; itr != this->CachedTiles.end(); ++itr)
+      {
+      this->Renderer->RemoveActor((*itr)->GetActor());
+      }
+
     vtkPropCollection* props = this->Renderer->GetViewProps();
 
     props->InitTraversal();
@@ -256,18 +265,19 @@ void vtkOsmLayer::AddTiles()
 //----------------------------------------------------------------------------
 void vtkOsmLayer::AddTileToCache(int zoom, int x, int y, vtkMapTile* tile)
 {
-  this->CachedTiles[zoom][x][y] = tile;
+  this->CachedTilesMap[zoom][x][y] = tile;
+  this->CachedTiles.push_back(tile);
 }
 
 //----------------------------------------------------------------------------
 vtkMapTile *vtkOsmLayer::GetCachedTile(int zoom, int x, int y)
 {
-  if (this->CachedTiles.find(zoom) == this->CachedTiles.end() &&
-      this->CachedTiles[zoom].find(x) == this->CachedTiles[zoom].end() &&
-      this->CachedTiles[zoom][x].find(y) == this->CachedTiles[zoom][x].end())
+  if (this->CachedTilesMap.find(zoom) == this->CachedTilesMap.end() &&
+      this->CachedTilesMap[zoom].find(x) == this->CachedTilesMap[zoom].end() &&
+      this->CachedTilesMap[zoom][x].find(y) == this->CachedTilesMap[zoom][x].end())
     {
     return NULL;
     }
 
-  return this->CachedTiles[zoom][x][y];
+  return this->CachedTilesMap[zoom][x][y];
 }
