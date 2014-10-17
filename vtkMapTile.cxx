@@ -197,3 +197,9 @@ void vtkMapTile::PrintSelf(ostream &os, vtkIndent indent)
   os << "vtkMapTile" << std::endl
      << "ImageSource: " << this->ImageSource << std::endl;
 }
+
+//----------------------------------------------------------------------------
+void vtkMapTile::Update()
+{
+}
+

@@ -19,8 +19,7 @@
 #ifndef __vtkMapTile_h
 #define __vtkMapTile_h
 
-// VTK Includes
-#include "vtkObject.h"
+#include "vtkFeature.h"
 
 class vtkStdString;
 class vtkPlaneSource;
@@ -28,18 +27,12 @@ class vtkActor;
 class vtkPolyDataMapper;
 class vtkTextureMapToPlane;
 
-class vtkMapTile : public vtkObject
+class vtkMapTile : public vtkFeature
 {
 public:
   static vtkMapTile* New();
   virtual void PrintSelf(ostream &os, vtkIndent indent);
-  vtkTypeMacro (vtkMapTile, vtkObject)
-
-  enum Bins
-    {
-    Hidden = 99,
-    Visible = 100,
-    };
+  vtkTypeMacro (vtkMapTile, vtkFeature)
 
   // Description:
   // Get/Set Bing Maps QuadKey corresponding to the tile
@@ -77,6 +70,9 @@ public:
 
   void SetVisible(bool val);
   bool IsVisible();
+
+  virtual void Update();
+
 
 protected:
   vtkMapTile();

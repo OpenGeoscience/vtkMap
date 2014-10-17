@@ -46,7 +46,7 @@ std::string vtkLayer::GetName()
 }
 
 //----------------------------------------------------------------------------
-void vtkLayer::SetName(const unsigned int& name)
+void vtkLayer::SetName(const std::string& name)
 {
   if (name == this->Name)
     {

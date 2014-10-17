@@ -37,7 +37,7 @@ public:
 
   // Description:
   std::string GetName();
-  void SetName(const unsigned int &Name);
+  void SetName(const std::string& Name);
 
   // Description:
   unsigned int GetId();

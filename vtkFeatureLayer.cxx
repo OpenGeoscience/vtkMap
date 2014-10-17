@@ -16,13 +16,19 @@
 
 #include "vtkFeature.h"
 
+#include <vtkObjectFactory.h>
+
+#include <algorithm>
+#include <iterator>
 #include <vector>
+
+vtkStandardNewMacro(vtkFeatureLayer);
 
 //----------------------------------------------------------------------------
 class vtkFeatureLayer::vtkInternal
 {
 public:
-  std::vector<vtkFeature> Features;
+  std::vector<vtkFeature*> Features;
 };
 
 //----------------------------------------------------------------------------
@@ -33,6 +39,12 @@ vtkFeatureLayer::vtkFeatureLayer()
 //----------------------------------------------------------------------------
 vtkFeatureLayer::~vtkFeatureLayer()
 {
+}
+
+//----------------------------------------------------------------------------
+void vtkFeatureLayer::PrintSelf(std::ostream& os, vtkIndent indent)
+{
+  // TODO
 }
 
 //----------------------------------------------------------------------------
@@ -70,6 +82,6 @@ void vtkFeatureLayer::Update()
 {
   for (size_t i = 0; i < this->Impl->Features.size(); i += 1)
     {
-    m_features[i]._update();
+    this->Impl->Features[i]->Update();
     }
 }

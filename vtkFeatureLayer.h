@@ -20,9 +20,12 @@
 
 #include "vtkLayer.h"
 
+class vtkFeature;
+
 class vtkFeatureLayer : public vtkLayer
 {
 public:
+  static vtkFeatureLayer* New();
   virtual void PrintSelf(ostream &os, vtkIndent indent);
   vtkTypeMacro(vtkFeatureLayer, vtkLayer)
 
