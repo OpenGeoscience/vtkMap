@@ -71,6 +71,9 @@ protected:
 
   char* Gcs;
 
+  vtkTimeStamp BuildTime;
+  vtkTimeStamp UpdateTime;
+
   vtkFeatureLayer* Layer;
 
 private:

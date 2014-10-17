@@ -201,7 +201,11 @@ void vtkMapTile::PrintSelf(ostream &os, vtkIndent indent)
 //----------------------------------------------------------------------------
 void vtkMapTile::Init()
 {
-  this->Build(this->Layer->GetMap()->GetCacheDirectory());
+  if (this->GetMTime() > this->BuildTime.GetMTime())
+    {
+    this->Build(this->Layer->GetMap()->GetCacheDirectory());
+    this->BuildTime.Modified();
+    }
   this->Layer->GetRenderer()->AddActor(this->Actor);
 }
 

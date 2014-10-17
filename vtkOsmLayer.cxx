@@ -232,13 +232,13 @@ void vtkOsmLayer::AddTiles()
 
     this->Renderer->RemoveAllViewProps();
 
-    std::sort(this->NewPendingTiles.begin(), this->NewPendingTiles.end(),
+    std::sort(this->NewPendingTiles.begin(),
+              this->NewPendingTiles.end(),
               sortTiles());
 
     for (int i = 0; i < this->NewPendingTiles.size(); ++i)
       {
       // Add tile to the renderer
-      //this->Renderer->AddActor(this->NewPendingTiles[i]->GetActor());
       this->AddFeature(this->NewPendingTiles[i]);
       }
 
@@ -257,7 +257,6 @@ void vtkOsmLayer::AddTiles()
 void vtkOsmLayer::AddTileToCache(int zoom, int x, int y, vtkMapTile* tile)
 {
   this->CachedTiles[zoom][x][y] = tile;
-//  this->CachedActors.push_back(tile->GetActor());
 }
 
 //----------------------------------------------------------------------------
