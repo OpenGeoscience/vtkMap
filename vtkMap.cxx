@@ -167,8 +167,8 @@ void vtkMap::AddLayer(vtkLayer* layer)
     }
   else
     {
-    std::vector<vtkLayer*>::iterator it = std::find(this->Layers.begin(),
-                                                    this->Layers.end(), layer);
+    std::vector<vtkLayer*>::iterator it =
+        std::find(this->Layers.begin(), this->Layers.end(), layer);
     if (it != this->Layers.end())
       {
       // TODO Use bin numbers to sort layer and its actors
