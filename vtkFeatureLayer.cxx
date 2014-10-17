@@ -34,11 +34,13 @@ public:
 //----------------------------------------------------------------------------
 vtkFeatureLayer::vtkFeatureLayer()
 {
+  this->Impl = new vtkInternal();
 }
 
 //----------------------------------------------------------------------------
 vtkFeatureLayer::~vtkFeatureLayer()
 {
+  delete this->Impl;
 }
 
 //----------------------------------------------------------------------------
@@ -60,6 +62,7 @@ void vtkFeatureLayer::AddFeature(vtkFeature* feature)
   if (itr == this->Impl->Features.end())
     {
     feature->SetLayer(this);
+    feature->Init();
     this->Impl->Features.push_back(feature);
     }
 
@@ -74,7 +77,7 @@ void vtkFeatureLayer::RemoveFeature(vtkFeature* feature)
     return;
     }
 
-  feature->SetLayer(0);
+  feature->CleanUp();
   this->Impl->Features.erase(std::remove(this->Impl->Features.begin(),
                              this->Impl->Features.end(), feature));
 }

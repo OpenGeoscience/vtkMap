@@ -71,7 +71,7 @@ vtkMapTile::~vtkMapTile()
 }
 
 //----------------------------------------------------------------------------
-void vtkMapTile::Init(const char *cacheDirectory)
+void vtkMapTile::Build(const char* cacheDirectory)
 {
 
   this->Plane = vtkPlaneSource::New();
@@ -196,6 +196,20 @@ void vtkMapTile::PrintSelf(ostream &os, vtkIndent indent)
   Superclass::PrintSelf(os, indent);
   os << "vtkMapTile" << std::endl
      << "ImageSource: " << this->ImageSource << std::endl;
+}
+
+//----------------------------------------------------------------------------
+void vtkMapTile::Init()
+{
+  this->Build(this->Layer->GetMap()->GetCacheDirectory());
+  this->Layer->GetRenderer()->AddActor(this->Actor);
+}
+
+//----------------------------------------------------------------------------
+void vtkMapTile::CleanUp()
+{
+  this->Layer->GetRenderer()->RemoveActor(this->Actor);
+  this->SetLayer(0);
 }
 
 //----------------------------------------------------------------------------

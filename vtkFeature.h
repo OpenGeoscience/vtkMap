@@ -51,6 +51,12 @@ public:
   vtkSetObjectMacro(Layer, vtkLayer);
 
   // Description:
+  virtual void Init() = 0;
+
+  // Description:
+  virtual void CleanUp() = 0;
+
+  // Description:
   // Update feature and prepare it for rendering
   virtual void Update() = 0;
 

@@ -64,12 +64,14 @@ public:
   void SetCenter(double* center);
   void SetCenter(double x, double y, double z);
 
-  // Description:
-  // Create the geometry and download the image if necessary
-  void Init(const char *cacheDirectory);
-
   void SetVisible(bool val);
   bool IsVisible();
+
+  // Description:
+  // Create the geometry and download the image if necessary
+  virtual void Init();
+
+  virtual void CleanUp();
 
   virtual void Update();
 
@@ -77,6 +79,8 @@ public:
 protected:
   vtkMapTile();
   ~vtkMapTile();
+
+  void Build(const char* cacheDirectory);
 
   // Description:
   // Check if the corresponding image is downloaded

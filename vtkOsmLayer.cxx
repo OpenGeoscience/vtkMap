@@ -16,6 +16,7 @@
 #include "vtkOsmLayer.h"
 
 #include "vtkMercator.h"
+#include "vtkMapTile.h"
 
 #include <vtkObjectFactory.h>
 
@@ -209,7 +210,6 @@ void vtkOsmLayer::AddTiles()
         tile->SetImageKey(oss.str());
         tile->SetImageSource("http://tile.openstreetmap.org/" + zoom + "/" + row +
                              "/" + col + ".png");
-        tile->Init(this->Map->GetCacheDirectory());
         this->AddTileToCache(this->Map->GetTileZoom(), xIndex, yIndex, tile);
       }
     this->NewPendingTiles.push_back(tile);
@@ -219,12 +219,6 @@ void vtkOsmLayer::AddTiles()
 
   if (this->NewPendingTiles.size() > 0)
     {
-    std::vector<vtkActor*>::iterator itr = this->CachedActors.begin();
-    for (itr; itr != this->CachedActors.end(); ++itr)
-      {
-      this->Renderer->RemoveActor(*itr);
-      }
-
     vtkPropCollection* props = this->Renderer->GetViewProps();
 
     props->InitTraversal();
@@ -244,7 +238,8 @@ void vtkOsmLayer::AddTiles()
     for (int i = 0; i < this->NewPendingTiles.size(); ++i)
       {
       // Add tile to the renderer
-      this->Renderer->AddActor(this->NewPendingTiles[i]->GetActor());
+      //this->Renderer->AddActor(this->NewPendingTiles[i]->GetActor());
+      this->AddFeature(this->NewPendingTiles[i]);
       }
 
     std::vector<vtkProp*>::iterator itr2 = otherProps.begin();
@@ -262,7 +257,7 @@ void vtkOsmLayer::AddTiles()
 void vtkOsmLayer::AddTileToCache(int zoom, int x, int y, vtkMapTile* tile)
 {
   this->CachedTiles[zoom][x][y] = tile;
-  this->CachedActors.push_back(tile->GetActor());
+//  this->CachedActors.push_back(tile->GetActor());
 }
 
 //----------------------------------------------------------------------------
