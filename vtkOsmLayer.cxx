@@ -37,7 +37,7 @@ struct sortTiles
 };
 
 //----------------------------------------------------------------------------
-vtkOsmLayer::vtkOsmLayer() : vtkLayer()
+vtkOsmLayer::vtkOsmLayer() : vtkFeatureLayer()
 {
   this->BaseOn();
 }
