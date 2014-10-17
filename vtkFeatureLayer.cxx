@@ -59,6 +59,7 @@ void vtkFeatureLayer::AddFeature(vtkFeature* feature)
     this->Impl->Features.begin(), this->Impl->Features.end(), feature);
   if (itr == this->Impl->Features.end())
     {
+    feature->SetLayer(this);
     this->Impl->Features.push_back(feature);
     }
 
@@ -73,6 +74,7 @@ void vtkFeatureLayer::RemoveFeature(vtkFeature* feature)
     return;
     }
 
+  feature->SetLayer(0);
   this->Impl->Features.erase(std::remove(this->Impl->Features.begin(),
                              this->Impl->Features.end(), feature));
 }
