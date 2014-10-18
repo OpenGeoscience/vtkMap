@@ -88,6 +88,7 @@ void vtkFeatureLayer::Update()
 {
   for (size_t i = 0; i < this->Impl->Features.size(); i += 1)
     {
+    this->Impl->Features[i]->SetVisibility(this->GetVisibility());
     this->Impl->Features[i]->Update();
     }
 }

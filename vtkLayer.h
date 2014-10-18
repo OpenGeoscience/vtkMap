@@ -48,9 +48,9 @@ public:
   vtkSetMacro(Opacity, double)
 
   // Description:
-  vtkBooleanMacro(Visible, int)
-  vtkGetMacro(Visible, int)
-  vtkSetMacro(Visible, int)
+  vtkBooleanMacro(Visibility, int)
+  vtkGetMacro(Visibility, int)
+  vtkSetMacro(Visibility, int)
 
   // Description:
   vtkBooleanMacro(Base, int)
@@ -69,7 +69,7 @@ protected:
   virtual ~vtkLayer();
 
   double Opacity;
-  int Visible;
+  int Visibility;
   int Base;
 
   std::string Name;

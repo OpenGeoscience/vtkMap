@@ -20,7 +20,7 @@ unsigned int vtkLayer::GlobalId = 0;
 //----------------------------------------------------------------------------
 vtkLayer::vtkLayer() : vtkObject()
 {
-  this->Visible = 1;
+  this->Visibility = 1;
   this->Opacity = 1.0;
   this->Renderer = NULL;
   this->Base = 0;

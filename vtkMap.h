@@ -90,6 +90,9 @@ public:
   void AddLayer(vtkLayer* layer);
   void RemoveLayer(vtkLayer* layer);
 
+  // TODO Implement this
+  //void SetLayerOrder(vtkLaye* layer, int offsetFromCurrent);
+
   // Description:
   // Update the renderer with relevant tiles to draw the Map
   void Update();

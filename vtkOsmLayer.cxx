@@ -70,6 +70,8 @@ void vtkOsmLayer::Update()
     }
 
   this->AddTiles();
+
+  this->Superclass::Update();
 }
 
 //----------------------------------------------------------------------------
