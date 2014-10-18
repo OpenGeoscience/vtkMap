@@ -102,6 +102,8 @@ void vtkMapTile::Build(const char* cacheDirectory)
   this->Actor->SetMapper(Mapper);
   this->Actor->SetTexture(texture.GetPointer());
   this->Actor->PickableOff();
+
+  this->BuildTime.Modified();
 }
 
 //----------------------------------------------------------------------------
@@ -204,7 +206,6 @@ void vtkMapTile::Init()
   if (this->GetMTime() > this->BuildTime.GetMTime())
     {
     this->Build(this->Layer->GetMap()->GetCacheDirectory());
-    this->BuildTime.Modified();
     }
   this->Layer->GetRenderer()->AddActor(this->Actor);
 }
@@ -219,5 +220,6 @@ void vtkMapTile::CleanUp()
 //----------------------------------------------------------------------------
 void vtkMapTile::Update()
 {
+  this->UpdateTime.Modified();
 }
 
