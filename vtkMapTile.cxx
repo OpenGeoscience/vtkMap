@@ -220,6 +220,7 @@ void vtkMapTile::CleanUp()
 //----------------------------------------------------------------------------
 void vtkMapTile::Update()
 {
+  this->Actor->SetVisibility(this->Visibility);
   this->UpdateTime.Modified();
 }
 
