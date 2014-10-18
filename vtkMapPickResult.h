@@ -1,7 +1,6 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkMapPickResult.h
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
