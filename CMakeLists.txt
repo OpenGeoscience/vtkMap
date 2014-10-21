@@ -7,12 +7,13 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 option(BUILD_SHARED_LIBS "Build vtkMap with shared libraries" ON)
 
 set (VTK_REQUIRED_COMPONENTS
-    # Core components
-    vtkRenderingCore
-    vtkRenderingOpenGL
     vtkCommonCore
     vtkFiltersTexture
-    vtkInteractionStyle)
+    vtkInteractionStyle
+    vtkjsoncpp
+    vtkRenderingCore
+    vtkRenderingOpenGL
+)
 
 
 option(BUILD_QT_APPS "Build Qt applications (source files in Qt subdirectory)" OFF)

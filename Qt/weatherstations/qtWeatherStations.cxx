@@ -32,7 +32,6 @@
 #include <QString>
 #include <QVBoxLayout>
 #include <curl/curl.h>
-#include <cJSON/cJSON.h>
 #include <sstream>
 #include <stdlib.h>  // for sprintf
 
@@ -195,8 +194,8 @@ void qtWeatherStations::showStations()
   this->StationMap.clear();
 
   // Request weather station data
-  cJSON *json = this->RequestStationData();
-  if (!json)
+  Json::Value json = this->RequestStationData();
+  if (json.isNull())
     {
     return;
     }
@@ -204,12 +203,12 @@ void qtWeatherStations::showStations()
   std::vector<StationReport> stationList = this->ParseStationData(json);
   this->DisplayStationData(stationList);
   this->DisplayStationMarkers(stationList);
-  cJSON_Delete(json);
 }
 
 // ------------------------------------------------------------
-cJSON *qtWeatherStations::RequestStationData()
+Json::Value qtWeatherStations::RequestStationData()
 {
+  Json::Value json;  // return value
   std::stringstream ss;
 
   // Get current map coordinates
@@ -250,63 +249,62 @@ cJSON *qtWeatherStations::RequestStationData()
   // Parse input string (json)
   curlStream.seekp(0L);
   std::string curlData = curlStream.str();
+  //std::cout << curlData << std::endl;
 
-  cJSON *json = cJSON_Parse(curlData.c_str());
-  if (!json)
+  Json::Reader reader;
+  if (!reader.parse(curlStream, json, false))
     {
     ss << "\n" << "Error parsing input data - see console for more info.";
-    std::cerr << "Error before: [" << cJSON_GetErrorPtr() << "]" << std::endl;
+    std::cerr << reader.getFormattedErrorMessages() << std::endl;
     }
   this->UI->StationText->append(QString::fromStdString(ss.str()));
-
-  // char *out = cJSON_Print(json);
-  // printf("%s\n",out);
-  // free(out);
+  //std::cout << "json.type() " << json.type() << std::endl;
+  //std::cout << json.asString() << std::endl;
 
   return json;
 }
 
 // ------------------------------------------------------------
 // Parses json object and returns list of station reports
-std::vector<StationReport> qtWeatherStations::ParseStationData(cJSON *json)
+std::vector<StationReport>
+qtWeatherStations::ParseStationData(Json::Value json)
 {
   std::vector<StationReport> stationList;  // return value
 
-  cJSON *stationListNode = cJSON_GetObjectItem(json, "list");
-  if (!stationListNode)
+  Json::Value stationListNode = json["list"];
+  if (stationListNode.isNull())
     {
     return stationList;
     }
 
-  int stationListSize = cJSON_GetArraySize(stationListNode);
-  for (int i=0; i<stationListSize; ++i)
+  for (int i=0; i<stationListNode.size(); ++i)
     {
     StationReport station;
 
     // Station ID & name
-    cJSON *stationNode = cJSON_GetArrayItem(stationListNode, i);
+    Json::Value stationNode = stationListNode[i];
 
-    cJSON *idNode = cJSON_GetObjectItem(stationNode, "id");
-    station.id = idNode->valueint;
+    Json::Value idNode = stationNode["id"];
+    station.id = idNode.asInt();
 
-    cJSON *nameNode = cJSON_GetObjectItem(stationNode, "name");
-    station.name = nameNode->valuestring;
+    Json::Value nameNode = stationNode["name"];
+    station.name = nameNode.asString();
 
     // Geo coords
-    cJSON *coordNode = cJSON_GetObjectItem(stationNode, "coord");
-    cJSON *latNode = cJSON_GetObjectItem(coordNode, "lat");
-    cJSON *lonNode = cJSON_GetObjectItem(coordNode, "lon");
-    station.latitude = latNode->valuedouble;
-    station.longitude = lonNode->valuedouble;
+    Json::Value coordNode = stationNode["coord"];
+    Json::Value latNode = coordNode["lat"];
+    Json::Value lonNode = coordNode["lon"];
+    station.latitude = latNode.asDouble();
+    station.longitude = lonNode.asDouble();
 
     // Datetime
-    cJSON *dtNode = cJSON_GetObjectItem(stationNode, "dt");
-    station.datetime = time_t(dtNode->valueint);  // dt units are seconds
+    Json::Value dtNode = stationNode["dt"];
+    station.datetime = time_t(dtNode.asInt());  // dt units are seconds
 
     // Current temp
-    cJSON *mainNode = cJSON_GetObjectItem(stationNode, "main");
-    cJSON *tempNode = cJSON_GetObjectItem(mainNode, "temp");
-    station.temperature = tempNode->valuedouble;
+    Json::Value mainNode = stationNode["main"];
+    Json::Value tempNode = mainNode["temp"];
+    station.temperature = tempNode.asDouble();
 
     stationList.push_back(station);
     }
