@@ -24,7 +24,6 @@
 class vtkActor;
 class vtkInteractorStyle;
 class vtkInteractorStyleMap;
-class vtkMapTile;
 class vtkMapMarkerSet;
 class vtkMapPickResult;
 class vtkPicker;
@@ -45,12 +44,12 @@ public:
   vtkTypeMacro(vtkMap, vtkObject)
 
   // Description:
-  // Get/Set the renderer in which map tiles will be added
+  // Get/Set the renderer to which map content will be added
   vtkGetMacro(Renderer, vtkRenderer*)
   vtkSetMacro(Renderer, vtkRenderer*)
 
   // Description:
-  // Get/Set the interactor style in which map tiles will be added
+  // Get/Set the interactor style for the map renderer
   // Note these are asymmetric on purpose
   vtkSetMacro(InteractorStyle, vtkInteractorStyleMap*)
   vtkInteractorStyle *GetInteractorStyle();
@@ -80,7 +79,7 @@ public:
   vtkSetVector2Macro(Center, double);
 
   // Description:
-  // Get/Set the directory used for caching map tiles
+  // Get/Set the directory used for caching map files
   vtkGetStringMacro(CacheDirectory);
   vtkSetStringMacro(CacheDirectory);
 
@@ -93,11 +92,11 @@ public:
   //void SetLayerOrder(vtkLaye* layer, int offsetFromCurrent);
 
   // Description:
-  // Update the renderer with relevant tiles to draw the Map
+  // Update the map contents for the current view
   void Update();
 
   // Description:
-  // Update the renderer with relevant tiles to draw the Map
+  // Update the renderer with relevant map content
   void Draw();
 
   // Description:
@@ -123,24 +122,8 @@ protected:
   ~vtkMap();
 
   // Description:
-  // Add visible tiles to the renderer
-  void AddTiles();
-
-  // Description:
-  // Remove hidden/invisible tiles from the renderer
-  void RemoveTiles();
-
-  // Description:
   // Clips a number to the specified minimum and maximum values.
   double Clip(double n, double minValue, double maxValue);
-
-  // Description:
-  // Add tile to the cache
-  void AddTileToCache(int zoom, int x, int y, vtkMapTile* tile);
-
-  // Description:
-  // Return cached tile givena zoom level and indices x and y
-  vtkMapTile* GetCachedTile(int zoom, int x, int y);
 
   // Description:
   // The renderer used to draw the maps
@@ -162,7 +145,7 @@ protected:
   // Center of the map
   double Center[2];
 
-  // Directory for caching map tiles
+  // Directory for caching map files
   char* CacheDirectory;
 
   // Description:
@@ -173,7 +156,7 @@ protected:
   bool Initialized;
 
   // Description:
-  // Effective zoom used by the tiles
+  // Effective zoom used by map tiles
   int TileZoom;
 
   // Description:
