@@ -40,11 +40,13 @@ void scrollCallback(vtkObject* caller, long unsigned int vtkNotUsed(eventId),
 int main(int, char*[])
 {
   vtkNew<vtkMap> map;
+  // Always set map's renderer *before* adding layers
+  vtkNew<vtkRenderer> renderer;
+  map->SetRenderer(renderer.GetPointer());
+
   vtkNew<vtkOsmLayer> osmLayer;
   map->AddLayer(osmLayer.GetPointer());
 
-  vtkNew<vtkRenderer> renderer;
-  map->SetRenderer(renderer.GetPointer());
   map->SetCenter(42.849604, -73.758345);  // KHQ
   map->SetZoom(10);
 

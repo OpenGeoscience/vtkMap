@@ -150,6 +150,13 @@ void vtkMap::GetCenter(double (&latlngPoint)[2])
 //----------------------------------------------------------------------------
 void vtkMap::AddLayer(vtkLayer* layer)
 {
+  if (!this->Renderer)
+    {
+    vtkWarningMacro("Cannot add layer to vtkMap."
+                    <<" Must set map's renderer *before* adding layers.");
+    return;
+    }
+
   if (layer->GetBase())
     {
     if (layer == this->BaseLayer)
