@@ -69,11 +69,6 @@ public:
   vtkSetMacro(Zoom, int)
 
   // Description:
-  // Get/Set the tile zoom level
-  vtkGetMacro(TileZoom, int)
-  vtkSetMacro(TileZoom, int)
-
-  // Description:
   // Get/Set center of the map
   void GetCenter(double (&latlngPoint)[2]);
   vtkSetVector2Macro(Center, double);
@@ -154,10 +149,6 @@ protected:
 
 protected:
   bool Initialized;
-
-  // Description:
-  // Effective zoom used by map tiles
-  int TileZoom;
 
   // Description:
   // Base layer that dictates the coordinate tranformation

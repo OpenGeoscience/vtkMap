@@ -79,7 +79,6 @@ vtkMap::vtkMap()
   this->Center[0] = this->Center[1] = 0.0;
   this->MapMarkerSet = vtkMapMarkerSet::New();
   this->Initialized = false;
-  this->TileZoom = 1;
   this->BaseLayer = NULL;
 }
 
@@ -201,9 +200,6 @@ void vtkMap::Update()
   // Compute the zoom level here
   this->SetZoom(computeZoomLevel(this->Renderer->GetActiveCamera()));
 
-  // Update the tile zoom
-  this->TileZoom = this->Zoom + 1;
-
   // Update the base layer first
   this->BaseLayer->Update();
 
@@ -212,7 +208,7 @@ void vtkMap::Update()
     this->Layers[i]->Update();
     }
 
-  this->MapMarkerSet->Update(this->TileZoom);
+  this->MapMarkerSet->Update(this->Zoom);
 }
 
 //----------------------------------------------------------------------------
