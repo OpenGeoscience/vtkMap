@@ -37,6 +37,7 @@ set (SOURCES
     vtkMap.cxx
     vtkLayer.cxx
     vtkOsmLayer.cxx
+    vtkPolydataFeature.cxx
     vtkTeardropSource.cxx
 )
 
