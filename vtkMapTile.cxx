@@ -1,7 +1,6 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkMapTile.cxx
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -71,7 +70,7 @@ vtkMapTile::~vtkMapTile()
 }
 
 //----------------------------------------------------------------------------
-void vtkMapTile::Init(const char *cacheDirectory)
+void vtkMapTile::Build(const char* cacheDirectory)
 {
 
   this->Plane = vtkPlaneSource::New();
@@ -102,6 +101,8 @@ void vtkMapTile::Init(const char *cacheDirectory)
   this->Actor->SetMapper(Mapper);
   this->Actor->SetTexture(texture.GetPointer());
   this->Actor->PickableOff();
+
+  this->BuildTime.Modified();
 }
 
 //----------------------------------------------------------------------------
@@ -197,3 +198,28 @@ void vtkMapTile::PrintSelf(ostream &os, vtkIndent indent)
   os << "vtkMapTile" << std::endl
      << "ImageSource: " << this->ImageSource << std::endl;
 }
+
+//----------------------------------------------------------------------------
+void vtkMapTile::Init()
+{
+  if (this->GetMTime() > this->BuildTime.GetMTime())
+    {
+    this->Build(this->Layer->GetMap()->GetCacheDirectory());
+    }
+  this->Layer->GetRenderer()->AddActor(this->Actor);
+}
+
+//----------------------------------------------------------------------------
+void vtkMapTile::CleanUp()
+{
+  this->Layer->GetRenderer()->RemoveActor(this->Actor);
+  this->SetLayer(0);
+}
+
+//----------------------------------------------------------------------------
+void vtkMapTile::Update()
+{
+  this->Actor->SetVisibility(this->Visibility);
+  this->UpdateTime.Modified();
+}
+

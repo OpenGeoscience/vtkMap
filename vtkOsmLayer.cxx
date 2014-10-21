@@ -1,7 +1,6 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkMap.h
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -16,6 +15,7 @@
 #include "vtkOsmLayer.h"
 
 #include "vtkMercator.h"
+#include "vtkMapTile.h"
 
 #include <vtkObjectFactory.h>
 
@@ -37,7 +37,7 @@ struct sortTiles
 };
 
 //----------------------------------------------------------------------------
-vtkOsmLayer::vtkOsmLayer() : vtkLayer()
+vtkOsmLayer::vtkOsmLayer() : vtkFeatureLayer()
 {
   this->BaseOn();
 }
@@ -45,6 +45,8 @@ vtkOsmLayer::vtkOsmLayer() : vtkLayer()
 //----------------------------------------------------------------------------
 vtkOsmLayer::~vtkOsmLayer()
 {
+  this->CachedTiles.clear();
+  this->CachedTilesMap.clear();
 }
 
 //----------------------------------------------------------------------------
@@ -61,12 +63,9 @@ void vtkOsmLayer::Update()
     return;
     }
 
-  if (this->Renderer != this->Map->GetRenderer())
-    {
-    this->Renderer = this->Map->GetRenderer();
-    }
-
   this->AddTiles();
+
+  this->Superclass::Update();
 }
 
 //----------------------------------------------------------------------------
@@ -129,13 +128,15 @@ void vtkOsmLayer::AddTiles()
   topRight[1] = std::max(topRight[1], -180.0);
   topRight[1] = std::min(topRight[1],  180.0);
 
-  int tile1x = vtkMercator::long2tilex(bottomLeft[0], this->Map->GetTileZoom());
-  int tile2x = vtkMercator::long2tilex(topRight[0], this->Map->GetTileZoom());
+  int zoomLevel = this->Map->GetZoom() + 1;
+
+  int tile1x = vtkMercator::long2tilex(bottomLeft[0], zoomLevel);
+  int tile2x = vtkMercator::long2tilex(topRight[0], zoomLevel);
 
   int tile1y = vtkMercator::lat2tiley(
-                 vtkMercator::y2lat(bottomLeft[1]), this->Map->GetTileZoom());
+                 vtkMercator::y2lat(bottomLeft[1]), zoomLevel);
   int tile2y = vtkMercator::lat2tiley(
-                 vtkMercator::y2lat(topRight[1]), this->Map->GetTileZoom());
+                 vtkMercator::y2lat(topRight[1]), zoomLevel);
 
   //std::cerr << "tile1y " << tile1y << " " << tile2y << std::endl;
 
@@ -151,17 +152,17 @@ void vtkOsmLayer::AddTiles()
 
   /// Clamp tilex and tiley
   tile1x = std::max(tile1x, 0);
-  tile1x = std::min(static_cast<int>(pow(2, this->Map->GetTileZoom())) - 1, tile1x);
+  tile1x = std::min(static_cast<int>(pow(2, zoomLevel)) - 1, tile1x);
   tile2x = std::max(tile2x, 0);
-  tile2x = std::min(static_cast<int>(pow(2, this->Map->GetTileZoom())) - 1, tile2x);
+  tile2x = std::min(static_cast<int>(pow(2, zoomLevel)) - 1, tile2x);
 
   tile1y = std::max(tile1y, 0);
-  tile1y = std::min(static_cast<int>(pow(2, this->Map->GetTileZoom())) - 1, tile1y);
+  tile1y = std::min(static_cast<int>(pow(2, zoomLevel)) - 1, tile1y);
   tile2y = std::max(tile2y, 0);
-  tile2y = std::min(static_cast<int>(pow(2, this->Map->GetTileZoom())) - 1, tile2y);
+  tile2y = std::min(static_cast<int>(pow(2, zoomLevel)) - 1, tile2y);
 
-  int noOfTilesX = std::max(1, static_cast<int>(pow(2, this->Map->GetTileZoom())));
-  int noOfTilesY = std::max(1, static_cast<int>(pow(2, this->Map->GetTileZoom())));
+  int noOfTilesX = std::max(1, static_cast<int>(pow(2, zoomLevel)));
+  int noOfTilesY = std::max(1, static_cast<int>(pow(2, zoomLevel)));
 
   double lonPerTile = 360.0 / noOfTilesX;
   double latPerTile = 360.0 / noOfTilesY;
@@ -178,9 +179,9 @@ void vtkOsmLayer::AddTiles()
     for (int j = tile2y; j <= tile1y; ++j)
       {
       xIndex = i;
-      yIndex = static_cast<int>(pow(2, this->Map->GetTileZoom())) - 1 - j;
+      yIndex = static_cast<int>(pow(2, zoomLevel)) - 1 - j;
 
-      vtkMapTile* tile = this->GetCachedTile(this->Map->GetTileZoom(), xIndex, yIndex);
+      vtkMapTile* tile = this->GetCachedTile(zoomLevel, xIndex, yIndex);
       if (!tile)
         {
         tile = vtkMapTile::New();
@@ -192,7 +193,7 @@ void vtkOsmLayer::AddTiles()
         tile->SetCorners(llx, lly, urx, ury);
 
         std::ostringstream oss;
-        oss << this->Map->GetTileZoom();
+        oss << zoomLevel;
         std::string zoom = oss.str();
         oss.str("");
 
@@ -200,7 +201,7 @@ void vtkOsmLayer::AddTiles()
         std::string row = oss.str();
         oss.str("");
 
-        oss << (static_cast<int>(pow(2, this->Map->GetTileZoom())) - 1 - yIndex);
+        oss << (static_cast<int>(pow(2, zoomLevel)) - 1 - yIndex);
         std::string col = oss.str();
         oss.str("");
 
@@ -209,8 +210,7 @@ void vtkOsmLayer::AddTiles()
         tile->SetImageKey(oss.str());
         tile->SetImageSource("http://tile.openstreetmap.org/" + zoom + "/" + row +
                              "/" + col + ".png");
-        tile->Init(this->Map->GetCacheDirectory());
-        this->AddTileToCache(this->Map->GetTileZoom(), xIndex, yIndex, tile);
+        this->AddTileToCache(zoomLevel, xIndex, yIndex, tile);
       }
     this->NewPendingTiles.push_back(tile);
     tile->SetVisible(true);
@@ -219,10 +219,11 @@ void vtkOsmLayer::AddTiles()
 
   if (this->NewPendingTiles.size() > 0)
     {
-    std::vector<vtkActor*>::iterator itr = this->CachedActors.begin();
-    for (itr; itr != this->CachedActors.end(); ++itr)
+    // Remove the old tiles first
+    std::vector<vtkMapTile*>::iterator itr = this->CachedTiles.begin();
+    for (itr; itr != this->CachedTiles.end(); ++itr)
       {
-      this->Renderer->RemoveActor(*itr);
+      this->Renderer->RemoveActor((*itr)->GetActor());
       }
 
     vtkPropCollection* props = this->Renderer->GetViewProps();
@@ -238,13 +239,14 @@ void vtkOsmLayer::AddTiles()
 
     this->Renderer->RemoveAllViewProps();
 
-    std::sort(this->NewPendingTiles.begin(), this->NewPendingTiles.end(),
+    std::sort(this->NewPendingTiles.begin(),
+              this->NewPendingTiles.end(),
               sortTiles());
 
     for (int i = 0; i < this->NewPendingTiles.size(); ++i)
       {
       // Add tile to the renderer
-      this->Renderer->AddActor(this->NewPendingTiles[i]->GetActor());
+      this->AddFeature(this->NewPendingTiles[i]);
       }
 
     std::vector<vtkProp*>::iterator itr2 = otherProps.begin();
@@ -261,19 +263,19 @@ void vtkOsmLayer::AddTiles()
 //----------------------------------------------------------------------------
 void vtkOsmLayer::AddTileToCache(int zoom, int x, int y, vtkMapTile* tile)
 {
-  this->CachedTiles[zoom][x][y] = tile;
-  this->CachedActors.push_back(tile->GetActor());
+  this->CachedTilesMap[zoom][x][y] = tile;
+  this->CachedTiles.push_back(tile);
 }
 
 //----------------------------------------------------------------------------
 vtkMapTile *vtkOsmLayer::GetCachedTile(int zoom, int x, int y)
 {
-  if (this->CachedTiles.find(zoom) == this->CachedTiles.end() &&
-      this->CachedTiles[zoom].find(x) == this->CachedTiles[zoom].end() &&
-      this->CachedTiles[zoom][x].find(y) == this->CachedTiles[zoom][x].end())
+  if (this->CachedTilesMap.find(zoom) == this->CachedTilesMap.end() &&
+      this->CachedTilesMap[zoom].find(x) == this->CachedTilesMap[zoom].end() &&
+      this->CachedTilesMap[zoom][x].find(y) == this->CachedTilesMap[zoom][x].end())
     {
     return NULL;
     }
 
-  return this->CachedTiles[zoom][x][y];
+  return this->CachedTilesMap[zoom][x][y];
 }

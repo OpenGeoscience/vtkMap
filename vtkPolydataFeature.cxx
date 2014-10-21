@@ -12,75 +12,60 @@
 
 =========================================================================*/
 
-#include "vtkLayer.h"
+#include "vtkPolydataFeature.h"
 
-unsigned int vtkLayer::GlobalId = 0;
+#include <vtkObjectFactory.h>
+
+vtkStandardNewMacro(vtkPolydataFeature);
 
 //----------------------------------------------------------------------------
-vtkLayer::vtkLayer() : vtkObject()
+vtkPolydataFeature::vtkPolydataFeature() : vtkFeature()
 {
-  this->Visibility = 1;
-  this->Opacity = 1.0;
-  this->Renderer = NULL;
-  this->Base = 0;
-  this->Map = NULL;
-  this->Id = this->GlobalId + 1;
+  this->Actor = vtkActor::New();
+  this->Mapper = vtkPolyDataMapper::New();
 }
 
 //----------------------------------------------------------------------------
-vtkLayer::~vtkLayer()
+vtkPolydataFeature::~vtkPolydataFeature()
 {
+  this->Actor->Delete();
+  this->Actor = 0;
+
+  this->Mapper->Delete();
+  this->Mapper = 0;
 }
 
 //----------------------------------------------------------------------------
-void vtkLayer::PrintSelf(ostream& os, vtkIndent indent)
+void vtkPolydataFeature::PrintSelf(std::ostream& os, vtkIndent indent)
 {
   // TODO
 }
 
 //----------------------------------------------------------------------------
-std::string vtkLayer::GetName()
+void vtkPolydataFeature::Init()
 {
-  return this->Name;
-}
-
-//----------------------------------------------------------------------------
-void vtkLayer::SetName(const std::string& name)
-{
-  if (name == this->Name)
+  if (this->GetMTime() > this->BuildTime.GetMTime())
     {
-    return;
-    }
+    this->Mapper->Update();
 
-  this->Name = name;
-  this->Modified();
+    if (!this->Actor->GetMapper())
+      {
+      this->Actor->SetMapper(this->Mapper);
+      }
+    }
+  this->Layer->GetRenderer()->AddActor(this->Actor);
 }
 
 //----------------------------------------------------------------------------
-unsigned int vtkLayer::GetId()
+void vtkPolydataFeature::Update()
 {
-  return this->Id;
+  this->Actor->SetVisibility(this->Visibility);
+  this->UpdateTime.Modified();
 }
 
 //----------------------------------------------------------------------------
-void vtkLayer::SetId(const unsigned int& id)
+void vtkPolydataFeature::CleanUp()
 {
-  if (id == this->Id)
-    {
-    return;
-    }
-
-  this->Id = id;
-  this->Modified();
-}
-
-//----------------------------------------------------------------------------
-void vtkLayer::SetMap(vtkMap* map)
-{
-  if (this->Map != map)
-    {
-    this->Map = map;
-    this->Renderer = map->GetRenderer();
-    this->Modified();
-    }
+  this->Layer->GetRenderer()->RemoveActor(this->Actor);
+  this->SetLayer(0);
 }

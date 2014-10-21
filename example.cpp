@@ -1,8 +1,10 @@
 #include "vtkMap.h"
+#include "vtkFeatureLayer.h"
 #include "vtkMapMarkerSet.h"
 #include "vtkMapPickResult.h"
 #include "vtkMercator.h"
 #include "vtkOsmLayer.h"
+#include "vtkPolydataFeature.h"
 
 #include <vtkActor.h>
 #include <vtkCallbackCommand.h>
@@ -93,6 +95,7 @@ int main()
 
   vtkNew<vtkMap> map;
 
+  // Note: Always set map's renderer *before* adding layers
   vtkNew<vtkRenderer> rend;
   map->SetRenderer(rend.GetPointer());
   map->SetCenter(kwLatitude, kwLongitude);
@@ -117,28 +120,23 @@ int main()
   double center[2];
   map->GetCenter(center);
 
-  // Initialize test marker
-  vtkNew<vtkPoints> testPoints;
-  testPoints->SetDataTypeToDouble();
-  //testPoints->InsertNextPoint(0.0, 0.0, 0.0);
-  testPoints->InsertNextPoint(kwLatitude, kwLongitude, 0.0);
-  vtkPoints *displayPoints = map->gcsToDisplay(testPoints.GetPointer());
-  vtkPoints *gcsPoints = map->displayToGcs(displayPoints);
-  double coords[3];
-  gcsPoints->GetPoint(0, coords);
-  double x = coords[1];         // longitude
-  double y = vtkMercator::lat2y(coords[0]);  // latitude
+  // Initialize test polygon
+  vtkNew<vtkFeatureLayer> featureLayer;
+  featureLayer->SetName("test-polygon");
+  // Note: Always add feature layer to the map *before* adding features
+  map->AddLayer(featureLayer.GetPointer());
   vtkNew<vtkRegularPolygonSource> testPolygon;
-  vtkNew<vtkPolyDataMapper> testMapper;
-  vtkNew<vtkActor> testActor;
   testPolygon->SetNumberOfSides(50);
   testPolygon->SetRadius(2.0);
-  testActor->SetMapper(testMapper.GetPointer());
-  testMapper->SetInputConnection(testPolygon->GetOutputPort());
-  testActor->GetProperty()->SetColor(1.0, 0.1, 0.1);
-  testActor->GetProperty()->SetOpacity(0.5);
-  rend->AddActor(testActor.GetPointer());
-  testActor->SetPosition(x, y, 0.0);
+  vtkNew<vtkPolydataFeature> feature;
+  feature->GetMapper()->SetInputConnection(testPolygon->GetOutputPort());
+  feature->GetActor()->GetProperty()->SetColor(1.0, 0.1, 0.1);
+  feature->GetActor()->GetProperty()->SetOpacity(0.5);
+
+  double x = kwLongitude;
+  double y = vtkMercator::lat2y(kwLatitude);
+  feature->GetActor()->SetPosition(x, y, 0.0);
+  featureLayer->AddFeature(feature.GetPointer());  // crash!
   map->Draw();
 
   // Instantiate markers for array of lat-lon coordinates

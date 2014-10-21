@@ -1,7 +1,6 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkMap.cxx
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -80,7 +79,6 @@ vtkMap::vtkMap()
   this->Center[0] = this->Center[1] = 0.0;
   this->MapMarkerSet = vtkMapMarkerSet::New();
   this->Initialized = false;
-  this->TileZoom = 1;
   this->BaseLayer = NULL;
 }
 
@@ -152,8 +150,20 @@ void vtkMap::GetCenter(double (&latlngPoint)[2])
 //----------------------------------------------------------------------------
 void vtkMap::AddLayer(vtkLayer* layer)
 {
+  if (!this->Renderer)
+    {
+    vtkWarningMacro("Cannot add layer to vtkMap."
+                    <<" Must set map's renderer *before* adding layers.");
+    return;
+    }
+
   if (layer->GetBase())
     {
+    if (layer == this->BaseLayer)
+      {
+      return;
+      }
+
     if (this->BaseLayer)
       {
       this->Layers.push_back(this->BaseLayer);
@@ -162,8 +172,8 @@ void vtkMap::AddLayer(vtkLayer* layer)
     }
   else
     {
-    std::vector<vtkLayer*>::iterator it = std::find(this->Layers.begin(),
-                                                    this->Layers.end(), layer);
+    std::vector<vtkLayer*>::iterator it =
+        std::find(this->Layers.begin(), this->Layers.end(), layer);
     if (it != this->Layers.end())
       {
       // TODO Use bin numbers to sort layer and its actors
@@ -197,9 +207,6 @@ void vtkMap::Update()
   // Compute the zoom level here
   this->SetZoom(computeZoomLevel(this->Renderer->GetActiveCamera()));
 
-  // Update the tile zoom
-  this->TileZoom = this->Zoom + 1;
-
   // Update the base layer first
   this->BaseLayer->Update();
 
@@ -208,7 +215,7 @@ void vtkMap::Update()
     this->Layers[i]->Update();
     }
 
-  this->MapMarkerSet->Update(this->TileZoom);
+  this->MapMarkerSet->Update(this->Zoom);
 }
 
 //----------------------------------------------------------------------------

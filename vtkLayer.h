@@ -1,7 +1,6 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkMap.h
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -40,17 +39,17 @@ public:
   void SetName(const std::string& Name);
 
   // Description:
-  std::string GetId();
-  void SetId(const std::string& id);
+  unsigned int GetId();
+  void SetId(const unsigned int& id);
 
   // Description:
   vtkGetMacro(Opacity, double)
   vtkSetMacro(Opacity, double)
 
   // Description:
-  vtkBooleanMacro(Visible, int)
-  vtkGetMacro(Visible, int)
-  vtkSetMacro(Visible, int)
+  vtkBooleanMacro(Visibility, int)
+  vtkGetMacro(Visibility, int)
+  vtkSetMacro(Visibility, int)
 
   // Description:
   vtkBooleanMacro(Base, int)
@@ -59,24 +58,27 @@ public:
 
   // Description:
   vtkGetObjectMacro(Map, vtkMap)
-  vtkSetObjectMacro(Map, vtkMap)
+  void SetMap(vtkMap* map);
 
   // Description:
   virtual void Update() = 0;
 
 protected:
+
   vtkLayer();
   virtual ~vtkLayer();
 
   double Opacity;
-  int Visible;
+  int Visibility;
   int Base;
 
   std::string Name;
-  std::string Id;
+  unsigned int Id;
 
   vtkMap* Map;
   vtkRenderer* Renderer;
+
+  static unsigned int GlobalId;
 
 private:
   vtkLayer(const vtkLayer&);  // Not implemented

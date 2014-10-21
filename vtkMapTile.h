@@ -1,7 +1,6 @@
 /*=========================================================================
 
  Program:   Visualization Toolkit
- Module:    vtkMapTile.h
 
  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
  All rights reserved.
@@ -19,8 +18,7 @@
 #ifndef __vtkMapTile_h
 #define __vtkMapTile_h
 
-// VTK Includes
-#include "vtkObject.h"
+#include "vtkFeature.h"
 
 class vtkStdString;
 class vtkPlaneSource;
@@ -28,18 +26,12 @@ class vtkActor;
 class vtkPolyDataMapper;
 class vtkTextureMapToPlane;
 
-class vtkMapTile : public vtkObject
+class vtkMapTile : public vtkFeature
 {
 public:
   static vtkMapTile* New();
   virtual void PrintSelf(ostream &os, vtkIndent indent);
-  vtkTypeMacro (vtkMapTile, vtkObject)
-
-  enum Bins
-    {
-    Hidden = 99,
-    Visible = 100,
-    };
+  vtkTypeMacro (vtkMapTile, vtkFeature)
 
   // Description:
   // Get/Set Bing Maps QuadKey corresponding to the tile
@@ -71,16 +63,29 @@ public:
   void SetCenter(double* center);
   void SetCenter(double x, double y, double z);
 
-  // Description:
-  // Create the geometry and download the image if necessary
-  void Init(const char *cacheDirectory);
-
   void SetVisible(bool val);
   bool IsVisible();
+
+  // Description:
+  // Create the geometry and download
+  // the image if necessary
+  virtual void Init();
+
+  // Description:
+  // Remove drawables from the renderer and
+  // perform any other clean up operations
+  virtual void CleanUp();
+
+  // Description:
+  // Update the map tile
+  virtual void Update();
+
 
 protected:
   vtkMapTile();
   ~vtkMapTile();
+
+  void Build(const char* cacheDirectory);
 
   // Description:
   // Check if the corresponding image is downloaded

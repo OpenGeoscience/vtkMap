@@ -1,7 +1,6 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkMap.h
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -19,7 +18,8 @@
 #ifndef __vtkOsmLayer_h
 #define __vtkOsmLayer_h
 
-#include "vtkLayer.h"
+#include "vtkFeatureLayer.h"
+
 #include "vtkMapTile.h"
 
 // VTK Includes
@@ -29,12 +29,12 @@
 #include <map>
 #include <vector>
 
-class vtkOsmLayer : public vtkLayer
+class vtkOsmLayer : public vtkFeatureLayer
 {
 public:
   static vtkOsmLayer* New();
   virtual void PrintSelf(ostream &os, vtkIndent indent);
-  vtkTypeMacro(vtkOsmLayer, vtkLayer)
+  vtkTypeMacro(vtkOsmLayer, vtkFeatureLayer)
 
   // Description:
   virtual void Update();
@@ -50,8 +50,8 @@ protected:
   vtkMapTile* GetCachedTile(int zoom, int x, int y);
 
 protected:
-  std::map< int, std::map< int, std::map <int, vtkMapTile*> > > CachedTiles;
-  std::vector<vtkActor*> CachedActors;
+  std::map< int, std::map< int, std::map <int, vtkMapTile*> > > CachedTilesMap;
+  std::vector<vtkMapTile*> CachedTiles;
   std::vector<vtkMapTile*> NewPendingTiles;
 
 private:

@@ -28,6 +28,8 @@ include(${VTK_USE_FILE})
 add_definitions("-DMARKER_IMAGE_FILE=\"${CMAKE_SOURCE_DIR}/markerteal.png\"")
 
 set (SOURCES
+    vtkFeature.cxx
+    vtkFeatureLayer.cxx
     vtkInteractorStyleMap.cxx
     vtkMapMarkerSet.cxx
     vtkMapPickResult.cxx
@@ -35,6 +37,7 @@ set (SOURCES
     vtkMap.cxx
     vtkLayer.cxx
     vtkOsmLayer.cxx
+    vtkPolydataFeature.cxx
     vtkTeardropSource.cxx
 )
 
