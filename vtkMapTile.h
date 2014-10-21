@@ -67,11 +67,17 @@ public:
   bool IsVisible();
 
   // Description:
-  // Create the geometry and download the image if necessary
+  // Create the geometry and download
+  // the image if necessary
   virtual void Init();
 
+  // Description:
+  // Remove drawables from the renderer and
+  // perform any other clean up operations
   virtual void CleanUp();
 
+  // Description:
+  // Update the map tile
   virtual void Update();
 
 

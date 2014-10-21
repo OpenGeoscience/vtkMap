@@ -51,14 +51,21 @@ public:
   vtkSetObjectMacro(Layer, vtkFeatureLayer);
 
   // Description:
-  // Empty implementation
+  // Build feature when added to the feature layer.
+  // Init should be called by the feature layer and
+  // not directly by the application code.
   virtual void Init() { }
 
   // Description:
+  // Perform any clean up operation related to rendering.
+  // CleanUp should be called by the feature layer and
+  // not directly by the application code.
   virtual void CleanUp() = 0;
 
   // Description:
-  // Update feature and prepare it for rendering
+  // Update feature and prepare it for rendering.
+  // Update should be called by the feature layer and
+  // not directly by the application code.
   virtual void Update() = 0;
 
 protected:
