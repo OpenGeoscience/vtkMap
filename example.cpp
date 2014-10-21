@@ -95,6 +95,7 @@ int main()
 
   vtkNew<vtkMap> map;
 
+  // Note: Always set map's renderer *before* adding layers
   vtkNew<vtkRenderer> rend;
   map->SetRenderer(rend.GetPointer());
   map->SetCenter(kwLatitude, kwLongitude);
@@ -121,6 +122,8 @@ int main()
 
   // Initialize test polygon
   vtkNew<vtkFeatureLayer> featureLayer;
+  featureLayer->SetName("test-polygon");
+  // Note: Always add feature layer to the map *before* adding features
   map->AddLayer(featureLayer.GetPointer());
   vtkNew<vtkRegularPolygonSource> testPolygon;
   testPolygon->SetNumberOfSides(50);

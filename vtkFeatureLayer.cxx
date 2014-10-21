@@ -13,10 +13,10 @@
 =========================================================================*/
 
 #include "vtkFeatureLayer.h"
-
 #include "vtkFeature.h"
 
 #include <vtkObjectFactory.h>
+#include <vtkSetGet.h>
 
 #include <algorithm>
 #include <iterator>
@@ -54,6 +54,16 @@ void vtkFeatureLayer::AddFeature(vtkFeature* feature)
 {
   if (!feature)
     {
+    return;
+    }
+
+  if (!this->Renderer)
+    {
+    vtkWarningMacro("Cannot add vtkFeature to vtkFeatureLayer"
+                    << " because vtkFeatureLayer has not been initialized correctly."
+                    << " Make sure this layer has been added to vtkMap"
+                    << " *before* adding features."
+                    << " Also make sure renderer has been set on the vtkMap.");
     return;
     }
 

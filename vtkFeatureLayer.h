@@ -31,6 +31,7 @@ public:
 
   // Description:
   // Add a new feature to the layer
+  // Note: layer must be added to a vtkMap *before* features can be added.
   void AddFeature(vtkFeature* feature);
 
   // Description:

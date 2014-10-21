@@ -63,11 +63,6 @@ void vtkOsmLayer::Update()
     return;
     }
 
-  if (this->Renderer != this->Map->GetRenderer())
-    {
-    this->Renderer = this->Map->GetRenderer();
-    }
-
   this->AddTiles();
 
   this->Superclass::Update();

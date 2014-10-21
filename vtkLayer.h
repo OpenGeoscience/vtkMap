@@ -58,12 +58,13 @@ public:
 
   // Description:
   vtkGetObjectMacro(Map, vtkMap)
-  vtkSetObjectMacro(Map, vtkMap)
+  void SetMap(vtkMap* map);
 
   // Description:
   virtual void Update() = 0;
 
 protected:
+
   vtkLayer();
   virtual ~vtkLayer();
 

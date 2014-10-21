@@ -73,3 +73,14 @@ void vtkLayer::SetId(const unsigned int& id)
   this->Id = id;
   this->Modified();
 }
+
+//----------------------------------------------------------------------------
+void vtkLayer::SetMap(vtkMap* map)
+{
+  if (this->Map != map)
+    {
+    this->Map = map;
+    this->Renderer = map->GetRenderer();
+    this->Modified();
+    }
+}
