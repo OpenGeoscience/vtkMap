@@ -22,8 +22,8 @@
 #include "StationReport.h"
 #include <QMainWindow>
 #include <vtkType.h>
+#include <vtk_jsoncpp.h>
 #include <map>
-class cJSON;
 class vtkMap;
 class vtkRenderer;
 class QVTKWidget;
@@ -46,8 +46,8 @@ class qtWeatherStations : public QMainWindow
  public slots:
 
  protected:
-  cJSON *RequestStationData();
-  std::vector<StationReport> ParseStationData(cJSON *data);
+  Json::Value RequestStationData();
+  std::vector<StationReport> ParseStationData(Json::Value data);
   void DisplayStationData(std::vector<StationReport> statonList);
   void DisplayStationMarkers(std::vector<StationReport> statonList);
   virtual void resizeEvent(QResizeEvent *event);
