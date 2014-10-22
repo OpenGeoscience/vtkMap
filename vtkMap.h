@@ -74,9 +74,9 @@ public:
   vtkSetVector2Macro(Center, double);
 
   // Description:
-  // Get/Set the directory used for caching map files
-  vtkGetStringMacro(CacheDirectory);
-  vtkSetStringMacro(CacheDirectory);
+  // Get/Set the directory used for caching files.
+  vtkGetStringMacro(StorageDirectory);
+  void SetStorageDirectory(const char *path);
 
   // Description:
   // Add / Remove layer from the map.
@@ -140,8 +140,9 @@ protected:
   // Center of the map
   double Center[2];
 
+  // Description:
   // Directory for caching map files
-  char* CacheDirectory;
+  char* StorageDirectory;
 
   // Description:
   // The map marker manager

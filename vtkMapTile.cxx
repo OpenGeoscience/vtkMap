@@ -13,6 +13,7 @@
 =========================================================================*/
 
 #include "vtkMapTile.h"
+#include "vtkOsmLayer.h"
 
 // VTK Includes
 #include <vtkActor.h>
@@ -204,7 +205,8 @@ void vtkMapTile::Init()
 {
   if (this->GetMTime() > this->BuildTime.GetMTime())
     {
-    this->Build(this->Layer->GetMap()->GetCacheDirectory());
+    vtkOsmLayer *osmLayer = vtkOsmLayer::SafeDownCast(this->Layer);
+    this->Build(osmLayer->GetCacheDirectory());
     }
   this->Layer->GetRenderer()->AddActor(this->Actor);
 }
