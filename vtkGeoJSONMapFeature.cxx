@@ -13,11 +13,13 @@
 =========================================================================*/
 
 #include "vtkGeoJSONMapFeature.h"
+#include "vtkMercator.h"
 
 #include <vtkGeoJSONReader.h>
 
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
+#include <vtkPoints.h>
 #include <vtkPolyData.h>
 #include <vtkProperty.h>
 
@@ -54,6 +56,15 @@ void vtkGeoJSONMapFeature::Init()
   reader->SetStringInput(this->InputString);
   reader->Update();
   this->PolyData = reader->GetOutput();
+
+  // Convert poly data points from <lon, lat> to <x, y>
+  vtkPoints *points = this->PolyData->GetPoints();
+  for (vtkIdType i=0; i<points->GetNumberOfPoints(); i++)
+    {
+    double *coords = points->GetPoint(i);
+    coords[1] = vtkMercator::lat2y(coords[1]);
+    points->SetPoint(i, coords);
+    }
 
   std::cout << "Points:   " << this->PolyData->GetNumberOfPoints() << "\n"
             << "Vertices: " << this->PolyData->GetNumberOfVerts() << "\n"
