@@ -1,6 +1,10 @@
 include_directories(${CMAKE_SOURCE_DIR})
-set (SOURCES
-  TestMapClustering.cxx
+set (TEST_NAMES
+  TestGeoJSON
+  TestMapClustering
 )
-add_executable(TestMapClustering ${SOURCES})
-target_link_libraries(TestMapClustering vtkMap)
+
+foreach(name ${TEST_NAMES})
+  add_executable(${name} ${name}.cxx)
+  target_link_libraries(${name} vtkMap)
+endforeach()
