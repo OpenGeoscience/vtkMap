@@ -68,6 +68,7 @@ int TestGeoJSON(int argc, char *argv[])
     feature->GetActor()->GetProperty()->SetColor(0.1, 0.1, 1.0);
     feature->GetActor()->GetProperty()->SetOpacity(0.5);
     feature->GetActor()->GetProperty()->SetLineWidth(3.0);
+    feature->GetActor()->GetProperty()->SetPointSize(16.0);
     }
   else
     {

@@ -1,0 +1,21 @@
+// Single GeoJSON feature:
+// * MultiLineString joining various cities in central New York State
+// * Geo coords were obtained from www.latlong.net
+{ "type": "Feature",
+  "geometry": {
+    "type": "MultiLineString",
+    "coordinates": [
+      [ [-73.756232, 42.652579], [-76.147424, 43.048122], [-78.878369, 42.886447] ],
+      [ [-73.756232, 42.652579], [-75.063775, 42.452857], [-75.917974, 42.098687], [-78.429927, 42.083639] ],
+      [ [-73.756232, 42.652579], [-74.005941, 40.712784] ]
+    ]
+  },
+  "properties": {
+    "author": "Kitware",
+    "cities": [
+      ["Albany", "Syracuse", "Buffalo"],
+      ["Albany", "Oneonta", "Binghamton", "Olean"],
+      ["Albany", "New York City"]
+    ]
+  }
+}
