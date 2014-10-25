@@ -28,6 +28,7 @@
 
 #include <curl/curl.h>
 
+#include <cstdio>  // for remove()
 #include <sstream>
 #include <fstream>
 
@@ -172,6 +173,7 @@ void vtkMapTile::DownloadImage(const char *url, const char *outfilename)
   CURL* curl;
   FILE* fp;
   CURLcode res;
+  char errorBuffer[CURL_ERROR_SIZE];
   curl = curl_easy_init();
 
   if(curl)
@@ -183,12 +185,19 @@ void vtkMapTile::DownloadImage(const char *url, const char *outfilename)
       return;
       }
 
+    curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errorBuffer);
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
     res = curl_easy_perform(curl);
     curl_easy_cleanup(curl);
     fclose(fp);
+    }
+
+  if (res != CURLE_OK)
+    {
+    remove(outfilename);
+    vtkWarningMacro(<<errorBuffer);
     }
 }
 
