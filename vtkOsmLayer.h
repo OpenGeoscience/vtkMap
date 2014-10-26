@@ -55,7 +55,7 @@ protected:
 
   vtkSetStringMacro(CacheDirectory);
 
-  void AddTiles();
+  virtual void AddTiles();
   void RemoveTiles();
 
   // Next 3 methods used to add tiles to layer

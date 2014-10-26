@@ -36,6 +36,7 @@ set (SOURCES
     vtkMapPickResult.cxx
     vtkMapTile.cxx
     vtkMap.cxx
+    vtkMultiThreadedOsmLayer.cxx
     vtkLayer.cxx
     vtkOsmLayer.cxx
     vtkPolydataFeature.cxx

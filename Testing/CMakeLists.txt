@@ -1,6 +1,7 @@
 include_directories(${CMAKE_SOURCE_DIR})
 set (TESTS
   TestMapClustering
+  TestMultiThreadedOsmLayer
   TestOsmLayer
 )
 
