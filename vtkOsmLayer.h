@@ -37,11 +37,22 @@ public:
   vtkTypeMacro(vtkOsmLayer, vtkFeatureLayer)
 
   // Description:
+  // Set the subdirectory used for caching map files.
+  // The argument is *relative* to vtkMap::StorageDirectory.
+  void SetCacheSubDirectory(const char *relativePath);
+
+  // Description:
+  // The full path to the directory used for caching OSM image files.
+  vtkGetStringMacro(CacheDirectory);
+
+  // Description:
   virtual void Update();
 
 protected:
   vtkOsmLayer();
   virtual ~vtkOsmLayer();
+
+  vtkSetStringMacro(CacheDirectory);
 
   void AddTiles();
   void RemoveTiles();
@@ -50,6 +61,7 @@ protected:
   vtkMapTile* GetCachedTile(int zoom, int x, int y);
 
 protected:
+  char *CacheDirectory;
   std::map< int, std::map< int, std::map <int, vtkMapTile*> > > CachedTilesMap;
   std::vector<vtkMapTile*> CachedTiles;
   std::vector<vtkMapTile*> NewPendingTiles;

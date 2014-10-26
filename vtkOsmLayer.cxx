@@ -18,6 +18,7 @@
 #include "vtkMapTile.h"
 
 #include <vtkObjectFactory.h>
+#include <vtksys/SystemTools.hxx>
 
 #include <algorithm>
 #include <iomanip>
@@ -40,6 +41,7 @@ struct sortTiles
 vtkOsmLayer::vtkOsmLayer() : vtkFeatureLayer()
 {
   this->BaseOn();
+  this->CacheDirectory = NULL;
 }
 
 //----------------------------------------------------------------------------
@@ -56,11 +58,45 @@ void vtkOsmLayer::PrintSelf(ostream& os, vtkIndent indent)
 }
 
 //----------------------------------------------------------------------------
+void vtkOsmLayer::SetCacheSubDirectory(const char *relativePath)
+{
+  if (!this->Map)
+    {
+    vtkWarningMacro("Cannot set cache directory before adding layer to vtkMap");
+    return;
+    }
+
+  if (vtksys::SystemTools::FileIsFullPath(relativePath))
+    {
+    vtkWarningMacro("Cannot set cache direcotry to relative path");
+    return;
+    }
+
+  // Do *not* use SystemTools::JoinPath(), because it omits the first slash
+  std::string fullPath = this->Map->GetStorageDirectory() + std::string("/")
+    + relativePath;
+
+  // Create directory if it doesn't already exist
+  if(!vtksys::SystemTools::FileIsDirectory(fullPath.c_str()))
+    {
+    std::cerr << "Creating osm tile cache " << fullPath << std::endl;
+    vtksys::SystemTools::MakeDirectory(fullPath.c_str());
+    }
+  this->SetCacheDirectory(fullPath.c_str());
+}
+
+//----------------------------------------------------------------------------
 void vtkOsmLayer::Update()
 {
   if (!this->Map)
     {
     return;
+    }
+
+  if (!this->CacheDirectory)
+    {
+    // Note this calls the public "Sub" directory method
+    this->SetCacheSubDirectory("osm");
     }
 
   this->AddTiles();

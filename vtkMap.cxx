@@ -69,17 +69,21 @@ int computeZoomLevel(vtkCamera* cam)
 //----------------------------------------------------------------------------
 vtkMap::vtkMap()
 {
-  this->CacheDirectory = NULL;
+  this->StorageDirectory = NULL;
   this->Renderer = NULL;
   this->InteractorStyle = vtkInteractorStyleMap::New();
   this->InteractorStyle->SetMap(this);
-  //this->InteractorStyle->DebugOn();
   this->Picker = vtkPointPicker::New();
   this->Zoom = 1;
   this->Center[0] = this->Center[1] = 0.0;
   this->MapMarkerSet = vtkMapMarkerSet::New();
   this->Initialized = false;
   this->BaseLayer = NULL;
+
+  // Set default storage directory to ~/.vtkmap
+  std::string fullPath =
+    vtksys::SystemTools::CollapseFullPath(".vtkmap", "~/");
+  this->SetStorageDirectory(fullPath.c_str());
 }
 
 //----------------------------------------------------------------------------
@@ -106,7 +110,7 @@ void vtkMap::PrintSelf(ostream &os, vtkIndent indent)
   os << "vtkMap" << std::endl
      << "Zoom Level: " << this->Zoom
      << "Center: " << this->Center[0] << " " << this->Center[1] << std::endl
-     << "CacheDirectory: " << this->CacheDirectory << std::endl;
+     << "StorageDirectory: " << this->StorageDirectory << std::endl;
 
   double *camPosition = this->Renderer->GetActiveCamera()->GetPosition();
   double *focalPosition = this->Renderer->GetActiveCamera()->GetFocalPoint();
@@ -145,6 +149,34 @@ void vtkMap::GetCenter(double (&latlngPoint)[2])
   worldPoint[1] = vtkMercator::y2lat(worldPoint[1]);
   latlngPoint[0] = worldPoint[1];
   latlngPoint[1] = worldPoint[0];
+}
+
+//----------------------------------------------------------------------------
+void vtkMap::SetStorageDirectory(const char *path)
+{
+  std::string fullPath;
+  if (vtksys::SystemTools::FileIsFullPath(path))
+    {
+    fullPath = path;
+    }
+  else
+    {
+    fullPath = vtksys::SystemTools::CollapseFullPath(path);
+    vtkWarningMacro("Relative path specified, using " << fullPath);
+    }
+
+  // Create directory if it doesn't already exist
+  if(!vtksys::SystemTools::FileIsDirectory(fullPath.c_str()))
+    {
+    std::cerr << "Creating storage directory " << fullPath << std::endl;
+    vtksys::SystemTools::MakeDirectory(fullPath.c_str());
+    }
+
+  // Copy path to StorageDirectory
+  delete [] this->StorageDirectory;
+  size_t n = fullPath.size();
+  this->StorageDirectory = new char[n];
+  strcpy(this->StorageDirectory, fullPath.c_str());
 }
 
 //----------------------------------------------------------------------------
@@ -226,34 +258,32 @@ void vtkMap::Draw()
     this->Initialized = true;
     this->MapMarkerSet->SetRenderer(this->Renderer);
 
-    // Make sure cache directory specified
-    if (!this->CacheDirectory || "" == this->CacheDirectory)
+    // Make sure storage directory specified
+    if (!this->StorageDirectory || "" == this->StorageDirectory)
       {
-      // Use vtksys::SplitPath() to expand home directory
-      std::vector<std::string> cachePath;
-      vtksys::SystemTools::SplitPath("~/", cachePath);
-      cachePath.push_back(".vtkmap");
-      cachePath.push_back("tiles");
-      this->SetCacheDirectory(vtksys::SystemTools::JoinPath(cachePath).c_str());
-      std::cerr << "Set cache directory to " << this->CacheDirectory << std::endl;
+      std::string fullPath =
+        vtksys::SystemTools::CollapseFullPath(".vtkmap", "~/");
+      this->SetStorageDirectory(fullPath.c_str());
+      std::cerr << "Set map-tile storage directory to "
+                << this->StorageDirectory << std::endl;
       }
 
-    // Make sure cache directory specified with unix separators
-    std::string sCacheDir(this->CacheDirectory);  // for convenience
-    vtksys::SystemTools::ConvertToUnixSlashes(sCacheDir);
+    // Make sure storage directory specified with unix separators
+    std::string strStorageDir(this->StorageDirectory);  // for convenience
+    vtksys::SystemTools::ConvertToUnixSlashes(strStorageDir);
     // If trailing slash char, strip it off
-    if (*sCacheDir.rbegin() == '/')
+    if (*strStorageDir.rbegin() == '/')
        {
-       sCacheDir.erase(sCacheDir.end()-1);
-       this->SetCacheDirectory(sCacheDir.c_str());
+       strStorageDir.erase(strStorageDir.end()-1);
+       this->SetStorageDirectory(strStorageDir.c_str());
        }
 
-    // Make sure cache directory exists
-    if(!vtksys::SystemTools::FileIsDirectory(this->CacheDirectory))
+    // Make sure storage directory exists
+    if(!vtksys::SystemTools::FileIsDirectory(this->StorageDirectory))
       {
-      std::cerr << "Create tile cache directory " << this->CacheDirectory
-                << std::endl;
-      vtksys::SystemTools::MakeDirectory(this->CacheDirectory);
+      std::cerr << "Create map-tile storage directory "
+                << this->StorageDirectory << std::endl;
+      vtksys::SystemTools::MakeDirectory(this->StorageDirectory);
       }
 
     // Initialize graphics
