@@ -21,6 +21,7 @@
 #include "vtkFeatureLayer.h"
 
 #include "vtkMapTile.h"
+#include "vtkMapTileSpecInternal.h"
 
 // VTK Includes
 #include <vtkObject.h>
@@ -57,6 +58,13 @@ protected:
   void AddTiles();
   void RemoveTiles();
 
+  // Next 3 methods used to add tiles to layer
+  void SelectTiles(std::vector<vtkMapTile*>& tiles,
+                   std::vector<vtkMapTileSpecInternal>& tileSpecs);
+  void InitializeTiles(std::vector<vtkMapTile*>& tiles,
+                       std::vector<vtkMapTileSpecInternal>& tileSpecs);
+  void RenderTiles(std::vector<vtkMapTile*>& tiles);
+
   void AddTileToCache(int zoom, int x, int y, vtkMapTile* tile);
   vtkMapTile* GetCachedTile(int zoom, int x, int y);
 
@@ -64,7 +72,6 @@ protected:
   char *CacheDirectory;
   std::map< int, std::map< int, std::map <int, vtkMapTile*> > > CachedTilesMap;
   std::vector<vtkMapTile*> CachedTiles;
-  std::vector<vtkMapTile*> NewPendingTiles;
 
 private:
   vtkOsmLayer(const vtkOsmLayer&);    // Not implemented
