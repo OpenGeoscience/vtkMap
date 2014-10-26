@@ -21,12 +21,18 @@
 
 #include "vtkOsmLayer.h"
 
+typedef std::vector<vtkMapTileSpecInternal> TileSpecList;
+
 class vtkMultiThreadedOsmLayer : public vtkOsmLayer
 {
 public:
   static vtkMultiThreadedOsmLayer *New();
   vtkTypeMacro(vtkMultiThreadedOsmLayer, vtkOsmLayer)
   virtual void PrintSelf(ostream &os, vtkIndent indent);
+
+  // Description:
+  // (Thread Safe) Request map tile from server
+  void RequestThreadExecute(int threadId);
 
 protected:
   vtkMultiThreadedOsmLayer();
@@ -36,6 +42,27 @@ protected:
   // Update needed tiles to draw current map display
   virtual void AddTiles();
 
+  // Description:
+  // Download image file, returns boolean indicating success
+  bool DownloadImageFile(std::string url, std::string filename);
+
+  // Description:
+  // Instantiate and initialize vtkMapTile
+  vtkMapTile *CreateTile(vtkMapTileSpecInternal& spec);
+
+  // Description:
+  // Assign 1 tile spec to each thread
+  void AssignOneTileSpecPerThread(TileSpecList& specs);
+
+  // Description:
+  // Separate tile specs from threads into two lists,
+  // depending on whether they have initialized tile or not.
+  // Does not clear lists, but appends data to them.
+  void CollateThreadResults(std::vector<vtkMapTile*> newTiles,
+                            TileSpecList& tileSpecs);
+
+  class vtkMultiThreadedOsmLayerInternals;
+  vtkMultiThreadedOsmLayerInternals *Internals;
 private:
   vtkMultiThreadedOsmLayer(const vtkMultiThreadedOsmLayer&);  // Not implemented
   void operator=(const vtkMultiThreadedOsmLayer&); // Not implemented
