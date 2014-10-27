@@ -31,7 +31,7 @@
 #include <sstream>
 #include <stack>
 
-// Limit number of concurrent http requests
+// Limit the number of concurrent http requests
 #define NUMBER_OF_REQUEST_THREADS 6
 
 vtkStandardNewMacro(vtkMultiThreadedOsmLayer)
@@ -193,10 +193,15 @@ void vtkMultiThreadedOsmLayer::BackgroundThreadExecute()
     this->Internals->ScheduledTilesLock->Unlock();
     stackSize--;
 
-    // Process tileSpecs (if any)
+    // Process tileSpecs (if any) using 2-pass algorithm
+    // The 1st pass initializes those tiles that have an
+    // image file available in the image cache
+    // (from a previous application/session).
+    // The 2nd pass performs http requests for the files
+    // that aren't already in the image cache.
     if (!tileSpecs.empty())
       {
-      // Execute pass 1 to initialize those tiles with image file in cache
+      // Pass 1 initializes new tiles that have image file in cache
       this->AssignTileSpecsToThreads(tileSpecs);
       this->Internals->DownloadMode = false;
       this->Internals->RequestThreader->SingleMethodExecute();
@@ -213,18 +218,17 @@ void vtkMultiThreadedOsmLayer::BackgroundThreadExecute()
       this->UpdateNewTiles(newTiles);
 
       // Check if there are newer tiles in the scheduled stack
-      int checkSize = stackSize;
-      this->Internals->ScheduledTilesLock->Lock();
-      checkSize = this->Internals->ScheduledTiles.size();
-      this->Internals->ScheduledTilesLock->Unlock();
-      if (checkSize > stackSize)
+      if (this->GetScheduledStackSize() > stackSize)
         {
         // If there are newer tiles, loop back and do them next
         continue;
         }
 
-      // Execute pass 2 to download image files
-      while (tileSpecs.size() > 0)
+      // Pass 2 downloads image files and initializes new tiles.
+      // Process one tile per thread so that we can break out
+      // sooner when new tiles are scheduled.
+      while (tileSpecs.size() > 0 &&
+             this->GetScheduledStackSize() == stackSize)
         {
         //std::cout << "Before pass 2: " << tileSpecs.size() << std::endl;
         this->AssignOneTileSpecPerThread(tileSpecs);
@@ -236,8 +240,14 @@ void vtkMultiThreadedOsmLayer::BackgroundThreadExecute()
         //std::cout << "After collate : " << tileSpecs.size() << std::endl;
         this->UpdateNewTiles(newTiles);
         newTiles.clear();
-        }
+        }  // while
       }  // if (tileSpecs not empty)
+
+    // If we broke out of loop early, continue processing
+    if (tileSpecs.size() > 0)
+      {
+      continue;
+      }
 
     // Check if there are more scheduled tiles to process
     this->Internals->ScheduledTilesLock->Lock();
@@ -366,6 +376,16 @@ void vtkMultiThreadedOsmLayer::AddTiles()
     {
     this->RenderTiles(tiles);
     }
+}
+
+//----------------------------------------------------------------------------
+// Thread Safe
+int vtkMultiThreadedOsmLayer::GetScheduledStackSize()
+{
+  this->Internals->ScheduledTilesLock->Lock();
+  int stackSize = this->Internals->ScheduledTiles.size();
+  this->Internals->ScheduledTilesLock->Unlock();
+  return stackSize;
 }
 
 //----------------------------------------------------------------------------

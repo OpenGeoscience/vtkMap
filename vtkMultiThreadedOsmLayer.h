@@ -12,9 +12,19 @@
    PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
-// .NAME vtkMultiThreadedOsmLayer -
+// .NAME vtkMultiThreadedOsmLayer - Multithreaded OSM layer
 // .SECTION Description
-//
+// A multithreaded subclass of vtkOsmLayer.
+// It performs concurrent map-tile requests in background threads,
+// in order to circumvent I/O blocking. On initialization, the class
+// starts a single background thread that supervises the overall logic
+// for both: (i) requesting files from the map tile server and
+// (ii) constructing new vtkMapTile instances. This supervisory thread
+// in turn executes a set of additional threads concurrently to perform
+// file I/O and http I/O actions. Because map tiles are generated
+// asynchronously, the class also initializes a timer callback function
+// to poll background thread results; when new tiles are created,
+// the timer callback adds them to the layer's map-tile cache.
 
 #ifndef __vtkMultiThreadedOsmLayer_h
 #define __vtkMultiThreadedOsmLayer_h
@@ -55,6 +65,10 @@ protected:
   // Description:
   // Update needed tiles to draw current map display
   virtual void AddTiles();
+
+  // Decsciption:
+  // (Thread Safe) Return current size of scheduled-tile stack
+  int GetScheduledStackSize();
 
   // Description:
   // Download image file, returns boolean indicating success
