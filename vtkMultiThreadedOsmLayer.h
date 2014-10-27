@@ -20,6 +20,10 @@
 #define __vtkMultiThreadedOsmLayer_h
 
 #include "vtkOsmLayer.h"
+#include "vtkMapTileSpecInternal.h"
+#include <vector>
+
+class vtkMapTile;
 
 typedef std::vector<vtkMapTileSpecInternal> TileSpecList;
 
@@ -31,9 +35,19 @@ public:
   virtual void PrintSelf(ostream &os, vtkIndent indent);
 
   // Description:
-  // (Thread Safe) Request map tile from server
+  virtual void Update();
+
+  // Description:
+  // Threaded method for managing tile requests, to prevent blocking.
+  void BackgroundThreadExecute();
+
+  // Description:
+  // Threaded method for concurrent tile requests.
   void RequestThreadExecute(int threadId);
 
+  // Description
+  // Periodically check if new tiles have been initialized
+  void TimerCallback();
 protected:
   vtkMultiThreadedOsmLayer();
   ~vtkMultiThreadedOsmLayer();
@@ -51,6 +65,10 @@ protected:
   vtkMapTile *CreateTile(vtkMapTileSpecInternal& spec);
 
   // Description:
+  // Assign tile specs evenly across request threads
+  void AssignTileSpecsToThreads(TileSpecList& specs);
+
+  // Description:
   // Assign 1 tile spec to each thread
   void AssignOneTileSpecPerThread(TileSpecList& specs);
 
@@ -58,8 +76,12 @@ protected:
   // Separate tile specs from threads into two lists,
   // depending on whether they have initialized tile or not.
   // Does not clear lists, but appends data to them.
-  void CollateThreadResults(std::vector<vtkMapTile*> newTiles,
+  void CollateThreadResults(TileSpecList& newTiles,
                             TileSpecList& tileSpecs);
+
+  // Description:
+  // Copies new tiles to shared list.
+  void UpdateNewTiles(TileSpecList& newTiles);
 
   class vtkMultiThreadedOsmLayerInternals;
   vtkMultiThreadedOsmLayerInternals *Internals;

@@ -14,28 +14,64 @@
 =========================================================================*/
 
 #include "vtkMultiThreadedOsmLayer.h"
+#include "vtkMapTile.h"
 
-#include <vtkObjectFactory.h>
+#include <vtkAtomicInt.h>
+#include <vtkCallbackCommand.h>
+#include <vtkConditionVariable.h>
 #include <vtkMultiThreader.h>
+#include <vtkMutexLock.h>
+#include <vtkObjectFactory.h>
+#include <vtkRenderWindow.h>
+#include <vtkRenderWindowInteractor.h>
+#include <vtksys/SystemTools.hxx>
 
 #include <curl/curl.h>
 #include <cstdio>  // for remove()
 #include <sstream>
-
-vtkStandardNewMacro(vtkMultiThreadedOsmLayer)
+#include <stack>
 
 // Limit number of concurrent http requests
 #define NUMBER_OF_REQUEST_THREADS 6
+
+vtkStandardNewMacro(vtkMultiThreadedOsmLayer)
 
 //----------------------------------------------------------------------------
 class vtkMultiThreadedOsmLayer::vtkMultiThreadedOsmLayerInternals
 {
 public:
-  vtkMultiThreader *RequestThreader;
+  vtkMultiThreader *BackgroundThreader;  // for BackgroundThreadExecute()
+  vtkMultiThreader *RequestThreader;  // for RequestThreadExecute()
+  int BackgroundThreadId;
+  bool DownloadMode;  // sets RequestThreader behavior
+
+  vtkAtomicInt<vtkTypeInt32> ThreadingEnabled;
+  vtkConditionVariable *ThreadingCondition;
+
+  std::stack<TileSpecList> ScheduledTiles;
+  vtkMutexLock *ScheduledTilesLock;
+
+  TileSpecList NewTiles;
+  vtkMutexLock *NewTilesLock;
 
   // Allocate tile-spec list for each request thread
   TileSpecList ThreadTileSpecs[NUMBER_OF_REQUEST_THREADS];
+
+  // Description:
+  // Callback event for interactor timer
+  vtkCallbackCommand *TimerCallbackCommand;
 };
+
+//----------------------------------------------------------------------------
+static VTK_THREAD_RETURN_TYPE StaticBackgroundThreadExecute(void *arg)
+{
+  vtkMultiThreadedOsmLayer *self;
+  vtkMultiThreader::ThreadInfo *info =
+    static_cast<vtkMultiThreader::ThreadInfo *>(arg);
+  self = static_cast<vtkMultiThreadedOsmLayer*>(info->UserData);
+  self->BackgroundThreadExecute();
+  return VTK_THREAD_RETURN_VALUE;
+}
 
 //----------------------------------------------------------------------------
 static VTK_THREAD_RETURN_TYPE StaticRequestThreadExecute(void *arg)
@@ -50,19 +86,60 @@ static VTK_THREAD_RETURN_TYPE StaticRequestThreadExecute(void *arg)
 }
 
 //----------------------------------------------------------------------------
+// Adds new tiles to cache
+static
+void
+StaticTimerCallback(vtkObject* caller, long unsigned int vtkNotUsed(eventId),
+    void* clientData, void* vtkNotUsed(callData))
+{
+  vtkMultiThreadedOsmLayer *self =
+    static_cast<vtkMultiThreadedOsmLayer*>(clientData);
+  self->TimerCallback();
+}
+//----------------------------------------------------------------------------
 vtkMultiThreadedOsmLayer::vtkMultiThreadedOsmLayer()
 {
   this->Internals = new vtkMultiThreadedOsmLayerInternals;
+
+  this->Internals->BackgroundThreader = vtkMultiThreader::New();
+  this->Internals->BackgroundThreadId =
+    this->Internals->BackgroundThreader->SpawnThread(
+      StaticBackgroundThreadExecute, this);
+
+  this->Internals->ThreadingEnabled = 1;
+  this->Internals->ThreadingCondition = vtkConditionVariable::New();
+  this->Internals->ScheduledTilesLock = vtkMutexLock::New();
+  this->Internals->NewTilesLock = vtkMutexLock::New();
+
   this->Internals->RequestThreader = vtkMultiThreader::New();
   this->Internals->RequestThreader->SetNumberOfThreads(
     NUMBER_OF_REQUEST_THREADS);
   this->Internals->RequestThreader->SetSingleMethod(
     StaticRequestThreadExecute, this);
+
+  this->Internals->TimerCallbackCommand = NULL;
 }
 
 //----------------------------------------------------------------------------
 vtkMultiThreadedOsmLayer::~vtkMultiThreadedOsmLayer()
 {
+  if (this->Internals->TimerCallbackCommand)
+    {
+    this->Internals->TimerCallbackCommand->Delete();
+    }
+
+  this->Internals->ThreadingEnabled = 0;
+  this->Internals->ThreadingCondition->Broadcast();
+
+  this->Internals->BackgroundThreader->TerminateThread(
+    this->Internals->BackgroundThreadId);
+  vtkDebugMacro("Terminate Thread " << this->Internals->BackgroundThreadId);
+
+  this->Internals->ThreadingCondition->Delete();
+  this->Internals->ScheduledTilesLock->Delete();
+  this->Internals->NewTilesLock->Delete();
+
+  this->Internals->BackgroundThreader->Delete();
   this->Internals->RequestThreader->Delete();
   delete this->Internals;
 }
@@ -72,15 +149,114 @@ void vtkMultiThreadedOsmLayer::PrintSelf(ostream &os, vtkIndent indent)
 {
   Superclass::PrintSelf(os, indent);
   os << "vtkMultiThreadedOsmLayer"
+     << "\n" << indent << "BackgroundThreadId: "
+     << this->Internals->BackgroundThreadId
+     << "\n" << indent << "NumberOfRequestThreads: "
+     << this->Internals->RequestThreader->GetNumberOfThreads()
      << std::endl;
 }
 
 //----------------------------------------------------------------------------
-// (Thread Safe) Downloads image file then creates tile
-// Updates internal tile spec list
+void vtkMultiThreadedOsmLayer::Update()
+{
+  vtkOsmLayer::Update();
+  if (!this->Internals->TimerCallbackCommand)
+    {
+    this->Internals->TimerCallbackCommand = vtkCallbackCommand::New();
+    this->Internals->TimerCallbackCommand->SetClientData(this);
+    this->Internals->TimerCallbackCommand->SetCallback(StaticTimerCallback);
+    vtkRenderWindowInteractor *interactor
+      = this->Renderer->GetRenderWindow()->GetInteractor();
+    interactor->CreateRepeatingTimer(31);  // prime number > 30 fps
+    interactor->AddObserver(vtkCommand::TimerEvent,
+                            this->Internals->TimerCallbackCommand);
+    }
+}
+
+//----------------------------------------------------------------------------
+void vtkMultiThreadedOsmLayer::BackgroundThreadExecute()
+{
+  vtkDebugMacro("Enter BackgroundThreadExecute()");
+  TileSpecList tileSpecs;
+  TileSpecList newTiles;
+  int stackSize;
+  while (this->Internals->ThreadingEnabled)
+    {
+    // Check if there are scheduled tiles
+    this->Internals->ScheduledTilesLock->Lock();
+    stackSize = this->Internals->ScheduledTiles.size();
+    if (stackSize > 0)
+      {
+      tileSpecs = this->Internals->ScheduledTiles.top();
+      this->Internals->ScheduledTiles.pop();
+      }
+    this->Internals->ScheduledTilesLock->Unlock();
+    stackSize--;
+
+    // Process tileSpecs (if any)
+    if (!tileSpecs.empty())
+      {
+      // Execute pass 1 to initialize those tiles with image file in cache
+      this->AssignTileSpecsToThreads(tileSpecs);
+      this->Internals->DownloadMode = false;
+      this->Internals->RequestThreader->SingleMethodExecute();
+      newTiles.clear();
+      tileSpecs.clear();
+      this->CollateThreadResults(newTiles, tileSpecs);
+
+      // std::cout << "After pass 1: "
+      //           << "newTiles.size() " << newTiles.size()
+      //           << ", tileSpecs.size() " << tileSpecs.size()
+      //           << std::endl;
+
+      // Copy new tiles to shared list
+      this->UpdateNewTiles(newTiles);
+
+      // Check if there are newer tiles in the scheduled stack
+      int checkSize = stackSize;
+      this->Internals->ScheduledTilesLock->Lock();
+      checkSize = this->Internals->ScheduledTiles.size();
+      this->Internals->ScheduledTilesLock->Unlock();
+      if (checkSize > stackSize)
+        {
+        // If there are newer tiles, loop back and do them next
+        continue;
+        }
+
+      // Execute pass 2 to download image files
+      while (tileSpecs.size() > 0)
+        {
+        //std::cout << "Before pass 2: " << tileSpecs.size() << std::endl;
+        this->AssignOneTileSpecPerThread(tileSpecs);
+        //std::cout << "After assign : " << tileSpecs.size() << std::endl;
+        this->Internals->DownloadMode = true;
+        this->Internals->RequestThreader->SingleMethodExecute();
+        newTiles.clear();
+        this->CollateThreadResults(newTiles, tileSpecs);
+        //std::cout << "After collate : " << tileSpecs.size() << std::endl;
+        this->UpdateNewTiles(newTiles);
+        newTiles.clear();
+        }
+      }  // if (tileSpecs not empty)
+
+    // Check if there are more scheduled tiles to process
+    this->Internals->ScheduledTilesLock->Lock();
+    stackSize = this->Internals->ScheduledTiles.size();
+    if (stackSize == 0)
+      {
+      // If not, wait for condition variable
+      this->Internals->ThreadingCondition->Wait(
+        this->Internals->ScheduledTilesLock);
+      }
+    this->Internals->ScheduledTilesLock->Unlock();
+    }  // while
+}
+
+//----------------------------------------------------------------------------
+// Checks if image file is in cache, and if so, creates tile
 void vtkMultiThreadedOsmLayer::RequestThreadExecute(int threadId)
 {
-  vtkDebugMacro("Enter RequestThreadExecute, thread " << threadId);
+  //vtkDebugMacro("Enter RequestThreadExecute, thread " << threadId);
   std::stringstream oss;
 
   // Get reference to tiles assigned to this thread
@@ -96,7 +272,6 @@ void vtkMultiThreadedOsmLayer::RequestThreadExecute(int threadId)
   for (; tileSpecIter != tileSpecs.end(); tileSpecIter++)
     {
     vtkMapTileSpecInternal& spec = *tileSpecIter;
-
     oss.str("");
     oss << this->GetCacheDirectory() << "/"
         << spec.ZoomRowCol[0]
@@ -105,20 +280,65 @@ void vtkMultiThreadedOsmLayer::RequestThreadExecute(int threadId)
         << ".png";
     std::string filename = oss.str();
 
-    oss.str("");
-    oss << "http://tile.openstreetmap.org"
-        << "/" << spec.ZoomRowCol[0]
-        << "/" << spec.ZoomRowCol[1]
-        << "/" << spec.ZoomRowCol[2]
-        << ".png";
-    std::string url = oss.str();
-
-    if (this->DownloadImageFile(url, filename))
+    if (this->Internals->DownloadMode)
       {
-      this->CreateTile(spec);
-      spec.Tile->Init();
+      // If DownloadMode, perform http request
+      oss.str("");
+      oss << "http://tile.openstreetmap.org"
+          << "/" << spec.ZoomRowCol[0]
+          << "/" << spec.ZoomRowCol[1]
+          << "/" << spec.ZoomRowCol[2]
+          << ".png";
+      std::string url = oss.str();
+
+      if (this->DownloadImageFile(url, filename))
+        {
+        this->CreateTile(spec);
+        }
+      }
+    else
+      {
+      // If *not* DownloadMode, check for image file in cache
+      if (vtksys::SystemTools::FileExists(filename.c_str(), true))
+        {
+        this->CreateTile(spec);
+        }
       }
     }  // for
+}
+
+//----------------------------------------------------------------------------
+void vtkMultiThreadedOsmLayer::TimerCallback()
+{
+  // Check for new tiles
+  TileSpecList newTiles;
+  this->Internals->NewTilesLock->Lock();
+  if (this->Internals->NewTiles.size() > 0)
+    {
+    // Copy to local list and clear Internals list
+    newTiles = this->Internals->NewTiles;
+    this->Internals->NewTiles.clear();
+    }
+  this->Internals->NewTilesLock->Unlock();
+
+  // Add newTiles to cache
+  TileSpecList::iterator specIter = newTiles.begin();
+  for (; specIter != newTiles.end(); specIter++)
+    {
+    vtkMapTileSpecInternal spec = *specIter;
+    int zoom = spec.ZoomXY[0];
+    int x = spec.ZoomXY[1];
+    int y = spec.ZoomXY[2];
+    this->AddTileToCache(zoom, x, y, spec.Tile);
+    }
+
+  if (newTiles.size() > 0)
+    {
+    //std::cout << "Added new tiles: " << newTiles.size() << std::endl;
+    // Todo might want vtkMap to have an atomic value indicating
+    // when it is already drawing, to avoid unwanted recursion.
+    this->Map->Draw();
+    }
 }
 
 //----------------------------------------------------------------------------
@@ -133,13 +353,19 @@ void vtkMultiThreadedOsmLayer::AddTiles()
   std::vector<vtkMapTileSpecInternal> tileSpecs;
 
   this->SelectTiles(tiles, tileSpecs);
-  while (tileSpecs.size() > 0)
+  if (tileSpecs.size() > 0)
     {
-    this->AssignOneTileSpecPerThread(tileSpecs);
-    this->Internals->RequestThreader->SingleMethodExecute();
-    this->CollateThreadResults(tiles, tileSpecs);
+    // Add newTileSpecs to scheduled tiles stack
+    //std::cout << "Scheduling tiles " << newTileSpecs.size() << std::endl;
+    this->Internals->ScheduledTilesLock->Lock();
+    this->Internals->ScheduledTiles.push(tileSpecs);
+    this->Internals->ThreadingCondition->Broadcast();
+    this->Internals->ScheduledTilesLock->Unlock();
     }
-  this->RenderTiles(tiles);
+  else
+    {
+    this->RenderTiles(tiles);
+    }
 }
 
 //----------------------------------------------------------------------------
@@ -223,6 +449,26 @@ CreateTile(vtkMapTileSpecInternal& spec)
 
 //----------------------------------------------------------------------------
 void vtkMultiThreadedOsmLayer::
+AssignTileSpecsToThreads(TileSpecList& tileSpecs)
+{
+  // Clear current thread tile spec lists
+  int numThreads = this->Internals->RequestThreader->GetNumberOfThreads();
+  for (int i=0; i<numThreads; i++)
+    {
+    this->Internals->ThreadTileSpecs[i].clear();
+    }
+
+  // Distribute inputs across threads
+  int index;
+  for (int i=0; i<tileSpecs.size(); i++)
+    {
+    index = i % numThreads;
+    this->Internals->ThreadTileSpecs[index].push_back(tileSpecs[i]);
+    }
+}
+
+//----------------------------------------------------------------------------
+void vtkMultiThreadedOsmLayer::
 AssignOneTileSpecPerThread(TileSpecList& tileSpecs)
 {
   // Move tileSpecs from end of tileSpecs to thread
@@ -248,7 +494,7 @@ AssignOneTileSpecPerThread(TileSpecList& tileSpecs)
 //----------------------------------------------------------------------------
 // Checks thread results and updates lists
 void vtkMultiThreadedOsmLayer::
-CollateThreadResults(std::vector<vtkMapTile*> tiles, TileSpecList& tileSpecs)
+CollateThreadResults(TileSpecList& newTiles, TileSpecList& tileSpecs)
 {
   int numThreads = this->Internals->RequestThreader->GetNumberOfThreads();
   for (int i=0; i<numThreads; i++)
@@ -260,7 +506,7 @@ CollateThreadResults(std::vector<vtkMapTile*> tiles, TileSpecList& tileSpecs)
       vtkMapTileSpecInternal& spec = *specIter;
       if (spec.Tile)
         {
-        tiles.push_back(spec.Tile);
+        newTiles.push_back(spec);
         }
       else
         {
@@ -268,4 +514,18 @@ CollateThreadResults(std::vector<vtkMapTile*> tiles, TileSpecList& tileSpecs)
         }
       }
     }
+}
+
+//----------------------------------------------------------------------------
+void vtkMultiThreadedOsmLayer::UpdateNewTiles(TileSpecList& newTiles)
+{
+  if (newTiles.empty())
+    {
+    return;
+    }
+
+  this->Internals->NewTilesLock->Lock();
+  this->Internals->NewTiles.insert(this->Internals->NewTiles.begin(),
+                                   newTiles.begin(), newTiles.end());
+  this->Internals->NewTilesLock->Unlock();
 }
