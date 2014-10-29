@@ -66,10 +66,6 @@ protected:
   // Update needed tiles to draw current map display
   virtual void AddTiles();
 
-  // Decsciption:
-  // (Thread Safe) Return current size of scheduled-tile stack
-  int GetScheduledStackSize();
-
   // Description:
   // Download image file, returns boolean indicating success
   bool DownloadImageFile(std::string url, std::string filename);
