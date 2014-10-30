@@ -24,6 +24,7 @@ vtkLayer::vtkLayer() : vtkObject()
   this->Renderer = NULL;
   this->Base = 0;
   this->Map = NULL;
+  this->AsyncMode = false;
   this->Id = this->GlobalId + 1;
 }
 
@@ -83,4 +84,19 @@ void vtkLayer::SetMap(vtkMap* map)
     this->Renderer = map->GetRenderer();
     this->Modified();
     }
+}
+
+//----------------------------------------------------------------------------
+bool vtkLayer::IsAsynchronous()
+{
+  return this->AsyncMode;
+}
+
+//----------------------------------------------------------------------------
+vtkLayer::AsyncState vtkLayer::ResolveAsync()
+{
+  // Asynchronous layers should always override this method.
+  // (Otherwise they don't need to be asynchronous...)
+  vtkWarningMacro(<<"vtkLayer::ResolveAsync() should not be called");
+  return vtkLayer::Off;
 }

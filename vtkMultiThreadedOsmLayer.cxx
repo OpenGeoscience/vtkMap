@@ -57,10 +57,6 @@ public:
 
   // Allocate tile-spec list for each request thread
   TileSpecList ThreadTileSpecs[NUMBER_OF_REQUEST_THREADS];
-
-  // Description:
-  // Callback event for interactor timer
-  vtkCallbackCommand *TimerCallbackCommand;
 };
 
 //----------------------------------------------------------------------------
@@ -87,19 +83,10 @@ static VTK_THREAD_RETURN_TYPE StaticRequestThreadExecute(void *arg)
 }
 
 //----------------------------------------------------------------------------
-// Adds new tiles to cache
-static
-void
-StaticTimerCallback(vtkObject* caller, long unsigned int vtkNotUsed(eventId),
-    void* clientData, void* vtkNotUsed(callData))
-{
-  vtkMultiThreadedOsmLayer *self =
-    static_cast<vtkMultiThreadedOsmLayer*>(clientData);
-  self->TimerCallback();
-}
-//----------------------------------------------------------------------------
 vtkMultiThreadedOsmLayer::vtkMultiThreadedOsmLayer()
 {
+  this->AsyncMode = true;
+
   this->Internals = new vtkMultiThreadedOsmLayerInternals;
 
   this->Internals->BackgroundThreader = vtkMultiThreader::New();
@@ -118,18 +105,11 @@ vtkMultiThreadedOsmLayer::vtkMultiThreadedOsmLayer()
     NUMBER_OF_REQUEST_THREADS);
   this->Internals->RequestThreader->SetSingleMethod(
     StaticRequestThreadExecute, this);
-
-  this->Internals->TimerCallbackCommand = NULL;
 }
 
 //----------------------------------------------------------------------------
 vtkMultiThreadedOsmLayer::~vtkMultiThreadedOsmLayer()
 {
-  if (this->Internals->TimerCallbackCommand)
-    {
-    this->Internals->TimerCallbackCommand->Delete();
-    }
-
   this->Internals->ThreadingEnabled = 0;
   this->Internals->ThreadingCondition->Broadcast();
 
@@ -162,17 +142,6 @@ void vtkMultiThreadedOsmLayer::PrintSelf(ostream &os, vtkIndent indent)
 void vtkMultiThreadedOsmLayer::Update()
 {
   vtkOsmLayer::Update();
-  if (!this->Internals->TimerCallbackCommand)
-    {
-    this->Internals->TimerCallbackCommand = vtkCallbackCommand::New();
-    this->Internals->TimerCallbackCommand->SetClientData(this);
-    this->Internals->TimerCallbackCommand->SetCallback(StaticTimerCallback);
-    vtkRenderWindowInteractor *interactor
-      = this->Renderer->GetRenderWindow()->GetInteractor();
-    interactor->CreateRepeatingTimer(31);  // prime number > 30 fps
-    interactor->AddObserver(vtkCommand::TimerEvent,
-                            this->Internals->TimerCallbackCommand);
-    }
 }
 
 //----------------------------------------------------------------------------
@@ -320,7 +289,7 @@ void vtkMultiThreadedOsmLayer::RequestThreadExecute(int threadId)
 }
 
 //----------------------------------------------------------------------------
-void vtkMultiThreadedOsmLayer::TimerCallback()
+vtkLayer::AsyncState vtkMultiThreadedOsmLayer::ResolveAsync()
 {
   // Check for new tiles
   TileSpecList newTiles;
@@ -344,14 +313,29 @@ void vtkMultiThreadedOsmLayer::TimerCallback()
     this->AddTileToCache(zoom, x, y, spec.Tile);
     }
 
+  vtkLayer::AsyncState result = vtkLayer::Idle;  // return value
+  bool tilesTodo = this->Internals->ScheduledStackSize > 0;
   if (newTiles.size() > 0)
     {
     //std::cout << "Added new tiles: " << newTiles.size() << std::endl;
-    // Todo might want vtkMap to have an atomic value indicating
-    // when it is already drawing, to avoid unwanted recursion.
-    this->Map->Draw();
+    this->Modified();
+    if (tilesTodo)
+      {
+      result = vtkLayer::PartialUpdate;
+      }
+    else
+      {
+      result = vtkLayer::FullUpdate;
+      }
     }
+  else if (tilesTodo)
+    {
+    result = vtkLayer::Pending;
+    }
+
+  return result;
 }
+
 
 //----------------------------------------------------------------------------
 void vtkMultiThreadedOsmLayer::AddTiles()

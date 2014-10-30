@@ -22,6 +22,7 @@
 #include <vtkObject.h>
 
 class vtkActor;
+class vtkCallbackCommand;
 class vtkInteractorStyle;
 class vtkInteractorStyleMap;
 class vtkMapMarkerSet;
@@ -99,6 +100,10 @@ public:
   void PickPoint(int displayCoords[2], vtkMapPickResult* result);
 
   // Description:
+  // Periodically poll asynchronous layers
+  void PollingCallback();
+
+  // Description:
   // Transform from map coordiantes to display coordinates
   // gcsToDisplay(points, "EPSG:3882")
   // This method assumes plate carree projection if the source projection is
@@ -159,6 +164,10 @@ protected:
   // Description:
   // List of layers attached to the map
   std::vector<vtkLayer*> Layers;
+
+  // Description:
+  // Callback method for polling timer
+  vtkCallbackCommand *PollingCallbackCommand;
 
 private:
   vtkMap(const vtkMap&);  // Not implemented

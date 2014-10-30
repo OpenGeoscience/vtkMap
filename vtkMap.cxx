@@ -22,17 +22,18 @@
 
 // VTK Includes
 #include <vtkActor2D.h>
+#include <vtkCallbackCommand.h>
+#include <vtkCamera.h>
 #include <vtkImageInPlaceFilter.h>
+#include <vtkMath.h>
+#include <vtkMatrix4x4.h>
 #include <vtkObjectFactory.h>
+#include <vtkPlaneSource.h>
 #include <vtkPointPicker.h>
 #include <vtkPoints.h>
 #include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
-#include <vtkCamera.h>
-#include <vtkMath.h>
-#include <vtkMatrix4x4.h>
-#include <vtkPoints.h>
-#include <vtkPlaneSource.h>
+#include <vtkRenderWindowInteractor.h>
 #include <vtksys/SystemTools.hxx>
 
 #include <algorithm>
@@ -67,6 +68,15 @@ int computeZoomLevel(vtkCamera* cam)
 }
 
 //----------------------------------------------------------------------------
+static void StaticPollingCallback(
+  vtkObject* caller, long unsigned int vtkNotUsed(eventId),
+    void* clientData, void* vtkNotUsed(callData))
+{
+  vtkMap *self = static_cast<vtkMap*>(clientData);
+  self->PollingCallback();
+}
+
+//----------------------------------------------------------------------------
 vtkMap::vtkMap()
 {
   this->StorageDirectory = NULL;
@@ -79,6 +89,7 @@ vtkMap::vtkMap()
   this->MapMarkerSet = vtkMapMarkerSet::New();
   this->Initialized = false;
   this->BaseLayer = NULL;
+  this->PollingCallbackCommand = NULL;
 
   // Set default storage directory to ~/.vtkmap
   std::string fullPath =
@@ -100,6 +111,10 @@ vtkMap::~vtkMap()
   if (this->Picker)
     {
     this->Picker->Delete();
+    }
+  if (this->PollingCallbackCommand)
+    {
+    this->PollingCallbackCommand->Delete();
     }
 }
 
@@ -206,12 +221,13 @@ void vtkMap::AddLayer(vtkLayer* layer)
     {
     std::vector<vtkLayer*>::iterator it =
         std::find(this->Layers.begin(), this->Layers.end(), layer);
-    if (it != this->Layers.end())
+    if (it == this->Layers.end())
       {
       // TODO Use bin numbers to sort layer and its actors
       this->Layers.push_back(layer);
       }
     }
+
   layer->SetMap(this);
 }
 
@@ -286,6 +302,28 @@ void vtkMap::Draw()
       vtksys::SystemTools::MakeDirectory(this->StorageDirectory);
       }
 
+    // Initialize polling timer if there are any asynchronous layers
+    std::vector<vtkLayer*> allLayers(this->Layers);
+    allLayers.push_back(this->BaseLayer);
+    for (size_t i = 0; i < allLayers.size(); ++i)
+      {
+      if (allLayers[i]->IsAsynchronous())
+        {
+        this->PollingCallbackCommand = vtkCallbackCommand::New();
+        this->PollingCallbackCommand->SetClientData(this);
+        this->PollingCallbackCommand->SetCallback(StaticPollingCallback);
+
+        vtkRenderWindowInteractor *interactor
+          = this->Renderer->GetRenderWindow()->GetInteractor();
+        interactor->CreateRepeatingTimer(31);  // prime number > 30 fps
+        interactor->AddObserver(vtkCommand::TimerEvent,
+                                this->PollingCallbackCommand);
+
+        break;
+        }
+      }
+
+
     // Initialize graphics
     this->Center[0] = vtkMercator::lat2y(this->Center[0]);
     this->Renderer->GetActiveCamera()->SetPosition(
@@ -314,6 +352,35 @@ void vtkMap::PickPoint(int displayCoords[2], vtkMapPickResult* result)
 {
   this->MapMarkerSet->PickPoint(this->Renderer, this->Picker, displayCoords,
       result);
+}
+
+//----------------------------------------------------------------------------
+void vtkMap::PollingCallback()
+{
+  vtkLayer::AsyncState result;
+  bool partialUpdate = false;
+  bool fullUpdate = false;
+
+  std::vector<vtkLayer*> allLayers(this->Layers);
+  allLayers.push_back(this->BaseLayer);
+  for (size_t i = 0; i < allLayers.size(); ++i)
+    {
+    if (allLayers[i]->IsAsynchronous())
+      {
+      result = allLayers[i]->ResolveAsync();
+      switch (result)
+        {
+        case vtkLayer::PartialUpdate:  partialUpdate = true;  break;
+        case vtkLayer::FullUpdate:     fullUpdate = true;     break;
+        }
+      }
+    }
+
+  // Current strawman is to redraw on *any* update
+  if (partialUpdate || fullUpdate)
+    {
+    this->Draw();
+    }
 }
 
 //----------------------------------------------------------------------------

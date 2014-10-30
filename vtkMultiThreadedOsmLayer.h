@@ -22,9 +22,9 @@
 // (ii) constructing new vtkMapTile instances. This supervisory thread
 // in turn executes a set of additional threads concurrently to perform
 // file I/O and http I/O actions. Because map tiles are generated
-// asynchronously, the class also initializes a timer callback function
-// to poll background thread results; when new tiles are created,
-// the timer callback adds them to the layer's map-tile cache.
+// asynchronously, the class overrides the vtkLayer::ResolveAsync()
+// method; if new tiles have been created by the background threads,
+// they are added to the layer's map-tile cache in ResolveAsync().
 
 #ifndef __vtkMultiThreadedOsmLayer_h
 #define __vtkMultiThreadedOsmLayer_h
@@ -55,9 +55,11 @@ public:
   // Threaded method for concurrent tile requests.
   void RequestThreadExecute(int threadId);
 
-  // Description
-  // Periodically check if new tiles have been initialized
-  void TimerCallback();
+  // Description:
+  // Override vtkLayer::ResolveAsync()
+  // Update tile cache with any new tiles
+  virtual AsyncState ResolveAsync();
+
 protected:
   vtkMultiThreadedOsmLayer();
   ~vtkMultiThreadedOsmLayer();
