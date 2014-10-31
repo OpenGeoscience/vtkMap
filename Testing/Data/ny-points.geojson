@@ -12,7 +12,7 @@
       "id": null,
       "properties": {
           "name": "Albany",
-          "zipcode": "12201"
+          "zipcode": 12201
       }
     },
 

@@ -82,6 +82,7 @@ public:
   // Add / Remove layer from the map.
   void AddLayer(vtkLayer* layer);
   void RemoveLayer(vtkLayer* layer);
+  vtkLayer *FindLayer(char *name);
 
   // TODO Implement this
   //void SetLayerOrder(vtkLaye* layer, int offsetFromCurrent);
