@@ -289,7 +289,7 @@ void vtkMultiThreadedOsmLayer::RequestThreadExecute(int threadId)
 }
 
 //----------------------------------------------------------------------------
-vtkLayer::AsyncState vtkMultiThreadedOsmLayer::ResolveAsync()
+vtkMap::AsyncState vtkMultiThreadedOsmLayer::ResolveAsync()
 {
   // Check for new tiles
   TileSpecList newTiles;
@@ -313,7 +313,7 @@ vtkLayer::AsyncState vtkMultiThreadedOsmLayer::ResolveAsync()
     this->AddTileToCache(zoom, x, y, spec.Tile);
     }
 
-  vtkLayer::AsyncState result = vtkLayer::Idle;  // return value
+  vtkMap::AsyncState result = vtkMap::AsyncIdle;  // return value
   bool tilesTodo = this->Internals->ScheduledStackSize > 0;
   if (newTiles.size() > 0)
     {
@@ -321,16 +321,16 @@ vtkLayer::AsyncState vtkMultiThreadedOsmLayer::ResolveAsync()
     this->Modified();
     if (tilesTodo)
       {
-      result = vtkLayer::PartialUpdate;
+      result = vtkMap::AsyncPartialUpdate;
       }
     else
       {
-      result = vtkLayer::FullUpdate;
+      result = vtkMap::AsyncFullUpdate;
       }
     }
   else if (tilesTodo)
     {
-    result = vtkLayer::Pending;
+    result = vtkMap::AsyncPending;
     }
 
   return result;

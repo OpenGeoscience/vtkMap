@@ -16,6 +16,7 @@
 #include "vtkMap.h"
 #include "vtkMultiThreadedOsmLayer.h"
 
+#include <vtkCommand.h>
 #include <vtkInteractorStyle.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
@@ -27,6 +28,53 @@
 #include <cstdlib>  // for system()
 #include <iostream>
 #include <string>
+
+//----------------------------------------------------------------------------
+// For tracking map's async state changes
+class TimerCallback : public vtkCommand
+{
+public:
+  static TimerCallback *New()
+    { return new TimerCallback; }
+
+  // Output all changes in map AsyncState
+  virtual void Execute(vtkObject *vtkNotUsed(caller),
+                       unsigned long vtkNotUsed(eventId),
+                       void *vtkNotUsed(clientData))
+    {
+      vtkMap::AsyncState state = this->Map->GetAsyncState();
+      if (state != this->MapAsyncState)
+        {
+        std::string text;
+        switch (state)
+          {
+          case vtkMap::AsyncOff: text = "OFF"; break;
+          case vtkMap::AsyncIdle: text = "IDLE"; break;
+          case vtkMap::AsyncPending: text = "PENDING"; break;
+          case vtkMap::AsyncPartialUpdate: text = "PARTIAL_UPDATE"; break;
+          case vtkMap::AsyncFullUpdate: text = "FULL_UPDATE"; break;
+          default: text = "UNKNOWN"; break;
+          }
+        std::cout << text << std::endl;
+        }
+      this->MapAsyncState = state;
+    }
+
+  void SetMap(vtkMap *map)
+  {
+    this->Map = map;
+  }
+
+protected:
+  TimerCallback()
+  {
+    this->Map = NULL;
+    this->MapAsyncState = vtkMap::AsyncOff;
+  }
+
+  vtkMap *Map;
+  vtkMap::AsyncState MapAsyncState;
+};
 
 //----------------------------------------------------------------------------
 void SetupCacheDirectory(vtkMap *map, std::string& dirname)
@@ -78,8 +126,15 @@ int TestMultiThreadedOsmLayer(int argc, char* argv[])
   interactor->SetRenderWindow(renderWindow.GetPointer());
   interactor->SetInteractorStyle(map->GetInteractorStyle());
   interactor->Initialize();
-  map->Draw();
 
+  // Setup observer to track async state changes
+  interactor->CreateRepeatingTimer(101);
+  vtkNew<TimerCallback> timerCallback;
+  timerCallback->SetMap(map.GetPointer());
+  interactor->AddObserver(vtkCommand::TimerEvent,
+                          timerCallback.GetPointer());
+
+  map->Draw();
   interactor->Start();
 
   return EXIT_SUCCESS;

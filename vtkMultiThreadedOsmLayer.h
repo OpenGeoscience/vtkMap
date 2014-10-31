@@ -58,7 +58,7 @@ public:
   // Description:
   // Override vtkLayer::ResolveAsync()
   // Update tile cache with any new tiles
-  virtual AsyncState ResolveAsync();
+  virtual vtkMap::AsyncState ResolveAsync();
 
 protected:
   vtkMultiThreadedOsmLayer();

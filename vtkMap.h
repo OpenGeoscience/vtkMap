@@ -25,6 +25,7 @@ class vtkActor;
 class vtkCallbackCommand;
 class vtkInteractorStyle;
 class vtkInteractorStyleMap;
+class vtkLayer;
 class vtkMapMarkerSet;
 class vtkMapPickResult;
 class vtkPicker;
@@ -35,11 +36,20 @@ class vtkRenderer;
 #include <string>
 #include <vector>
 
-class vtkLayer;
-
 class vtkMap : public vtkObject
 {
 public:
+  // Description:
+  // State of asynchronous layers
+  enum AsyncState
+    {
+    AsyncOff = 0,        // layer is not asynchronous
+    AsyncIdle,           // no work scheduled
+    AsyncPending,        // work in progress
+    AsyncPartialUpdate,  // some work completed
+    AsyncFullUpdate      // all work completed
+    };
+
   static vtkMap *New();
   virtual void PrintSelf(ostream &os, vtkIndent indent);
   vtkTypeMacro(vtkMap, vtkObject)
@@ -102,6 +112,10 @@ public:
   // Description:
   // Periodically poll asynchronous layers
   void PollingCallback();
+
+  // Description:
+  // Current state of asynchronous layers
+  enum AsyncState GetAsyncState();
 
   // Description:
   // Transform from map coordiantes to display coordinates
@@ -169,6 +183,9 @@ protected:
   // Callback method for polling timer
   vtkCallbackCommand *PollingCallbackCommand;
 
+  // Description:
+  // Current state of asynchronous layers
+  AsyncState CurrentAsyncState;
 private:
   vtkMap(const vtkMap&);  // Not implemented
   void operator=(const vtkMap&); // Not implemented

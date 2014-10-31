@@ -27,17 +27,6 @@
 class vtkLayer : public vtkObject
 {
 public:
-  // Description:
-  // Return value for ResolveAsync()
-  enum AsyncState
-    {
-    Off = 0,        // layer is not asynchronous
-    Idle,           // no work scheduled
-    Pending,        // work in progress
-    PartialUpdate,  // some work completed
-    FullUpdate      // all work completed
-    };
-
   virtual void PrintSelf(ostream &os, vtkIndent indent);
   vtkTypeMacro(vtkLayer, vtkObject)
 
@@ -78,7 +67,7 @@ public:
   // Finalize any asynchronous operations.
   // For asynchronous layers, this method should be polled periodically
   // by the vtkMap object.
-  virtual AsyncState ResolveAsync();
+  virtual vtkMap::AsyncState ResolveAsync();
 
   // Description:
   virtual void Update() = 0;

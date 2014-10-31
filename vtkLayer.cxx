@@ -93,10 +93,10 @@ bool vtkLayer::IsAsynchronous()
 }
 
 //----------------------------------------------------------------------------
-vtkLayer::AsyncState vtkLayer::ResolveAsync()
+vtkMap::AsyncState vtkLayer::ResolveAsync()
 {
   // Asynchronous layers should always override this method.
   // (Otherwise they don't need to be asynchronous...)
   vtkWarningMacro(<<"vtkLayer::ResolveAsync() should not be called");
-  return vtkLayer::Off;
+  return vtkMap::AsyncOff;
 }

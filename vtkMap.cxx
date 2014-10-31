@@ -90,6 +90,8 @@ vtkMap::vtkMap()
   this->Initialized = false;
   this->BaseLayer = NULL;
   this->PollingCallbackCommand = NULL;
+  this->CurrentAsyncState = AsyncOff;
+
 
   // Set default storage directory to ~/.vtkmap
   std::string fullPath =
@@ -340,6 +342,12 @@ void vtkMap::Draw()
 }
 
 //----------------------------------------------------------------------------
+vtkMap::AsyncState vtkMap::GetAsyncState()
+{
+  return this->CurrentAsyncState;
+}
+
+//----------------------------------------------------------------------------
 double vtkMap::Clip(double n, double minValue, double maxValue)
 {
   double max = n > minValue ? n : minValue;
@@ -357,10 +365,10 @@ void vtkMap::PickPoint(int displayCoords[2], vtkMapPickResult* result)
 //----------------------------------------------------------------------------
 void vtkMap::PollingCallback()
 {
-  vtkLayer::AsyncState result;
-  bool partialUpdate = false;
-  bool fullUpdate = false;
+  AsyncState result;
+  AsyncState newState = AsyncIdle;
 
+  // Compute highest "state" of async layers
   std::vector<vtkLayer*> allLayers(this->Layers);
   allLayers.push_back(this->BaseLayer);
   for (size_t i = 0; i < allLayers.size(); ++i)
@@ -368,16 +376,13 @@ void vtkMap::PollingCallback()
     if (allLayers[i]->IsAsynchronous())
       {
       result = allLayers[i]->ResolveAsync();
-      switch (result)
-        {
-        case vtkLayer::PartialUpdate:  partialUpdate = true;  break;
-        case vtkLayer::FullUpdate:     fullUpdate = true;     break;
-        }
+      newState = newState >= result ? newState : result;
       }
     }
+  this->CurrentAsyncState = newState;
 
-  // Current strawman is to redraw on *any* update
-  if (partialUpdate || fullUpdate)
+  // Current strawman is to redraw on partial or full update
+  if (newState >= AsyncPartialUpdate)
     {
     this->Draw();
     }
