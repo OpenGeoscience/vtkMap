@@ -73,13 +73,17 @@ vtkMap::vtkMap()
   this->Renderer = NULL;
   this->InteractorStyle = vtkInteractorStyleMap::New();
   this->InteractorStyle->SetMap(this);
-  //this->InteractorStyle->DebugOn();
   this->Picker = vtkPointPicker::New();
   this->Zoom = 1;
   this->Center[0] = this->Center[1] = 0.0;
   this->MapMarkerSet = vtkMapMarkerSet::New();
   this->Initialized = false;
   this->BaseLayer = NULL;
+
+  // Set default storage directory to ~/.vtkmap
+  std::string fullPath =
+    vtksys::SystemTools::CollapseFullPath(".vtkmap", "~/");
+  this->SetStorageDirectory(fullPath.c_str());
 }
 
 //----------------------------------------------------------------------------
@@ -276,13 +280,11 @@ void vtkMap::Draw()
     // Make sure storage directory specified
     if (!this->StorageDirectory || "" == this->StorageDirectory)
       {
-      // Use vtksys::SplitPath() to expand home directory
-      std::vector<std::string> storagePath;
-      vtksys::SystemTools::SplitPath("~/", storagePath);
-      storagePath.push_back(".vtkmap");
-      std::string fullPath = vtksys::SystemTools::JoinPath(storagePath);
+      std::string fullPath =
+        vtksys::SystemTools::CollapseFullPath(".vtkmap", "~/");
       this->SetStorageDirectory(fullPath.c_str());
-      std::cerr << "Set storage directory to " << this->StorageDirectory << std::endl;
+      std::cerr << "Set map-tile storage directory to "
+                << this->StorageDirectory << std::endl;
       }
 
     // Make sure storage directory specified with unix separators
@@ -298,8 +300,8 @@ void vtkMap::Draw()
     // Make sure storage directory exists
     if(!vtksys::SystemTools::FileIsDirectory(this->StorageDirectory))
       {
-      std::cerr << "Create tile storage directory " << this->StorageDirectory
-                << std::endl;
+      std::cerr << "Create map-tile storage directory "
+                << this->StorageDirectory << std::endl;
       vtksys::SystemTools::MakeDirectory(this->StorageDirectory);
       }
 
