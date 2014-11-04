@@ -55,7 +55,21 @@ set (SOURCES
     vtkOsmLayer.cxx
     vtkPolydataFeature.cxx
     vtkTeardropSource.cxx
-)
+    )
+
+#headers that we are going to install
+set (HEADERS
+    vtkFeature.h
+    vtkFeatureLayer.h
+    vtkInteractorStyleMap.h
+    vtkMapMarkerSet.h
+    vtkMapPickResult.h
+    vtkMapTile.h
+    vtkMap.h
+    vtkLayer.h
+    vtkOsmLayer.h
+    vtkPolydataFeature.h
+    )
 
 
 # Specify targets
@@ -65,13 +79,20 @@ generate_export_header(vtkMap)
 target_link_libraries(vtkMap ${VTK_LIBRARIES} curl)
 target_include_directories(vtkMap PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
+#now generate very basic install rules
+install(TARGETS vtkMap
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+        )
+install (FILES ${HEADERS} DESTINATION include)
 
-#needs install rules
+#example does not need to installed
 add_executable(example example.cpp)
 target_link_libraries(example vtkMap)
 
-
-# Specify subdirectories
+#both testing and Qt do need to exported or installed as they are for testing
+#and examples
 add_subdirectory(Testing)
 if (BUILD_QT_APPS)
   add_subdirectory(Qt)
