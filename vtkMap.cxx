@@ -46,7 +46,7 @@ vtkStandardNewMacro(vtkMap)
 //----------------------------------------------------------------------------
 double computeCameraDistance(vtkCamera* cam, int zoomLevel)
 {
-  double deg = 360.0 / std::pow(2, zoomLevel);
+  double deg = 360.0 / std::pow( double(2), zoomLevel);
   return (deg / std::sin(vtkMath::RadiansFromDegrees(cam->GetViewAngle())));
 }
 
