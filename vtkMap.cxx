@@ -53,17 +53,17 @@ double computeCameraDistance(vtkCamera* cam, int zoomLevel)
 //----------------------------------------------------------------------------
 int computeZoomLevel(vtkCamera* cam)
 {
-  int i;
   double* pos = cam->GetPosition();
   double width = pos[2] * sin(vtkMath::RadiansFromDegrees(cam->GetViewAngle()));
 
-  for (i = 0; i < 20; i += 1) {
+  for (int i = 0; i < 20; ++i) {
     if (width >= (360.0 / pow(2, i))) {
       /// We are forcing the minimum zoom level to 2 so that we can get
       /// high res imagery even at the zoom level 0 distance
       return i;
     }
   }
+  return 0;
 }
 
 //----------------------------------------------------------------------------
