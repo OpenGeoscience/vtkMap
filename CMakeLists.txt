@@ -69,6 +69,7 @@ set (HEADERS
     vtkLayer.h
     vtkOsmLayer.h
     vtkPolydataFeature.h
+    ${CMAKE_CURRENT_BINARY_DIR}/vtkmap_export.h
     )
 
 
