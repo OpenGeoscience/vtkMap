@@ -26,6 +26,11 @@ find_package(VTK NO_MODULE REQUIRED COMPONENTS ${VTK_REQUIRED_COMPONENTS})
 
 include(${VTK_USE_FILE})
 
+# include export header modules so that we can easily control symbol exporting
+# VTK Map is setup by default not to export symbols unless explicitly stated.
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+set(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
+include(GenerateExportHeader)
 
 # Specify vtkDataSetReaders components
 # Main repo is https://github.com/OpenGeoscience/vtkDataSetReaders
@@ -55,8 +60,13 @@ set (SOURCES
 
 # Specify targets
 add_library(vtkMap ${SOURCES})
-target_link_libraries(vtkMap ${READERS_LIBRARIES} ${VTK_LIBRARIES} curl)
 
+generate_export_header(vtkMap)
+target_link_libraries(vtkMap ${VTK_LIBRARIES} curl)
+target_include_directories(vtkMap PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+
+
+#needs install rules
 add_executable(example example.cpp)
 target_link_libraries(example vtkMap)
 

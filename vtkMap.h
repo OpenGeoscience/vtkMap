@@ -21,6 +21,8 @@
 // VTK Includes
 #include <vtkObject.h>
 
+#include "vtkmap_export.h"
+
 class vtkActor;
 class vtkInteractorStyle;
 class vtkInteractorStyleMap;
@@ -36,7 +38,7 @@ class vtkRenderer;
 
 class vtkLayer;
 
-class vtkMap : public vtkObject
+class VTKMAP_EXPORT vtkMap : public vtkObject
 {
 public:
   static vtkMap *New();

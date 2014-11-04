@@ -20,11 +20,12 @@
 
 #include <vtkObject.h>
 
+#include "vtkmap_export.h"
 #include "vtkFeatureLayer.h"
 
 #include <string>
 
-class vtkFeature : public vtkObject
+class VTKMAP_EXPORT vtkFeature : public vtkObject
 {
 public:
   enum Bins

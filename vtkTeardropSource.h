@@ -20,10 +20,11 @@
 
 #include "vtkFiltersSourcesModule.h" // For export macro
 #include "vtkPolyDataAlgorithm.h"
+#include "vtkmap_export.h"
 
 #include "vtkCell.h" // Needed for VTK_CELL_SIZE
 
-class VTKFILTERSSOURCES_EXPORT vtkTeardropSource : public vtkPolyDataAlgorithm
+class VTKMAP_EXPORT vtkTeardropSource : public vtkPolyDataAlgorithm
 {
 public:
   vtkTypeMacro(vtkTeardropSource,vtkPolyDataAlgorithm);
