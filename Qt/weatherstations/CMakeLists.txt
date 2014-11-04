@@ -15,12 +15,5 @@ add_executable(wsmap
   qtMapCoordinatesWidget.cxx
   ${UISrcs} ${MOCSrcs}
 )
-target_link_libraries(wsmap vtkMap)
+target_link_libraries(wsmap vtkMap ${CURL_LIBRARIES})
 
-#add_executable(RenderWindowNoUiFile
-#  RenderWindowNoUiFile.cxx
-#  ${CMAKE_SOURCE_DIR}/vtkMapMarker.cxx
-#  ${CMAKE_SOURCE_DIR}/vtkMapTile.cxx
-#  ${CMAKE_SOURCE_DIR}/vtkMap.cxx
-#)
-#target_link_libraries(RenderWindowNoUiFile ${VTK_LIBRARIES} -lcurl)

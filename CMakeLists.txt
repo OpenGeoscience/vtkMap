@@ -23,6 +23,7 @@ if (BUILD_QT_APPS)
 endif()
 
 find_package(VTK NO_MODULE REQUIRED COMPONENTS ${VTK_REQUIRED_COMPONENTS})
+find_package(CURL REQUIRED)
 
 include(${VTK_USE_FILE})
 
@@ -76,8 +77,16 @@ set (HEADERS
 # Specify targets
 add_library(vtkMap ${SOURCES})
 
-target_link_libraries(vtkMap ${VTK_LIBRARIES} curl)
-target_include_directories(vtkMap PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(vtkMap
+                      LINK_PUBLIC
+                      ${VTK_LIBRARIES}
+                      LINK_PRIVATE
+                      ${CURL_LIBRARIES}
+                      )
+
+target_include_directories(vtkMap PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
+                                  PRIVATE ${CURL_INCLUDE_DIRS}
+                          )
 
 #setup export header
 generate_export_header(vtkMap)
