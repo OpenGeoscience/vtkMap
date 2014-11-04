@@ -257,7 +257,7 @@ void vtkOsmLayer::AddTiles()
     {
     // Remove the old tiles first
     std::vector<vtkMapTile*>::iterator itr = this->CachedTiles.begin();
-    for (itr; itr != this->CachedTiles.end(); ++itr)
+    for (; itr != this->CachedTiles.end(); ++itr)
       {
       this->Renderer->RemoveActor((*itr)->GetActor());
       }
