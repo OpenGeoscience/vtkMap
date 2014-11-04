@@ -36,6 +36,7 @@
 #include <vtksys/SystemTools.hxx>
 
 #include <algorithm>
+#include <cstring>
 #include <iomanip>
 #include <iterator>
 #include <math.h>
@@ -278,7 +279,8 @@ void vtkMap::Draw()
     this->MapMarkerSet->SetRenderer(this->Renderer);
 
     // Make sure storage directory specified
-    if (!this->StorageDirectory || "" == this->StorageDirectory)
+    if (!this->StorageDirectory ||
+        std::strlen(this->StorageDirectory) == 0)
       {
       std::string fullPath =
         vtksys::SystemTools::CollapseFullPath(".vtkmap", "~/");
