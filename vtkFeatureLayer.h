@@ -19,10 +19,11 @@
 #define __vtkFeatureLayer_h
 
 #include "vtkLayer.h"
+#include "vtkmap_export.h"
 
 class vtkFeature;
 
-class vtkFeatureLayer : public vtkLayer
+class VTKMAP_EXPORT vtkFeatureLayer : public vtkLayer
 {
 public:
   static vtkFeatureLayer* New();

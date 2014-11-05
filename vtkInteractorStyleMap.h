@@ -21,10 +21,11 @@
 
 // VTK Includes
 #include <vtkInteractorStyle.h>
+#include "vtkmap_export.h"
 
 class vtkMap;
 
-class vtkInteractorStyleMap : public vtkInteractorStyle
+class VTKMAP_EXPORT vtkInteractorStyleMap : public vtkInteractorStyle
 {
 public:
   static vtkInteractorStyleMap *New();

@@ -20,6 +20,7 @@
 
 #include <vtkObject.h>
 #include <vtkType.h>
+#include "vtkmap_export.h"
 
 //----------------------------------------------------------------------------
 // Define a unique integer value for each map feature type
@@ -28,7 +29,7 @@
 #define VTK_MAP_FEATURE_CLUSTER 2
 
 //----------------------------------------------------------------------------
-class vtkMapPickResult : public vtkObject
+class VTKMAP_EXPORT vtkMapPickResult : public vtkObject
 {
  public:
   static vtkMapPickResult *New();

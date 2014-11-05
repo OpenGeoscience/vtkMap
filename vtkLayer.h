@@ -19,12 +19,13 @@
 #define __vtkLayer_h
 
 #include "vtkMap.h"
+#include "vtkmap_export.h"
 
 // VTK Includes
 #include <vtkObject.h>
 #include <vtkRenderer.h>
 
-class vtkLayer : public vtkObject
+class VTKMAP_EXPORT vtkLayer : public vtkObject
 {
 public:
   virtual void PrintSelf(ostream &os, vtkIndent indent);

@@ -19,10 +19,11 @@
 #define __vtkGeoJSONMapFeature_h
 
 #include "vtkPolydataFeature.h"
+#include "vtkmap_export.h"
 
 class PolyData;
 
-class vtkGeoJSONMapFeature : public vtkPolydataFeature
+class VTKMAP_EXPORT vtkGeoJSONMapFeature : public vtkPolydataFeature
 {
 public:
   static vtkGeoJSONMapFeature* New();

@@ -19,6 +19,7 @@
 #define __vtkMapMarkerSet_h
 
 #include <vtkObject.h>
+#include "vtkmap_export.h"
 #include <set>
 
 class vtkActor;
@@ -30,7 +31,7 @@ class vtkPolyDataMapper;
 class vtkPolyData;
 class vtkRenderer;
 
-class vtkMapMarkerSet : public vtkObject
+class VTKMAP_EXPORT vtkMapMarkerSet : public vtkObject
 {
 public:
   static vtkMapMarkerSet *New();

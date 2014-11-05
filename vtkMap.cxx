@@ -36,6 +36,7 @@
 #include <vtksys/SystemTools.hxx>
 
 #include <algorithm>
+#include <cstring>
 #include <iomanip>
 #include <iterator>
 #include <math.h>
@@ -46,24 +47,24 @@ vtkStandardNewMacro(vtkMap)
 //----------------------------------------------------------------------------
 double computeCameraDistance(vtkCamera* cam, int zoomLevel)
 {
-  double deg = 360.0 / std::pow(2, zoomLevel);
+  double deg = 360.0 / std::pow( double(2), zoomLevel);
   return (deg / std::sin(vtkMath::RadiansFromDegrees(cam->GetViewAngle())));
 }
 
 //----------------------------------------------------------------------------
 int computeZoomLevel(vtkCamera* cam)
 {
-  int i;
   double* pos = cam->GetPosition();
   double width = pos[2] * sin(vtkMath::RadiansFromDegrees(cam->GetViewAngle()));
 
-  for (i = 0; i < 20; i += 1) {
+  for (int i = 0; i < 20; ++i) {
     if (width >= (360.0 / pow(2, i))) {
       /// We are forcing the minimum zoom level to 2 so that we can get
       /// high res imagery even at the zoom level 0 distance
       return i;
     }
   }
+  return 0;
 }
 
 //----------------------------------------------------------------------------
@@ -278,7 +279,8 @@ void vtkMap::Draw()
     this->MapMarkerSet->SetRenderer(this->Renderer);
 
     // Make sure storage directory specified
-    if (!this->StorageDirectory || "" == this->StorageDirectory)
+    if (!this->StorageDirectory ||
+        std::strlen(this->StorageDirectory) == 0)
       {
       std::string fullPath =
         vtksys::SystemTools::CollapseFullPath(".vtkmap", "~/");

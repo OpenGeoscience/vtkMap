@@ -19,6 +19,7 @@
 #define __vtkMapTile_h
 
 #include "vtkFeature.h"
+#include "vtkmap_export.h"
 
 class vtkStdString;
 class vtkPlaneSource;
@@ -26,7 +27,7 @@ class vtkActor;
 class vtkPolyDataMapper;
 class vtkTextureMapToPlane;
 
-class vtkMapTile : public vtkFeature
+class VTKMAP_EXPORT vtkMapTile : public vtkFeature
 {
 public:
   static vtkMapTile* New();

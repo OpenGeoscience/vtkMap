@@ -23,7 +23,7 @@
 
 #include "vtkCell.h" // Needed for VTK_CELL_SIZE
 
-class VTKFILTERSSOURCES_EXPORT vtkTeardropSource : public vtkPolyDataAlgorithm
+class vtkTeardropSource : public vtkPolyDataAlgorithm
 {
 public:
   vtkTypeMacro(vtkTeardropSource,vtkPolyDataAlgorithm);
