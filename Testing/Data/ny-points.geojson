@@ -1,0 +1,95 @@
+// GeoJSON feature collection:
+// * Points at various cities in central New York State
+// * Geo coords were obtained from www.latlong.net
+{ "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-73.756232, 42.652579]
+      },
+      "id": null,
+      "properties": {
+          "name": "Albany",
+          "zipcode": 12201
+      }
+    },
+
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-75.917974, 42.098687]
+      },
+      "id": null,
+      "properties": {
+          "name": "Binghamton",
+          "zipcode": 13901
+      }
+    },
+
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-78.878369, 42.886447]
+      },
+      "id": null,
+      "properties": {
+          "name": "Buffalo",
+          "zipcode": 14201
+      }
+    },
+
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-74.005941, 40.712784]
+      },
+      "id": null,
+      "properties": {
+          "name": "New York City",
+          "zipcode": 10001
+      }
+    },
+
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-78.429927, 42.083639]
+      },
+      "id": null,
+      "properties": {
+          "name": "Olean",
+          "zipcode": 14760
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-75.063775, 42.452857]
+      },
+      "id": null,
+      "properties": {
+          "name": "Oneonto",
+          "zipcode": 13820
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.147424, 43.048122]
+      },
+      "id": null,
+      "properties": {
+          "name": "Syracuse",
+          "zipcode": 13201
+      }
+    }
+  ]
+}

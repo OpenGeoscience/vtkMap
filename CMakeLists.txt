@@ -1,11 +1,13 @@
 cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 
-PROJECT(Tiling)
+PROJECT(vtkMap)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 option(BUILD_SHARED_LIBS "Build vtkMap with shared libraries" ON)
 
+
+# Specify VTK components
 set (VTK_REQUIRED_COMPONENTS
     vtkCommonCore
     vtkFiltersTexture
@@ -14,7 +16,6 @@ set (VTK_REQUIRED_COMPONENTS
     vtkRenderingCore
     vtkRenderingOpenGL
 )
-
 
 option(BUILD_QT_APPS "Build Qt applications (source files in Qt subdirectory)" OFF)
 if (BUILD_QT_APPS)
@@ -25,12 +26,21 @@ find_package(VTK NO_MODULE REQUIRED COMPONENTS ${VTK_REQUIRED_COMPONENTS})
 
 include(${VTK_USE_FILE})
 
-# Temporary logic for specifying marker image file, used in vtkMap.cxx
-add_definitions("-DMARKER_IMAGE_FILE=\"${CMAKE_SOURCE_DIR}/markerteal.png\"")
 
+# Specify vtkDataSetReaders components
+# Main repo is https://github.com/OpenGeoscience/vtkDataSetReaders
+set(READERS_INCLUDE_DIRECTORY "" CACHE PATH "Location of vtkDataSetReaders header files")
+include_directories(${READERS_INCLUDE_DIRECTORY})
+set(READERS_LIB_DIRECTORY "" CACHE PATH "Location of vtkDataSetReaders library")
+set(READERS_LIBRARIES vtkDataSetReaders)
+link_directories(${READERS_LIB_DIRECTORY})
+
+
+# Specify source files
 set (SOURCES
     vtkFeature.cxx
     vtkFeatureLayer.cxx
+    vtkGeoJSONMapFeature.cxx
     vtkInteractorStyleMap.cxx
     vtkMapMarkerSet.cxx
     vtkMapPickResult.cxx
@@ -42,12 +52,16 @@ set (SOURCES
     vtkTeardropSource.cxx
 )
 
+
+# Specify targets
 add_library(vtkMap ${SOURCES})
-target_link_libraries(vtkMap ${VTK_LIBRARIES} curl)
+target_link_libraries(vtkMap ${READERS_LIBRARIES} ${VTK_LIBRARIES} curl)
 
 add_executable(example example.cpp)
 target_link_libraries(example vtkMap)
 
+
+# Specify subdirectories
 add_subdirectory(Testing)
 if (BUILD_QT_APPS)
   add_subdirectory(Qt)

@@ -206,7 +206,7 @@ void vtkMap::AddLayer(vtkLayer* layer)
     {
     std::vector<vtkLayer*>::iterator it =
         std::find(this->Layers.begin(), this->Layers.end(), layer);
-    if (it != this->Layers.end())
+    if (it == this->Layers.end())
       {
       // TODO Use bin numbers to sort layer and its actors
       this->Layers.push_back(layer);
@@ -226,6 +226,25 @@ void vtkMap::RemoveLayer(vtkLayer* layer)
 
   this->Layers.erase(std::remove(this->Layers.begin(),
                                  this->Layers.end(), layer));
+}
+
+//----------------------------------------------------------------------------
+vtkLayer *vtkMap::FindLayer(char *name)
+{
+  vtkLayer *result = NULL;  // return value
+
+  std::vector<vtkLayer*>::iterator it = this->Layers.begin();
+  for (; it != this->Layers.end(); it++)
+    {
+    vtkLayer *layer = *it;
+    if (layer->GetName() == name)
+      {
+      result = layer;
+      break;
+      }
+    }
+
+  return result;
 }
 
 //----------------------------------------------------------------------------
