@@ -230,7 +230,8 @@ void vtkMapTile::CleanUp()
 //----------------------------------------------------------------------------
 void vtkMapTile::Update()
 {
-  this->Actor->SetVisibility(this->Visibility);
+  // Visible only if both layer and feature visibility flags are set
+  bool visibility = this->GetLayer()->GetVisibility() && this->Visibility;
+  this->Actor->SetVisibility(visibility);
   this->UpdateTime.Modified();
 }
-
