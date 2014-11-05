@@ -36,11 +36,10 @@ include(GenerateExportHeader)
 # Specify vtkDataSetReaders components
 # Main repo is https://github.com/OpenGeoscience/vtkDataSetReaders
 set(READERS_INCLUDE_DIRECTORY "" CACHE PATH "Location of vtkDataSetReaders header files")
-include_directories(${READERS_INCLUDE_DIRECTORY})
+include_directories()
 set(READERS_LIB_DIRECTORY "" CACHE PATH "Location of vtkDataSetReaders library")
 set(READERS_LIBRARIES vtkDataSetReaders)
 link_directories(${READERS_LIB_DIRECTORY})
-
 
 # Specify source files
 set (SOURCES
@@ -79,13 +78,18 @@ add_library(vtkMap ${SOURCES})
 
 target_link_libraries(vtkMap
                       LINK_PUBLIC
-                      ${VTK_LIBRARIES}
+                        ${VTK_LIBRARIES}
+                        ${READERS_LIBRARIES}
                       LINK_PRIVATE
-                      ${CURL_LIBRARIES}
+                        ${CURL_LIBRARIES}
                       )
 
-target_include_directories(vtkMap PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
-                                  PRIVATE ${CURL_INCLUDE_DIRS}
+target_include_directories(vtkMap
+                           PUBLIC
+                             ${CMAKE_CURRENT_BINARY_DIR}
+                           PRIVATE
+                             ${CURL_INCLUDE_DIRS}
+                             ${READERS_INCLUDE_DIRECTORY}
                           )
 
 #setup export header
