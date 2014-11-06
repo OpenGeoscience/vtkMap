@@ -188,17 +188,17 @@ void vtkOsmLayer::AddTiles()
 
   /// Clamp tilex and tiley
   tile1x = std::max(tile1x, 0);
-  tile1x = std::min(static_cast<int>(pow(2, zoomLevel)) - 1, tile1x);
+  tile1x = std::min(static_cast<int>(std::pow(2.0, zoomLevel)) - 1, tile1x);
   tile2x = std::max(tile2x, 0);
-  tile2x = std::min(static_cast<int>(pow(2, zoomLevel)) - 1, tile2x);
+  tile2x = std::min(static_cast<int>(std::pow(2.0, zoomLevel)) - 1, tile2x);
 
   tile1y = std::max(tile1y, 0);
-  tile1y = std::min(static_cast<int>(pow(2, zoomLevel)) - 1, tile1y);
+  tile1y = std::min(static_cast<int>(std::pow(2.0, zoomLevel)) - 1, tile1y);
   tile2y = std::max(tile2y, 0);
-  tile2y = std::min(static_cast<int>(pow(2, zoomLevel)) - 1, tile2y);
+  tile2y = std::min(static_cast<int>(std::pow(2.0, zoomLevel)) - 1, tile2y);
 
-  int noOfTilesX = std::max(1, static_cast<int>(pow(2, zoomLevel)));
-  int noOfTilesY = std::max(1, static_cast<int>(pow(2, zoomLevel)));
+  int noOfTilesX = std::max(1, static_cast<int>(std::pow(2.0, zoomLevel)));
+  int noOfTilesY = std::max(1, static_cast<int>(std::pow(2.0, zoomLevel)));
 
   double lonPerTile = 360.0 / noOfTilesX;
   double latPerTile = 360.0 / noOfTilesY;
@@ -215,7 +215,7 @@ void vtkOsmLayer::AddTiles()
     for (int j = tile2y; j <= tile1y; ++j)
       {
       xIndex = i;
-      yIndex = static_cast<int>(pow(2, zoomLevel)) - 1 - j;
+      yIndex = static_cast<int>(std::pow(2.0, zoomLevel)) - 1 - j;
 
       vtkMapTile* tile = this->GetCachedTile(zoomLevel, xIndex, yIndex);
       if (!tile)
@@ -237,7 +237,7 @@ void vtkOsmLayer::AddTiles()
         std::string row = oss.str();
         oss.str("");
 
-        oss << (static_cast<int>(pow(2, zoomLevel)) - 1 - yIndex);
+        oss << (static_cast<int>(std::pow(2.0, zoomLevel)) - 1 - yIndex);
         std::string col = oss.str();
         oss.str("");
 
