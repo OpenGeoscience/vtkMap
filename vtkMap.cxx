@@ -47,7 +47,7 @@ vtkStandardNewMacro(vtkMap)
 //----------------------------------------------------------------------------
 double computeCameraDistance(vtkCamera* cam, int zoomLevel)
 {
-  double deg = 360.0 / std::pow( double(2), zoomLevel);
+  double deg = 360.0 / std::pow( 2.0, zoomLevel);
   return (deg / std::sin(vtkMath::RadiansFromDegrees(cam->GetViewAngle())));
 }
 
@@ -58,7 +58,7 @@ int computeZoomLevel(vtkCamera* cam)
   double width = pos[2] * sin(vtkMath::RadiansFromDegrees(cam->GetViewAngle()));
 
   for (int i = 0; i < 20; ++i) {
-    if (width >= (360.0 / pow(2, i))) {
+    if (width >= (360.0 / std::pow( 2.0, i))) {
       /// We are forcing the minimum zoom level to 2 so that we can get
       /// high res imagery even at the zoom level 0 distance
       return i;
