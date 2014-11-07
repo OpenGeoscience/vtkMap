@@ -102,6 +102,10 @@ vtkMap::~vtkMap()
     {
     this->Picker->Delete();
     }
+  if ( this->StorageDirectory )
+    {
+    delete[] StorageDirectory;
+    }
 }
 
 //----------------------------------------------------------------------------
@@ -155,6 +159,11 @@ void vtkMap::GetCenter(double (&latlngPoint)[2])
 //----------------------------------------------------------------------------
 void vtkMap::SetStorageDirectory(const char *path)
 {
+  if(!path)
+    {
+    return;
+    }
+
   std::string fullPath;
   if (vtksys::SystemTools::FileIsFullPath(path))
     {
@@ -175,7 +184,7 @@ void vtkMap::SetStorageDirectory(const char *path)
 
   // Copy path to StorageDirectory
   delete [] this->StorageDirectory;
-  size_t n = fullPath.size();
+  const size_t n = fullPath.size() + 1;
   this->StorageDirectory = new char[n];
   strcpy(this->StorageDirectory, fullPath.c_str());
 }
