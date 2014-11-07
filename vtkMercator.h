@@ -18,6 +18,21 @@
 
 class vtkMercator : vtkObject
 {
+//by default visual studio doesn't provide the M_PI define as it is a
+//non standard function, but with the around defines it does. It is far to
+//complicated to make sure everything gets included in the right order for
+//that to happen for a header only class. Instead we provide our own
+//M_PI define if it isn't already defined. The value we have chose is the
+//one that math.h uses on compilers that support M_PI.
+  static double m_pi()
+  {
+#ifndef M_PI
+  return 3.14159265358979323846;
+#else
+  return M_PI;
+#endif
+  };
+
 public:
   virtual void PrintSelf(ostream &os, vtkIndent indent) {;}
   vtkTypeMacro(vtkMercator, vtkObject);
@@ -31,8 +46,8 @@ public:
   //----------------------------------------------------------------------------
   static int lat2tiley(double lat, int z)
   {
-    return (int)(floor((1.0 - log( tan(lat * M_PI/180.0) + 1.0 /
-      cos(lat * M_PI/180.0)) / M_PI) / 2.0 * pow(2.0, z)));
+    return (int)(floor((1.0 - log( tan(lat * m_pi()/180.0) + 1.0 /
+      cos(lat * m_pi()/180.0)) / m_pi()) / 2.0 * pow(2.0, z)));
   }
 
   //----------------------------------------------------------------------------
@@ -44,25 +59,27 @@ public:
   //----------------------------------------------------------------------------
   static double tiley2lat(int y, int z)
   {
-    double n = M_PI - 2.0 * M_PI * y / pow(2.0, z);
-    return 180.0 / M_PI * atan(0.5 * (exp(n) - exp(-n)));
+    double n = m_pi() - 2.0 * m_pi() * y / pow(2.0, z);
+    return 180.0 / m_pi() * atan(0.5 * (exp(n) - exp(-n)));
   }
 
   //----------------------------------------------------------------------------
   static double y2lat(double a)
   {
-    return 180 / M_PI * (2 * atan(exp(a * M_PI / 180.0)) - M_PI / 2.0);
+    return 180 / m_pi() * (2 * atan(exp(a * m_pi() / 180.0)) - m_pi() / 2.0);
   }
 
   //----------------------------------------------------------------------------
   static double lat2y(double a)
   {
-    return 180.0 / M_PI * log(tan(M_PI / 4.0 + a * (M_PI / 180.0) / 2.0));
+    return 180.0 / m_pi() * log(tan(m_pi() / 4.0 + a * (m_pi() / 180.0) / 2.0));
   }
 
 protected:
   vtkMercator() {;}
   virtual ~vtkMercator() {;}
 };
+
+
 
 #endif // __vtkMercator_h
