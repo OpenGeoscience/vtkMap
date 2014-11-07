@@ -69,6 +69,12 @@ public:
   // not directly by the application code.
   virtual void Update() = 0;
 
+  // Description:
+  // Return boolean indicating if the feature is to be displayed,
+  // which is the boolean product of the feature's visibiltiy
+  // and the layer's visibility flags.
+  bool IsVisible();
+
 protected:
   vtkFeature();
   ~vtkFeature();
