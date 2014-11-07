@@ -32,14 +32,24 @@ public:
 };
 
 //----------------------------------------------------------------------------
-vtkFeatureLayer::vtkFeatureLayer()
+vtkFeatureLayer::vtkFeatureLayer():
+  Impl(new vtkInternal())
 {
-  this->Impl = new vtkInternal();
 }
 
 //----------------------------------------------------------------------------
 vtkFeatureLayer::~vtkFeatureLayer()
 {
+  const std::size_t size = this->Impl->Features.size();
+  for(std::size_t i=0; i < size; ++i)
+    {
+    //invoke delete on each vtk class in the vector
+    vtkFeature* f = this->Impl->Features[i];
+    if(f)
+      {
+      f->Delete();
+      }
+    }
   delete this->Impl;
 }
 
@@ -89,8 +99,16 @@ void vtkFeatureLayer::RemoveFeature(vtkFeature* feature)
     }
 
   feature->CleanUp();
-  this->Impl->Features.erase(std::remove(this->Impl->Features.begin(),
-                             this->Impl->Features.end(), feature));
+  typedef std::vector< vtkFeature* >::iterator iter;
+  iter found_iter =  std::find(this->Impl->Features.begin(),
+                               this->Impl->Features.end(), feature);
+
+  //now that we have found the feature delete it, leaving a dangling pointer
+  (*found_iter)->Delete();
+
+  //now resize the array to not hold the empty feature
+  this->Impl->Features.erase( std::remove(this->Impl->Features.begin(),
+                              this->Impl->Features.end(), feature ));
 }
 
 //----------------------------------------------------------------------------
