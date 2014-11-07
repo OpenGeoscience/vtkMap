@@ -47,7 +47,7 @@ vtkStandardNewMacro(vtkMap)
 //----------------------------------------------------------------------------
 double computeCameraDistance(vtkCamera* cam, int zoomLevel)
 {
-  double deg = 360.0 / std::pow( double(2), zoomLevel);
+  double deg = 360.0 / std::pow( 2.0, zoomLevel);
   return (deg / std::sin(vtkMath::RadiansFromDegrees(cam->GetViewAngle())));
 }
 
@@ -58,7 +58,7 @@ int computeZoomLevel(vtkCamera* cam)
   double width = pos[2] * sin(vtkMath::RadiansFromDegrees(cam->GetViewAngle()));
 
   for (int i = 0; i < 20; ++i) {
-    if (width >= (360.0 / pow(2, i))) {
+    if (width >= (360.0 / std::pow( 2.0, i))) {
       /// We are forcing the minimum zoom level to 2 so that we can get
       /// high res imagery even at the zoom level 0 distance
       return i;
@@ -101,6 +101,10 @@ vtkMap::~vtkMap()
   if (this->Picker)
     {
     this->Picker->Delete();
+    }
+  if ( this->StorageDirectory )
+    {
+    delete[] StorageDirectory;
     }
 }
 
@@ -155,6 +159,11 @@ void vtkMap::GetCenter(double (&latlngPoint)[2])
 //----------------------------------------------------------------------------
 void vtkMap::SetStorageDirectory(const char *path)
 {
+  if(!path)
+    {
+    return;
+    }
+
   std::string fullPath;
   if (vtksys::SystemTools::FileIsFullPath(path))
     {
@@ -175,7 +184,7 @@ void vtkMap::SetStorageDirectory(const char *path)
 
   // Copy path to StorageDirectory
   delete [] this->StorageDirectory;
-  size_t n = fullPath.size();
+  const size_t n = fullPath.size() + 1;
   this->StorageDirectory = new char[n];
   strcpy(this->StorageDirectory, fullPath.c_str());
 }

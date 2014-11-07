@@ -16,6 +16,8 @@
 #ifndef __vtkMercator_h
 #define __vtkMercator_h
 
+#include <cmath>
+
 class vtkMercator : vtkObject
 {
 //by default visual studio doesn't provide the M_PI define as it is a
@@ -40,26 +42,26 @@ public:
   //----------------------------------------------------------------------------
   static int long2tilex(double lon, int z)
   {
-    return (int)(floor((lon + 180.0) / 360.0 * pow(2.0, z)));
+    return (int)(floor((lon + 180.0) / 360.0 * std::pow(2.0, z)));
   }
 
   //----------------------------------------------------------------------------
   static int lat2tiley(double lat, int z)
   {
     return (int)(floor((1.0 - log( tan(lat * m_pi()/180.0) + 1.0 /
-      cos(lat * m_pi()/180.0)) / m_pi()) / 2.0 * pow(2.0, z)));
+      cos(lat * m_pi()/180.0)) / m_pi()) / 2.0 * std::pow(2.0, z)));
   }
 
   //----------------------------------------------------------------------------
   static double tilex2long(int x, int z)
   {
-    return x / pow(2.0, z) * 360.0 - 180;
+    return x / std::pow(2.0, z) * 360.0 - 180;
   }
 
   //----------------------------------------------------------------------------
   static double tiley2lat(int y, int z)
   {
-    double n = m_pi() - 2.0 * m_pi() * y / pow(2.0, z);
+    double n = m_pi() - 2.0 * m_pi() * y / std::pow(2.0, z);
     return 180.0 / m_pi() * atan(0.5 * (exp(n) - exp(-n)));
   }
 
