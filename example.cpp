@@ -98,8 +98,10 @@ int main()
   // Note: Always set map's renderer *before* adding layers
   vtkNew<vtkRenderer> rend;
   map->SetRenderer(rend.GetPointer());
-  map->SetCenter(kwLatitude, kwLongitude);
-  map->SetZoom(5);
+  //map->SetCenter(kwLatitude, kwLongitude);
+  //map->SetZoom(5);
+  double latLngCoords[] = {25.0, -125.0, 50.0, -65.0};  // CONUS
+  map->ShowArea(latLngCoords);
 
   vtkNew<vtkOsmLayer> osmLayer;
   map->AddLayer(osmLayer.GetPointer());

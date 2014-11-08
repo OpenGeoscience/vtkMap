@@ -136,6 +136,51 @@ vtkInteractorStyle *vtkMap::GetInteractorStyle()
 }
 
 //----------------------------------------------------------------------------
+void vtkMap::ShowArea(double latLngCoords[4])
+{
+  // Convert to gcs coordinates
+  double worldCoords[4];
+  worldCoords[0] = latLngCoords[1];
+  worldCoords[1] = vtkMercator::lat2y(latLngCoords[0]);
+  worldCoords[2] = latLngCoords[3];
+  worldCoords[3] = vtkMercator::lat2y(latLngCoords[2]);
+
+  // Compute size as the larger of delta lon/lat
+  double deltaLon = fabs(worldCoords[2] - worldCoords[0]);
+  if (deltaLon > 180.0)
+    {
+    // If > 180, then points wrap around the 180th meridian
+    // Adjust things to be > 0
+    deltaLon = 360.0 - deltaLon;
+    worldCoords[0] += worldCoords[0] < 0.0 ? 360.0 : 0;
+    worldCoords[2] += worldCoords[2] < 0.0 ? 360.0 : 0;
+    }
+  double deltaLat = fabs(worldCoords[3] - worldCoords[1]);
+  double delta = deltaLon > deltaLat ? deltaLon : deltaLat;
+
+  // Compute zoom level
+  double maxDelta = 360.0;
+  double maxZoom = 20;
+  int zoom = 0;
+  for (zoom=0; delta < maxDelta && zoom < maxZoom; zoom++)
+    {
+    delta *= 2.0;
+    }
+
+  // Compute center
+  double center[2];
+  center[0] = 0.5 * (latLngCoords[0] + latLngCoords[2]);
+  if (center[0] > 180.0)
+    {
+    center[0] -= 360.0;
+    }
+  center[1] = 0.5 * (latLngCoords[1] + latLngCoords[3]);
+
+  this->SetCenter(center);
+  this->SetZoom(zoom);
+}
+
+//----------------------------------------------------------------------------
 void vtkMap::GetCenter(double (&latlngPoint)[2])
 {
   double* center = this->Renderer->GetCenter();
