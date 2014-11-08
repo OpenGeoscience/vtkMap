@@ -21,6 +21,8 @@
 // VTK Includes
 #include <vtkObject.h>
 
+#include "vtkmap_export.h"
+
 class vtkActor;
 class vtkCallbackCommand;
 class vtkInteractorStyle;
@@ -36,7 +38,9 @@ class vtkRenderer;
 #include <string>
 #include <vector>
 
-class vtkMap : public vtkObject
+class vtkLayer;
+
+class VTKMAP_EXPORT vtkMap : public vtkObject
 {
 public:
   // Description:
@@ -93,6 +97,7 @@ public:
   // Add / Remove layer from the map.
   void AddLayer(vtkLayer* layer);
   void RemoveLayer(vtkLayer* layer);
+  vtkLayer *FindLayer(char *name);
 
   // TODO Implement this
   //void SetLayerOrder(vtkLaye* layer, int offsetFromCurrent);

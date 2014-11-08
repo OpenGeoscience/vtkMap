@@ -1,0 +1,22 @@
+// Single GeoJSON feature:
+// * Polygon joining various cities in central New York State
+// * Geometry is concave
+// * Geo coords were obtained from www.latlong.net
+{ "type": "Feature",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [[
+      [-78.878369, 42.886447],
+      [-76.147424, 43.048122],
+      [-75.910756, 43.974784],
+      [-73.756232, 42.652579],
+      [-75.917974, 42.098687],
+      [-78.429927, 42.083639],
+      [-78.878369, 42.886447]
+    ]]
+  },
+  "properties": {
+    "author": "Kitware",
+    "cities": ["Buffalo", "Syracuse", "Watertown", "Albany", "Binghamton", "Olean"]
+  }
+}

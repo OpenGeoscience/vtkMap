@@ -19,9 +19,9 @@
 #define __vtkOsmLayer_h
 
 #include "vtkFeatureLayer.h"
-
 #include "vtkMapTile.h"
 #include "vtkMapTileSpecInternal.h"
+#include "vtkmap_export.h"
 
 // VTK Includes
 #include <vtkObject.h>
@@ -30,7 +30,7 @@
 #include <map>
 #include <vector>
 
-class vtkOsmLayer : public vtkFeatureLayer
+class VTKMAP_EXPORT vtkOsmLayer : public vtkFeatureLayer
 {
 public:
   static vtkOsmLayer* New();

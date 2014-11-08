@@ -23,10 +23,11 @@
 #include <vtkPolyDataMapper.h>
 
 #include "vtkFeature.h"
+#include "vtkmap_export.h"
 
 #include <string>
 
-class vtkPolydataFeature : public vtkFeature
+class VTKMAP_EXPORT vtkPolydataFeature : public vtkFeature
 {
 public:
   static vtkPolydataFeature* New();

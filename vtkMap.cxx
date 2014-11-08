@@ -37,6 +37,7 @@
 #include <vtksys/SystemTools.hxx>
 
 #include <algorithm>
+#include <cstring>
 #include <iomanip>
 #include <iterator>
 #include <math.h>
@@ -47,24 +48,24 @@ vtkStandardNewMacro(vtkMap)
 //----------------------------------------------------------------------------
 double computeCameraDistance(vtkCamera* cam, int zoomLevel)
 {
-  double deg = 360.0 / std::pow(2, zoomLevel);
+  double deg = 360.0 / std::pow( 2.0, zoomLevel);
   return (deg / std::sin(vtkMath::RadiansFromDegrees(cam->GetViewAngle())));
 }
 
 //----------------------------------------------------------------------------
 int computeZoomLevel(vtkCamera* cam)
 {
-  int i;
   double* pos = cam->GetPosition();
   double width = pos[2] * sin(vtkMath::RadiansFromDegrees(cam->GetViewAngle()));
 
-  for (i = 0; i < 20; i += 1) {
-    if (width >= (360.0 / pow(2, i))) {
+  for (int i = 0; i < 20; ++i) {
+    if (width >= (360.0 / std::pow( 2.0, i))) {
       /// We are forcing the minimum zoom level to 2 so that we can get
       /// high res imagery even at the zoom level 0 distance
       return i;
     }
   }
+  return 0;
 }
 
 //----------------------------------------------------------------------------
@@ -117,6 +118,10 @@ vtkMap::~vtkMap()
   if (this->PollingCallbackCommand)
     {
     this->PollingCallbackCommand->Delete();
+    }
+  if ( this->StorageDirectory )
+    {
+    delete[] StorageDirectory;
     }
 }
 
@@ -171,6 +176,11 @@ void vtkMap::GetCenter(double (&latlngPoint)[2])
 //----------------------------------------------------------------------------
 void vtkMap::SetStorageDirectory(const char *path)
 {
+  if(!path)
+    {
+    return;
+    }
+
   std::string fullPath;
   if (vtksys::SystemTools::FileIsFullPath(path))
     {
@@ -191,7 +201,7 @@ void vtkMap::SetStorageDirectory(const char *path)
 
   // Copy path to StorageDirectory
   delete [] this->StorageDirectory;
-  size_t n = fullPath.size();
+  const size_t n = fullPath.size() + 1;
   this->StorageDirectory = new char[n];
   strcpy(this->StorageDirectory, fullPath.c_str());
 }
@@ -247,6 +257,25 @@ void vtkMap::RemoveLayer(vtkLayer* layer)
 }
 
 //----------------------------------------------------------------------------
+vtkLayer *vtkMap::FindLayer(char *name)
+{
+  vtkLayer *result = NULL;  // return value
+
+  std::vector<vtkLayer*>::iterator it = this->Layers.begin();
+  for (; it != this->Layers.end(); it++)
+    {
+    vtkLayer *layer = *it;
+    if (layer->GetName() == name)
+      {
+      result = layer;
+      break;
+      }
+    }
+
+  return result;
+}
+
+//----------------------------------------------------------------------------
 void vtkMap::Update()
 {
   if (!this->BaseLayer)
@@ -277,7 +306,8 @@ void vtkMap::Draw()
     this->MapMarkerSet->SetRenderer(this->Renderer);
 
     // Make sure storage directory specified
-    if (!this->StorageDirectory || "" == this->StorageDirectory)
+    if (!this->StorageDirectory ||
+        std::strlen(this->StorageDirectory) == 0)
       {
       std::string fullPath =
         vtksys::SystemTools::CollapseFullPath(".vtkmap", "~/");

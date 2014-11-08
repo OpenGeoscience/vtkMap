@@ -37,7 +37,7 @@ class vtkMapTile;
 
 typedef std::vector<vtkMapTileSpecInternal> TileSpecList;
 
-class vtkMultiThreadedOsmLayer : public vtkOsmLayer
+class VTKMAP_EXPORT vtkMultiThreadedOsmLayer : public vtkOsmLayer
 {
 public:
   static vtkMultiThreadedOsmLayer *New();
