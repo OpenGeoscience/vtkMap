@@ -64,7 +64,6 @@ protected:
   char *CacheDirectory;
   std::map< int, std::map< int, std::map <int, vtkMapTile*> > > CachedTilesMap;
   std::vector<vtkMapTile*> CachedTiles;
-  std::vector<vtkMapTile*> NewPendingTiles;
 
 private:
   vtkOsmLayer(const vtkOsmLayer&);    // Not implemented

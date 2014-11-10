@@ -103,8 +103,8 @@ int main()
   double latLngCoords[] = {25.0, -125.0, 50.0, -65.0};  // CONUS
   map->ShowArea(latLngCoords);
 
-  vtkNew<vtkOsmLayer> osmLayer;
-  map->AddLayer(osmLayer.GetPointer());
+  vtkOsmLayer* osmLayer = vtkOsmLayer::New();
+  map->AddLayer(osmLayer);
 
   vtkNew<vtkRenderWindow> wind;
   wind->AddRenderer(rend.GetPointer());;
@@ -123,14 +123,14 @@ int main()
   map->GetCenter(center);
 
   // Initialize test polygon
-  vtkNew<vtkFeatureLayer> featureLayer;
+  vtkFeatureLayer* featureLayer = vtkFeatureLayer::New();
   featureLayer->SetName("test-polygon");
   // Note: Always add feature layer to the map *before* adding features
-  map->AddLayer(featureLayer.GetPointer());
+  map->AddLayer(featureLayer);
   vtkNew<vtkRegularPolygonSource> testPolygon;
   testPolygon->SetNumberOfSides(50);
   testPolygon->SetRadius(2.0);
-  vtkNew<vtkPolydataFeature> feature;
+  vtkPolydataFeature* feature = vtkPolydataFeature::New();
   feature->GetMapper()->SetInputConnection(testPolygon->GetOutputPort());
   feature->GetActor()->GetProperty()->SetColor(1.0, 0.1, 0.1);
   feature->GetActor()->GetProperty()->SetOpacity(0.5);
@@ -138,7 +138,7 @@ int main()
   double x = kwLongitude;
   double y = vtkMercator::lat2y(kwLatitude);
   feature->GetActor()->SetPosition(x, y, 0.0);
-  featureLayer->AddFeature(feature.GetPointer());  // crash!
+  featureLayer->AddFeature(feature);
   map->Draw();
 
   // Instantiate markers for array of lat-lon coordinates
