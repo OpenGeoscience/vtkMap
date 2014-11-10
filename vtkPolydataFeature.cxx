@@ -59,7 +59,7 @@ void vtkPolydataFeature::Init()
 //----------------------------------------------------------------------------
 void vtkPolydataFeature::Update()
 {
-  this->Actor->SetVisibility(this->Visibility);
+  this->Actor->SetVisibility(this->IsVisible());
   this->UpdateTime.Modified();
 }
 

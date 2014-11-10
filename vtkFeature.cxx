@@ -37,4 +37,9 @@ void vtkFeature::PrintSelf(std::ostream& os, vtkIndent indent)
   // TODO
 }
 
-
+//----------------------------------------------------------------------------
+bool vtkFeature::IsVisible()
+{
+  // Visible only if both layer and feature visibility flags are set
+  return this->GetLayer()->GetVisibility() && this->Visibility;
+}
