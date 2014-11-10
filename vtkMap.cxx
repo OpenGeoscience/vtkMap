@@ -120,12 +120,12 @@ void vtkMap::PrintSelf(ostream &os, vtkIndent indent)
   double *camPosition = this->Renderer->GetActiveCamera()->GetPosition();
   double *focalPosition = this->Renderer->GetActiveCamera()->GetFocalPoint();
   os << "  Zoom Level: " << this->Zoom << "\n"
-     << "  Center Lat/Lon: " << vtkMercator::y2lat(this->Center[0]) << " "
-     << this->Center[1] << "\n"
-     << "  Camera Lat/Lon/Z: " << vtkMercator::y2lat(camPosition[1]) << " "
-     << camPosition[0] << " " << camPosition[2] << "\n"
-     << "  Focal Lat/Lon/Z: " << vtkMercator::y2lat(focalPosition[1]) << " "
-     << focalPosition[0] << " " << focalPosition[2] << "\n"
+     << "  Center Lat/Lon: " << this->Center[1] << " "
+     << this->Center[0] << "\n"
+     << "  Camera Position: " << camPosition[0] << " "
+     << camPosition[1] << " " << camPosition[2] << "\n"
+     << "  Focal Position: " << focalPosition[0] << " "
+     << focalPosition[1] << " " << focalPosition[2] << "\n"
      << std::endl;
 }
 
@@ -166,6 +166,7 @@ void vtkMap::ShowArea(double latLngCoords[4])
     {
     delta *= 2.0;
     }
+  zoom--;
 
   // Compute center
   double center[2];
@@ -178,6 +179,17 @@ void vtkMap::ShowArea(double latLngCoords[4])
 
   this->SetCenter(center);
   this->SetZoom(zoom);
+
+  // Update camera if initialized
+  if (this->Renderer)
+    {
+    double x = this->Center[1];
+    double y = vtkMercator::lat2y(this->Center[0]);
+    double distance =
+      computeCameraDistance(this->Renderer->GetActiveCamera(), this->Zoom);
+    this->Renderer->GetActiveCamera()->SetPosition(x, y, distance);
+    this->Renderer->GetActiveCamera()->SetFocalPoint(x, y, 0.0);
+    }
 }
 
 //----------------------------------------------------------------------------
@@ -362,14 +374,12 @@ void vtkMap::Draw()
       }
 
     // Initialize graphics
-    this->Center[0] = vtkMercator::lat2y(this->Center[0]);
-    this->Renderer->GetActiveCamera()->SetPosition(
-      this->Center[1],
-      this->Center[0],
-      computeCameraDistance(this->Renderer->GetActiveCamera(), this->Zoom));
-    this->Renderer->GetActiveCamera()->SetFocalPoint(this->Center[1],
-                                                     this->Center[0],
-                                                     0.0);
+    double x = this->Center[1];
+    double y = vtkMercator::lat2y(this->Center[0]);
+    double distance =
+      computeCameraDistance(this->Renderer->GetActiveCamera(), this->Zoom);
+    this->Renderer->GetActiveCamera()->SetPosition(x, y, distance);
+    this->Renderer->GetActiveCamera()->SetFocalPoint(x, y, 0.0);
     this->Renderer->GetRenderWindow()->Render();
     }
   this->Update();
