@@ -47,6 +47,11 @@ vtkOsmLayer::vtkOsmLayer() : vtkFeatureLayer()
 //----------------------------------------------------------------------------
 vtkOsmLayer::~vtkOsmLayer()
 {
+ //The entries in the CachedTilesMap and also the CachedTiles are also
+ //part of a vector held by our derived parent. The Caches are just for quick
+ //lookup and the pointers inside of them don't need to be deleted, as our
+ //derived parent owns them
+
   this->CachedTiles.clear();
   this->CachedTilesMap.clear();
 }
@@ -209,6 +214,7 @@ void vtkOsmLayer::AddTiles()
   //std::cerr << "tile1x " << tile1x << " tile2x " << tile2x << std::endl;
   //std::cerr << "tile1y " << tile1y << " tile2y " << tile2y << std::endl;
 
+  std::vector<vtkMapTile*> pendingTiles;
   int xIndex, yIndex;
   for (int i = tile1x; i <= tile2x; ++i)
     {
@@ -248,12 +254,12 @@ void vtkOsmLayer::AddTiles()
                              "/" + col + ".png");
         this->AddTileToCache(zoomLevel, xIndex, yIndex, tile);
       }
-    this->NewPendingTiles.push_back(tile);
+    pendingTiles.push_back(tile);
     tile->SetVisible(true);
     }
   }
 
-  if (this->NewPendingTiles.size() > 0)
+  if (pendingTiles.size() > 0)
     {
     // Remove the old tiles first
     std::vector<vtkMapTile*>::iterator itr = this->CachedTiles.begin();
@@ -275,14 +281,14 @@ void vtkOsmLayer::AddTiles()
 
     this->Renderer->RemoveAllViewProps();
 
-    std::sort(this->NewPendingTiles.begin(),
-              this->NewPendingTiles.end(),
+    std::sort(pendingTiles.begin(),
+              pendingTiles.end(),
               sortTiles());
 
-    for (int i = 0; i < this->NewPendingTiles.size(); ++i)
+    for (int i = 0; i < pendingTiles.size(); ++i)
       {
       // Add tile to the renderer
-      this->AddFeature(this->NewPendingTiles[i]);
+      this->AddFeature(pendingTiles[i]);
       }
 
     std::vector<vtkProp*>::iterator itr2 = otherProps.begin();
@@ -291,8 +297,6 @@ void vtkOsmLayer::AddTiles()
       this->Renderer->AddViewProp(*itr2);
       ++itr2;
       }
-
-    this->NewPendingTiles.clear();
     }
 }
 
