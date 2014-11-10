@@ -19,6 +19,7 @@
 #define __vtkFeature_h
 
 #include <vtkObject.h>
+#include <vtkWeakPointer.h>
 
 #include "vtkmap_export.h"
 #include "vtkFeatureLayer.h"
@@ -48,8 +49,9 @@ public:
   vtkGetMacro(Bin, int);
   vtkSetMacro(Bin, int);
 
-  vtkGetObjectMacro(Layer, vtkFeatureLayer);
-  vtkSetObjectMacro(Layer, vtkFeatureLayer);
+  //we hold onto a weak pointer to the current feature layer that
+  //we are part of
+  void SetLayer(vtkFeatureLayer* layer);
 
   // Description:
   // Build feature when added to the feature layer.
@@ -69,6 +71,12 @@ public:
   // not directly by the application code.
   virtual void Update() = 0;
 
+  // Description:
+  // Return boolean indicating if the feature is to be displayed,
+  // which is the boolean product of the feature's visibiltiy
+  // and the layer's visibility flags.
+  bool IsVisible();
+
 protected:
   vtkFeature();
   ~vtkFeature();
@@ -82,7 +90,7 @@ protected:
   vtkTimeStamp BuildTime;
   vtkTimeStamp UpdateTime;
 
-  vtkFeatureLayer* Layer;
+  vtkWeakPointer<vtkFeatureLayer> Layer;
 
 private:
   vtkFeature(const vtkFeature&);  // Not implemented

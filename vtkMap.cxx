@@ -123,6 +123,21 @@ vtkMap::~vtkMap()
     {
     delete[] StorageDirectory;
     }
+
+  const std::size_t layer_size = this->Layers.size();
+  for(std::size_t i=0; i < layer_size; ++i)
+    { //invoke delete on each vtk class in the vector
+    vtkLayer* layer = this->Layers[i];
+    if(layer)
+      {
+      layer->Delete();
+      }
+    }
+
+  if(this->BaseLayer)
+    {
+    this->BaseLayer->Delete();
+    }
 }
 
 //----------------------------------------------------------------------------

@@ -25,6 +25,7 @@
 #include <vtkPolyData.h>
 #include <vtkStreamingDemandDrivenPipeline.h>
 #include <vtkTransform.h>
+#include <vtkNew.h>
 
 #include <iomanip>
 #include <iostream>
@@ -79,15 +80,15 @@ int vtkTeardropSource::RequestData(
     }
 
   vtkPoints *tailPath = vtkPoints::New(VTK_DOUBLE);
-  vtkDoubleArray *tailNormals = vtkDoubleArray::New();
-  this->ComputeTailPath(tailPath, tailNormals);
+  vtkNew<vtkDoubleArray> tailNormals;
+  this->ComputeTailPath(tailPath, tailNormals.GetPointer());
   vtkPoints *headPath = vtkPoints::New(VTK_DOUBLE);
-  vtkDoubleArray *headNormals = vtkDoubleArray::New();
-  this->ComputeHeadPath(headPath, headNormals);
+  vtkNew<vtkDoubleArray> headNormals;
+  this->ComputeHeadPath(headPath, headNormals.GetPointer());
 
   // Combine tail & head into one path
   vtkPoints *path = vtkPoints::New(VTK_DOUBLE);
-  vtkDoubleArray *pathNormals = vtkDoubleArray::New();
+  vtkNew<vtkDoubleArray> pathNormals;
   pathNormals->SetNumberOfComponents(3);
 
   int i;
@@ -131,7 +132,7 @@ int vtkTeardropSource::RequestData(
   //             << "\n";
   //   }
 
-  this->ComputePolyData(path, pathNormals, output);
+  this->ComputePolyData(path, pathNormals.GetPointer(), output);
 
   tailPath->Delete();
   headPath->Delete();

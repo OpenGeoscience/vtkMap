@@ -32,9 +32,24 @@ vtkFeature::~vtkFeature()
 }
 
 //----------------------------------------------------------------------------
+void vtkFeature::SetLayer(vtkFeatureLayer* layer)
+{
+  //set our weak pointer to look at the layer passed in.
+  if(layer)
+    { //don't allow null layer
+    this->Layer = layer;
+    }
+}
+
+//----------------------------------------------------------------------------
 void vtkFeature::PrintSelf(std::ostream& os, vtkIndent indent)
 {
   // TODO
 }
 
-
+//----------------------------------------------------------------------------
+bool vtkFeature::IsVisible()
+{
+  // Visible only if both layer and feature visibility flags are set
+  return this->Layer->GetVisibility() && this->Visibility;
+}
