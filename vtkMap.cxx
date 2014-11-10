@@ -254,7 +254,7 @@ void vtkMap::RemoveLayer(vtkLayer* layer)
 }
 
 //----------------------------------------------------------------------------
-vtkLayer *vtkMap::FindLayer(char *name)
+vtkLayer *vtkMap::FindLayer(const char *name)
 {
   vtkLayer *result = NULL;  // return value
 

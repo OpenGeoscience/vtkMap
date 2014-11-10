@@ -36,7 +36,7 @@ public:
   vtkGetMacro(Renderer, vtkRenderer*)
 
   // Description:
-  std::string GetName();
+  const std::string& GetName();
   void SetName(const std::string& Name);
 
   // Description:
