@@ -100,7 +100,7 @@ int main()
   map->SetRenderer(rend.GetPointer());
   //map->SetCenter(kwLatitude, kwLongitude);
   //map->SetZoom(5);
-  double latLngCoords[] = {25.0, -125.0, 50.0, -65.0};  // CONUS
+  double latLngCoords[] = {25.0, -115.0, 50.0, -75.0};  // CONUS
   map->ShowArea(latLngCoords);
 
   vtkOsmLayer* osmLayer = vtkOsmLayer::New();
