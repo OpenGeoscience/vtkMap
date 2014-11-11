@@ -58,7 +58,7 @@ protected:
 
 private:
   vtkInteractorStyleMap(const vtkInteractorStyleMap&);  // Not implemented
-  void operator=(const vtkInteractorStyleMap&); // Not implemented
+  vtkInteractorStyleMap& operator=(const vtkInteractorStyleMap&); // Not implemented
 };
 
 #endif // __vtkInteractorStyleMap_h

@@ -84,7 +84,7 @@ class VTKMAP_EXPORT vtkMapPickResult : public vtkObject
   vtkMapPickResult();
 
   vtkMapPickResult(const vtkMapPickResult&);  // Not implemented
-  void operator=(const vtkMapPickResult&); // Not implemented
+  vtkMapPickResult& operator=(const vtkMapPickResult&); // Not implemented
 };
 
 #endif // __vtkMapPickResult_h

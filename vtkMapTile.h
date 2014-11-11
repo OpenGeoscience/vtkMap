@@ -118,7 +118,7 @@ protected:
 
 private:
   vtkMapTile(const vtkMapTile&);  // Not implemented
-  void operator=(const vtkMapTile&); // Not implemented
+  vtkMapTile& operator=(const vtkMapTile&); // Not implemented
 };
 
 #endif // __vtkMapTile_h

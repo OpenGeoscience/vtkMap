@@ -53,7 +53,7 @@ protected:
 
 private:
   vtkFeatureLayer(const vtkFeatureLayer&);  // Not implemented
-  void operator=(const vtkFeatureLayer&); // Not implemented
+  vtkFeatureLayer& operator=(const vtkFeatureLayer&); // Not implemented
 };
 
 #endif // __vtkFeatureLayer_h
