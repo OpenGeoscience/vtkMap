@@ -112,7 +112,7 @@ public:
   MapMarkerSetInternals* Internals;
 
   vtkMapMarkerSet(const vtkMapMarkerSet&);  // not implemented
-  vtkMapMarkerSet& operator=(const vtkMapMarkerSet);  // not implemented
+  vtkMapMarkerSet& operator=(const vtkMapMarkerSet&);  // not implemented
 };
 
 #endif // __vtkMapMarkerSet_h
