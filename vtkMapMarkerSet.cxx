@@ -158,7 +158,6 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
     vtkDebugMacro("Inserting Node " << node->NodeId
                   << " into level " << level);
     this->Internals->NodeTable[level].insert(node);
-    double coords[2];
 
     level--;
     double threshold = this->Internals->ClusterDistance;
