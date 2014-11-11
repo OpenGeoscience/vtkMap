@@ -86,7 +86,7 @@ protected:
 
 private:
   vtkTeardropSource(const vtkTeardropSource&);  // Not implemented.
-  void operator=(const vtkTeardropSource&);  // Not implemented.
+  vtkTeardropSource& operator=(const vtkTeardropSource&);  // Not implemented.
 
   void ComputeTailPath(vtkPoints *, vtkDoubleArray *);
   void ComputeHeadPath(vtkPoints *, vtkDoubleArray *);

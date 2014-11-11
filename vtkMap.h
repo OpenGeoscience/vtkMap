@@ -165,7 +165,7 @@ protected:
 
 private:
   vtkMap(const vtkMap&);  // Not implemented
-  void operator=(const vtkMap&); // Not implemented
+  vtkMap& operator=(const vtkMap&); // Not implemented
 };
 
 #endif // __vtkMap_h

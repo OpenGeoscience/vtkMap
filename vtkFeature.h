@@ -94,7 +94,7 @@ protected:
 
 private:
   vtkFeature(const vtkFeature&);  // Not implemented
-  void operator=(const vtkFeature&); // Not implemented
+  vtkFeature& operator=(const vtkFeature&); // Not implemented
 };
 
 

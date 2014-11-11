@@ -83,7 +83,7 @@ protected:
 
 private:
   vtkLayer(const vtkLayer&);  // Not implemented
-  void operator=(const vtkLayer&); // Not implemented
+  vtkLayer& operator=(const vtkLayer&); // Not implemented
 };
 
 #endif // __vtkLayer_h
