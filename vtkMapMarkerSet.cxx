@@ -287,13 +287,13 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
     // Dump all nodes
     for (int i=0; i<this->Internals->AllNodes.size(); i++)
       {
-      ClusteringNode *node = this->Internals->AllNodes[i];
+      ClusteringNode *currentNode = this->Internals->AllNodes[i];
       std::cout << "Node " << i << " has ";
-      if (node)
+      if (currentNode)
         {
-      std::cout << node->Children.size() << " children, "
-                << node->NumberOfMarkers << " markers, and "
-                << " marker id " << node->MarkerId;
+      std::cout << currentNode->Children.size() << " children, "
+                << currentNode->NumberOfMarkers << " markers, and "
+                << " marker id " << currentNode->MarkerId;
         }
       else
         {
