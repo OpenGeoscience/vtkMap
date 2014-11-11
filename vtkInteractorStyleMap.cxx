@@ -133,11 +133,11 @@ void vtkInteractorStyleMap::OnMouseWheelForward()
 
       // Adjust xy position to be proportional to change in z
       // That way, the zoom point remains stationary
-      double f = 0.5;   // fraction that camera moved closer to origin
+      const double f = 0.5;   // fraction that camera moved closer to origin
       double losVector[3];  // line-of-sight vector, from camera to zoomCoords
       vtkMath::Subtract(zoomCoords, cameraCoords, losVector);
       vtkMath::Normalize(losVector);
-      vtkMath::MultiplyScalar(losVector, 0.5 * cameraCoords[2]);
+      vtkMath::MultiplyScalar(losVector, f * cameraCoords[2]);
       nextCameraCoords[0] = cameraCoords[0] + losVector[0];
       nextCameraCoords[1] = cameraCoords[1] + losVector[1];
       camera->SetPosition(nextCameraCoords);

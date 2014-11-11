@@ -192,12 +192,13 @@ void vtkMapTile::DownloadImage(const char *url, const char *outfilename)
     res = curl_easy_perform(curl);
     curl_easy_cleanup(curl);
     fclose(fp);
-    }
 
-  if (res != CURLE_OK)
-    {
-    remove(outfilename);
-    vtkWarningMacro(<<errorBuffer);
+    //if curl failed remove the file
+    if (res != CURLE_OK)
+      {
+      remove(outfilename);
+      vtkWarningMacro(<<errorBuffer);
+      }
     }
 }
 

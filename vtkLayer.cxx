@@ -33,7 +33,7 @@ vtkLayer::~vtkLayer()
 }
 
 //----------------------------------------------------------------------------
-void vtkLayer::PrintSelf(ostream& os, vtkIndent indent)
+void vtkLayer::PrintSelf(ostream&, vtkIndent)
 {
   // TODO
 }

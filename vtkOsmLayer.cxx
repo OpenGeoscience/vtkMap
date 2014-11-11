@@ -128,14 +128,14 @@ void vtkOsmLayer::AddTiles()
     }
 
   double focusDisplayPoint[3], bottomLeft[4], topRight[4];
-  int width, height, llx, lly;
+  int width, height, tile_llx, tile_lly;
 
   this->Renderer->SetWorldPoint(0.0, 0.0, 0.0, 1.0);
   this->Renderer->WorldToDisplay();
   this->Renderer->GetDisplayPoint(focusDisplayPoint);
 
-  this->Renderer->GetTiledSizeAndOrigin(&width, &height, &llx, &lly);
-  this->Renderer->SetDisplayPoint(llx, lly, focusDisplayPoint[2]);
+  this->Renderer->GetTiledSizeAndOrigin(&width, &height, &tile_llx, &tile_lly);
+  this->Renderer->SetDisplayPoint(tile_llx, tile_lly, focusDisplayPoint[2]);
   this->Renderer->DisplayToWorld();
   this->Renderer->GetWorldPoint(bottomLeft);
 
@@ -153,7 +153,9 @@ void vtkOsmLayer::AddTiles()
   bottomLeft[1] = std::max(bottomLeft[1], -180.0);
   bottomLeft[1] = std::min(bottomLeft[1],  180.0);
 
-  this->Renderer->SetDisplayPoint(llx + width, lly + height, focusDisplayPoint[2]);
+  this->Renderer->SetDisplayPoint(tile_llx + width,
+                                  tile_lly + height,
+                                  focusDisplayPoint[2]);
   this->Renderer->DisplayToWorld();
   this->Renderer->GetWorldPoint(topRight);
 
@@ -227,10 +229,10 @@ void vtkOsmLayer::AddTiles()
       if (!tile)
         {
         tile = vtkMapTile::New();
-        double llx = -180.0 + xIndex * lonPerTile;
-        double lly = -180.0 + yIndex * latPerTile;
-        double urx = -180.0 + (xIndex + 1) * lonPerTile;
-        double ury = -180.0 + (yIndex + 1) * latPerTile;
+        const double llx = -180.0 + xIndex * lonPerTile;
+        const double lly = -180.0 + yIndex * latPerTile;
+        const double urx = -180.0 + (xIndex + 1) * lonPerTile;
+        const double ury = -180.0 + (yIndex + 1) * latPerTile;
 
         tile->SetCorners(llx, lly, urx, ury);
 
@@ -285,7 +287,7 @@ void vtkOsmLayer::AddTiles()
               pendingTiles.end(),
               sortTiles());
 
-    for (int i = 0; i < pendingTiles.size(); ++i)
+    for (std::size_t i = 0; i < pendingTiles.size(); ++i)
       {
       // Add tile to the renderer
       this->AddFeature(pendingTiles[i]);
