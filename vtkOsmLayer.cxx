@@ -287,7 +287,7 @@ void vtkOsmLayer::AddTiles()
               pendingTiles.end(),
               sortTiles());
 
-    for (int i = 0; i < pendingTiles.size(); ++i)
+    for (std::size_t i = 0; i < pendingTiles.size(); ++i)
       {
       // Add tile to the renderer
       this->AddFeature(pendingTiles[i]);
