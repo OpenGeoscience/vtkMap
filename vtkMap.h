@@ -80,6 +80,7 @@ public:
   // The 4 coordinates specify a rectangle in lon-lat units:
   // [latitude1, longitude1, latitude2, longitude2]
   void SetVisibleBounds(double latlngCoords[4]);
+  void GetVisibleBounds(double latlngCoords[4]);
 
   // Description:
   // Get/Set the directory used for caching files.
@@ -128,6 +129,10 @@ protected:
   // Description:
   // Clips a number to the specified minimum and maximum values.
   double Clip(double n, double minValue, double maxValue);
+
+  // Computes display-to-world point at specified z coord
+  void ComputeWorldCoords(double displayCoords[2], double z,
+                          double worldCoords[3]);
 
   // Description:
   // The renderer used to draw the maps

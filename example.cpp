@@ -119,8 +119,12 @@ int main()
   intr->Initialize();
   map->Draw();
 
-  double center[2];
-  map->GetCenter(center);
+  double latLon[4];
+  map->GetVisibleBounds(latLon);
+  std::cout << "lat-lon bounds: "
+            << "(" << latLon[0] << ", " << latLon[1] << ")" << "  "
+            << "(" << latLon[2] << ", " << latLon[3] << ")"
+            << std::endl;
 
   // Initialize test polygon
   vtkFeatureLayer* featureLayer = vtkFeatureLayer::New();
