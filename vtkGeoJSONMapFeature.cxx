@@ -42,7 +42,7 @@ vtkGeoJSONMapFeature::~vtkGeoJSONMapFeature()
 }
 
 //----------------------------------------------------------------------------
-void vtkGeoJSONMapFeature::PrintSelf(std::ostream& os, vtkIndent indent)
+void vtkGeoJSONMapFeature::PrintSelf(std::ostream&, vtkIndent)
 {
   // TODO
 }

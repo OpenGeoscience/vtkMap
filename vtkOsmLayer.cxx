@@ -148,14 +148,14 @@ SelectTiles(std::vector<vtkMapTile*>& tiles,
             std::vector<vtkMapTileSpecInternal>& tileSpecs)
 {
   double focusDisplayPoint[3], bottomLeft[4], topRight[4];
-  int width, height, llx, lly;
+  int width, height, tile_llx, tile_lly;
 
   this->Renderer->SetWorldPoint(0.0, 0.0, 0.0, 1.0);
   this->Renderer->WorldToDisplay();
   this->Renderer->GetDisplayPoint(focusDisplayPoint);
 
-  this->Renderer->GetTiledSizeAndOrigin(&width, &height, &llx, &lly);
-  this->Renderer->SetDisplayPoint(llx, lly, focusDisplayPoint[2]);
+  this->Renderer->GetTiledSizeAndOrigin(&width, &height, &tile_llx, &tile_lly);
+  this->Renderer->SetDisplayPoint(tile_llx, tile_lly, focusDisplayPoint[2]);
   this->Renderer->DisplayToWorld();
   this->Renderer->GetWorldPoint(bottomLeft);
 
@@ -173,7 +173,9 @@ SelectTiles(std::vector<vtkMapTile*>& tiles,
   bottomLeft[1] = std::max(bottomLeft[1], -180.0);
   bottomLeft[1] = std::min(bottomLeft[1],  180.0);
 
-  this->Renderer->SetDisplayPoint(llx + width, lly + height, focusDisplayPoint[2]);
+  this->Renderer->SetDisplayPoint(tile_llx + width,
+                                  tile_lly + height,
+                                  focusDisplayPoint[2]);
   this->Renderer->DisplayToWorld();
   this->Renderer->GetWorldPoint(topRight);
 
@@ -234,6 +236,7 @@ SelectTiles(std::vector<vtkMapTile*>& tiles,
   //std::cerr << "tile1x " << tile1x << " tile2x " << tile2x << std::endl;
   //std::cerr << "tile1y " << tile1y << " tile2y " << tile2y << std::endl;
 
+  std::ostringstream ossKey, ossImageSource;
   std::vector<vtkMapTile*> pendingTiles;
   int xIndex, yIndex;
   for (int i = tile1x; i <= tile2x; ++i)
@@ -252,15 +255,11 @@ SelectTiles(std::vector<vtkMapTile*>& tiles,
       else
         {
         vtkMapTileSpecInternal tileSpec;
-        double llx = -180.0 + xIndex * lonPerTile;
-        double lly = -180.0 + yIndex * latPerTile;
-        double urx = -180.0 + (xIndex + 1) * lonPerTile;
-        double ury = -180.0 + (yIndex + 1) * latPerTile;
 
-        tileSpec.Corners[0] = llx;
-        tileSpec.Corners[1] = lly;
-        tileSpec.Corners[2] = urx;
-        tileSpec.Corners[3] = ury;
+        tileSpec.Corners[0] = -180.0 + xIndex * lonPerTile;  // llx
+        tileSpec.Corners[1] = -180.0 + yIndex * latPerTile;  // lly
+        tileSpec.Corners[2] = -180.0 + (xIndex + 1) * lonPerTile;  // urx
+        tileSpec.Corners[3] = -180.0 + (yIndex + 1) * latPerTile;  // ury
 
         tileSpec.ZoomRowCol[0] = zoomLevel;
         tileSpec.ZoomRowCol[1] = i;
@@ -350,7 +349,7 @@ void vtkOsmLayer::RenderTiles(std::vector<vtkMapTile*>& tiles)
     this->Renderer->RemoveAllViewProps();
 
     std::sort(tiles.begin(), tiles.end(), sortTiles());
-    for (int i = 0; i < tiles.size(); ++i)
+    for (std::size_t i = 0; i < tiles.size(); ++i)
       {
       // Add tile to the renderer
       this->AddFeature(tiles[i]);

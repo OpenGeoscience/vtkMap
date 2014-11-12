@@ -221,15 +221,12 @@ void vtkTeardropSource::ComputeHeadPath(vtkPoints *headPath,
   normal[2] = 0.0;
   headNormals->InsertNextTuple(normal);
 
-  double theta;
-  double cosTheta;
-  double sinTheta;
   for (int i=1; i<this->Resolution; i++)
     {
-    theta = 0.5 * vtkMath::Pi() *
+    const double theta = 0.5 * vtkMath::Pi() *
       (1.0 - static_cast<double>(i)/this->Resolution);
-    double cosTheta = cos(theta);
-    double sinTheta = sin(theta);
+    const double cosTheta = cos(theta);
+    const double sinTheta = sin(theta);
 
     coordinates[0] = cosTheta * this->HeadRadius + this->TailHeight;
     coordinates[1] = sinTheta * this->HeadRadius;

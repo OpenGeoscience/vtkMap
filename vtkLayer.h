@@ -36,7 +36,7 @@ public:
   vtkGetMacro(Renderer, vtkRenderer*)
 
   // Description:
-  std::string GetName();
+  const std::string& GetName();
   void SetName(const std::string& Name);
 
   // Description:
@@ -93,7 +93,7 @@ protected:
 
 private:
   vtkLayer(const vtkLayer&);  // Not implemented
-  void operator=(const vtkLayer&); // Not implemented
+  vtkLayer& operator=(const vtkLayer&); // Not implemented
 };
 
 #endif // __vtkLayer_h

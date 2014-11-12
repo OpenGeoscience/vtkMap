@@ -75,7 +75,7 @@ protected:
 
 private:
   vtkOsmLayer(const vtkOsmLayer&);    // Not implemented
-  void operator=(const vtkOsmLayer&); // Not implemented
+  vtkOsmLayer& operator=(const vtkOsmLayer&); // Not implemented
 };
 
 #endif // __vtkOsmLayer_h

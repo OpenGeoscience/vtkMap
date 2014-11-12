@@ -36,7 +36,7 @@ class vtkMercator : vtkObject
   };
 
 public:
-  virtual void PrintSelf(ostream &os, vtkIndent indent) {;}
+  virtual void PrintSelf(ostream &, vtkIndent) {}
   vtkTypeMacro(vtkMercator, vtkObject);
 
   //----------------------------------------------------------------------------
@@ -78,8 +78,8 @@ public:
   }
 
 protected:
-  vtkMercator() {;}
-  virtual ~vtkMercator() {;}
+  vtkMercator() {}
+  virtual ~vtkMercator() {}
 };
 
 

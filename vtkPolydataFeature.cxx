@@ -36,7 +36,7 @@ vtkPolydataFeature::~vtkPolydataFeature()
 }
 
 //----------------------------------------------------------------------------
-void vtkPolydataFeature::PrintSelf(std::ostream& os, vtkIndent indent)
+void vtkPolydataFeature::PrintSelf(std::ostream&, vtkIndent)
 {
   // TODO
 }

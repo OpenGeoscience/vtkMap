@@ -97,7 +97,7 @@ public:
   // Add / Remove layer from the map.
   void AddLayer(vtkLayer* layer);
   void RemoveLayer(vtkLayer* layer);
-  vtkLayer *FindLayer(char *name);
+  vtkLayer *FindLayer(const char *name);
 
   // TODO Implement this
   //void SetLayerOrder(vtkLaye* layer, int offsetFromCurrent);
@@ -193,7 +193,7 @@ protected:
   AsyncState CurrentAsyncState;
 private:
   vtkMap(const vtkMap&);  // Not implemented
-  void operator=(const vtkMap&); // Not implemented
+  vtkMap& operator=(const vtkMap&); // Not implemented
 };
 
 #endif // __vtkMap_h

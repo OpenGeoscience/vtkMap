@@ -34,13 +34,13 @@ vtkLayer::~vtkLayer()
 }
 
 //----------------------------------------------------------------------------
-void vtkLayer::PrintSelf(ostream& os, vtkIndent indent)
+void vtkLayer::PrintSelf(ostream&, vtkIndent)
 {
   // TODO
 }
 
 //----------------------------------------------------------------------------
-std::string vtkLayer::GetName()
+const std::string& vtkLayer::GetName()
 {
   return this->Name;
 }
