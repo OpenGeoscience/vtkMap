@@ -20,6 +20,7 @@
 
 #include "vtkFeatureLayer.h"
 #include "vtkMapTile.h"
+#include "vtkMapTileSpecInternal.h"
 #include "vtkmap_export.h"
 
 // VTK Includes
@@ -54,8 +55,15 @@ protected:
 
   vtkSetStringMacro(CacheDirectory);
 
-  void AddTiles();
+  virtual void AddTiles();
   void RemoveTiles();
+
+  // Next 3 methods used to add tiles to layer
+  void SelectTiles(std::vector<vtkMapTile*>& tiles,
+                   std::vector<vtkMapTileSpecInternal>& tileSpecs);
+  void InitializeTiles(std::vector<vtkMapTile*>& tiles,
+                       std::vector<vtkMapTileSpecInternal>& tileSpecs);
+  void RenderTiles(std::vector<vtkMapTile*>& tiles);
 
   void AddTileToCache(int zoom, int x, int y, vtkMapTile* tile);
   vtkMapTile* GetCachedTile(int zoom, int x, int y);

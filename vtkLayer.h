@@ -62,6 +62,15 @@ public:
   void SetMap(vtkMap* map);
 
   // Description:
+  bool IsAsynchronous();
+
+  // Description:
+  // Finalize any asynchronous operations.
+  // For asynchronous layers, this method should be polled periodically
+  // by the vtkMap object.
+  virtual vtkMap::AsyncState ResolveAsync();
+
+  // Description:
   virtual void Update() = 0;
 
 protected:
@@ -75,6 +84,7 @@ protected:
 
   std::string Name;
   unsigned int Id;
+  bool AsyncMode;  // layer has defered (asynchronous) updates
 
   vtkMap* Map;
   vtkRenderer* Renderer;
