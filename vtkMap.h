@@ -79,7 +79,7 @@ public:
   // Set center & zoom level to display area of interest.
   // The 4 coordinates specify a rectangle in lon-lat units:
   // [latitude1, longitude1, latitude2, longitude2]
-  void ShowArea(double latlngCoords[4]);
+  void SetVisibleBounds(double latlngCoords[4]);
 
   // Description:
   // Get/Set the directory used for caching files.

@@ -151,7 +151,7 @@ vtkInteractorStyle *vtkMap::GetInteractorStyle()
 }
 
 //----------------------------------------------------------------------------
-void vtkMap::ShowArea(double latLngCoords[4])
+void vtkMap::SetVisibleBounds(double latLngCoords[4])
 {
   // Convert to gcs coordinates
   double worldCoords[4];
