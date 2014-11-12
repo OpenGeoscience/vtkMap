@@ -216,6 +216,7 @@ void vtkOsmLayer::AddTiles()
   //std::cerr << "tile1x " << tile1x << " tile2x " << tile2x << std::endl;
   //std::cerr << "tile1y " << tile1y << " tile2y " << tile2y << std::endl;
 
+  std::ostringstream ossKey, ossImageSource;
   std::vector<vtkMapTile*> pendingTiles;
   int xIndex, yIndex;
   for (int i = tile1x; i <= tile2x; ++i)
@@ -236,24 +237,25 @@ void vtkOsmLayer::AddTiles()
 
         tile->SetCorners(llx, lly, urx, ury);
 
-        std::ostringstream oss;
-        oss << zoomLevel;
-        std::string zoom = oss.str();
-        oss.str("");
+        //clear from last iteration
+        ossKey.str("");
+        ossImageSource.str("");
 
-        oss << i;
-        std::string row = oss.str();
-        oss.str("");
-
-        oss << (static_cast<int>(std::pow(2.0, zoomLevel)) - 1 - yIndex);
-        std::string col = oss.str();
-        oss.str("");
+        //just using better names so people understand the query
+        const int row = i;
+        const int col =
+                    (static_cast<int>(std::pow(2.0, zoomLevel)) - 1 - yIndex);
 
         // Set tile texture source
-        oss << zoom << row << col;
-        tile->SetImageKey(oss.str());
-        tile->SetImageSource("http://tile.openstreetmap.org/" + zoom + "/" + row +
-                             "/" + col + ".png");
+        ossKey << zoomLevel << row << col;
+        tile->SetImageKey(ossKey.str());
+
+        ossImageSource << "http://tile.openstreetmap.org/"
+                         << zoomLevel << "/"
+                         << row << "/" << col
+                         << ".png";
+
+        tile->SetImageSource( ossImageSource.str() );
         this->AddTileToCache(zoomLevel, xIndex, yIndex, tile);
       }
     pendingTiles.push_back(tile);
