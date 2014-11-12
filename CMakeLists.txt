@@ -51,6 +51,7 @@ set (SOURCES
     vtkMapPickResult.cxx
     vtkMapTile.cxx
     vtkMap.cxx
+    vtkMultiThreadedOsmLayer.cxx
     vtkLayer.cxx
     vtkOsmLayer.cxx
     vtkPolydataFeature.cxx
@@ -67,6 +68,7 @@ set (HEADERS
     vtkMapTile.h
     vtkMap.h
     vtkLayer.h
+    vtkMultiThreadedOsmLayer.h
     vtkOsmLayer.h
     vtkPolydataFeature.h
     ${CMAKE_CURRENT_BINARY_DIR}/vtkmap_export.h

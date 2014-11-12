@@ -127,15 +127,35 @@ void vtkOsmLayer::AddTiles()
     return;
     }
 
+  std::vector<vtkMapTile*> tiles;
+  std::vector<vtkMapTileSpecInternal> tileSpecs;
+
+  this->SelectTiles(tiles, tileSpecs);
+  if (tileSpecs.size() > 0)
+    {
+    this->InitializeTiles(tiles, tileSpecs);
+    }
+  this->RenderTiles(tiles);
+}
+
+
+//----------------------------------------------------------------------------
+// Builds two lists based on current viewpoint:
+//  * Existing tiles to render
+//  * New tile-specs, representing tiles to be instantiated & initialized
+void vtkOsmLayer::
+SelectTiles(std::vector<vtkMapTile*>& tiles,
+            std::vector<vtkMapTileSpecInternal>& tileSpecs)
+{
   double focusDisplayPoint[3], bottomLeft[4], topRight[4];
-  int width, height, llx, lly;
+  int width, height, tile_llx, tile_lly;
 
   this->Renderer->SetWorldPoint(0.0, 0.0, 0.0, 1.0);
   this->Renderer->WorldToDisplay();
   this->Renderer->GetDisplayPoint(focusDisplayPoint);
 
-  this->Renderer->GetTiledSizeAndOrigin(&width, &height, &llx, &lly);
-  this->Renderer->SetDisplayPoint(llx, lly, focusDisplayPoint[2]);
+  this->Renderer->GetTiledSizeAndOrigin(&width, &height, &tile_llx, &tile_lly);
+  this->Renderer->SetDisplayPoint(tile_llx, tile_lly, focusDisplayPoint[2]);
   this->Renderer->DisplayToWorld();
   this->Renderer->GetWorldPoint(bottomLeft);
 
@@ -153,7 +173,9 @@ void vtkOsmLayer::AddTiles()
   bottomLeft[1] = std::max(bottomLeft[1], -180.0);
   bottomLeft[1] = std::min(bottomLeft[1],  180.0);
 
-  this->Renderer->SetDisplayPoint(llx + width, lly + height, focusDisplayPoint[2]);
+  this->Renderer->SetDisplayPoint(tile_llx + width,
+                                  tile_lly + height,
+                                  focusDisplayPoint[2]);
   this->Renderer->DisplayToWorld();
   this->Renderer->GetWorldPoint(topRight);
 
@@ -214,6 +236,7 @@ void vtkOsmLayer::AddTiles()
   //std::cerr << "tile1x " << tile1x << " tile2x " << tile2x << std::endl;
   //std::cerr << "tile1y " << tile1y << " tile2y " << tile2y << std::endl;
 
+  std::ostringstream ossKey, ossImageSource;
   std::vector<vtkMapTile*> pendingTiles;
   int xIndex, yIndex;
   for (int i = tile1x; i <= tile2x; ++i)
@@ -224,42 +247,86 @@ void vtkOsmLayer::AddTiles()
       yIndex = static_cast<int>(std::pow(2.0, zoomLevel)) - 1 - j;
 
       vtkMapTile* tile = this->GetCachedTile(zoomLevel, xIndex, yIndex);
-      if (!tile)
+      if (tile)
         {
-        tile = vtkMapTile::New();
-        double llx = -180.0 + xIndex * lonPerTile;
-        double lly = -180.0 + yIndex * latPerTile;
-        double urx = -180.0 + (xIndex + 1) * lonPerTile;
-        double ury = -180.0 + (yIndex + 1) * latPerTile;
+        tiles.push_back(tile);
+        tile->SetVisible(true);
+        }
+      else
+        {
+        vtkMapTileSpecInternal tileSpec;
 
-        tile->SetCorners(llx, lly, urx, ury);
+        tileSpec.Corners[0] = -180.0 + xIndex * lonPerTile;  // llx
+        tileSpec.Corners[1] = -180.0 + yIndex * latPerTile;  // lly
+        tileSpec.Corners[2] = -180.0 + (xIndex + 1) * lonPerTile;  // urx
+        tileSpec.Corners[3] = -180.0 + (yIndex + 1) * latPerTile;  // ury
 
-        std::ostringstream oss;
-        oss << zoomLevel;
-        std::string zoom = oss.str();
-        oss.str("");
+        tileSpec.ZoomRowCol[0] = zoomLevel;
+        tileSpec.ZoomRowCol[1] = i;
+        tileSpec.ZoomRowCol[2] =
+          static_cast<int>(pow(2, zoomLevel)) - 1 - yIndex;
 
-        oss << i;
-        std::string row = oss.str();
-        oss.str("");
+        tileSpec.ZoomXY[0] = zoomLevel;
+        tileSpec.ZoomXY[1] = xIndex;
+        tileSpec.ZoomXY[2] = yIndex;
 
-        oss << (static_cast<int>(std::pow(2.0, zoomLevel)) - 1 - yIndex);
-        std::string col = oss.str();
-        oss.str("");
-
-        // Set tile texture source
-        oss << zoom << row << col;
-        tile->SetImageKey(oss.str());
-        tile->SetImageSource("http://tile.openstreetmap.org/" + zoom + "/" + row +
-                             "/" + col + ".png");
-        this->AddTileToCache(zoomLevel, xIndex, yIndex, tile);
+        tileSpecs.push_back(tileSpec);
       }
-    pendingTiles.push_back(tile);
-    tile->SetVisible(true);
     }
   }
+}
 
-  if (pendingTiles.size() > 0)
+//----------------------------------------------------------------------------
+// Instantiates and initializes tiles from spec objects
+void vtkOsmLayer::
+InitializeTiles(std::vector<vtkMapTile*>& tiles,
+                std::vector<vtkMapTileSpecInternal>& tileSpecs)
+{
+  std::stringstream oss;
+  std::vector<vtkMapTileSpecInternal>::iterator tileSpecIter =
+    tileSpecs.begin();
+  for (; tileSpecIter != tileSpecs.end(); tileSpecIter++)
+    {
+    vtkMapTileSpecInternal spec = *tileSpecIter;
+
+    vtkMapTile *tile = vtkMapTile::New();
+    tile->SetLayer(this);
+    tile->SetCorners(spec.Corners);
+
+    // Set the image key
+    oss.str("");
+    oss << spec.ZoomRowCol[0]
+        << spec.ZoomRowCol[1]
+        << spec.ZoomRowCol[2];
+    tile->SetImageKey(oss.str());
+
+    // Set tile texture source
+    oss.str("");
+    oss << "http://tile.openstreetmap.org"
+        << "/" << spec.ZoomRowCol[0]
+        << "/" << spec.ZoomRowCol[1]
+        << "/" << spec.ZoomRowCol[2]
+        << ".png";
+    tile->SetImageSource(oss.str());
+
+    // Initialize the tile and add to the cache
+    tile->Init();
+    int zoom = spec.ZoomXY[0];
+    int x = spec.ZoomXY[1];
+    int y = spec.ZoomXY[2];
+    this->AddTileToCache(zoom, x, y, tile);
+    tiles.push_back(tile);
+    tile->SetVisible(true);
+    }
+  tileSpecs.clear();
+}
+
+
+//----------------------------------------------------------------------------
+// Updates display to incorporate all new tiles
+void vtkOsmLayer::RenderTiles(std::vector<vtkMapTile*>& tiles)
+{
+  if (tiles.size() > 0)
     {
     // Remove the old tiles first
     std::vector<vtkMapTile*>::iterator itr = this->CachedTiles.begin();
@@ -281,14 +348,11 @@ void vtkOsmLayer::AddTiles()
 
     this->Renderer->RemoveAllViewProps();
 
-    std::sort(pendingTiles.begin(),
-              pendingTiles.end(),
-              sortTiles());
-
-    for (int i = 0; i < pendingTiles.size(); ++i)
+    std::sort(tiles.begin(), tiles.end(), sortTiles());
+    for (std::size_t i = 0; i < tiles.size(); ++i)
       {
       // Add tile to the renderer
-      this->AddFeature(pendingTiles[i]);
+      this->AddFeature(tiles[i]);
       }
 
     std::vector<vtkProp*>::iterator itr2 = otherProps.begin();
@@ -297,6 +361,8 @@ void vtkOsmLayer::AddTiles()
       this->Renderer->AddViewProp(*itr2);
       ++itr2;
       }
+
+    tiles.clear();
     }
 }
 

@@ -2,6 +2,7 @@ include_directories(${CMAKE_SOURCE_DIR})
 set (TEST_NAMES
   TestGeoJSON
   TestMapClustering
+  TestMultiThreadedOsmLayer
   TestOsmLayer
 )
 

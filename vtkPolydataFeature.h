@@ -63,7 +63,7 @@ protected:
 
 private:
   vtkPolydataFeature(const vtkPolydataFeature&); // Not implemented
-  void operator=(const vtkPolydataFeature&); // Not implemented
+  vtkPolydataFeature& operator=(const vtkPolydataFeature&); // Not implemented
 };
 
 

@@ -57,7 +57,7 @@ protected:
 
 private:
   vtkGeoJSONMapFeature(const vtkGeoJSONMapFeature&); // Not implemented
-  void operator=(const vtkGeoJSONMapFeature&); // Not implemented
+  vtkGeoJSONMapFeature& operator=(const vtkGeoJSONMapFeature&); // Not implemented
 };
 
 
