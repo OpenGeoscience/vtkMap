@@ -66,6 +66,7 @@ set (HEADERS
     vtkMapMarkerSet.h
     vtkMapPickResult.h
     vtkMapTile.h
+    vtkMapTileSpecInternal.h
     vtkMap.h
     vtkLayer.h
     vtkMultiThreadedOsmLayer.h
