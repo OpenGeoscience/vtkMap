@@ -86,14 +86,9 @@ static VTK_THREAD_RETURN_TYPE StaticRequestThreadExecute(void *arg)
 vtkMultiThreadedOsmLayer::vtkMultiThreadedOsmLayer()
 {
   this->AsyncMode = true;
-
   this->Internals = new vtkMultiThreadedOsmLayerInternals;
 
   this->Internals->BackgroundThreader = vtkMultiThreader::New();
-  this->Internals->BackgroundThreadId =
-    this->Internals->BackgroundThreader->SpawnThread(
-      StaticBackgroundThreadExecute, this);
-
   this->Internals->ThreadingEnabled = 1;
   this->Internals->ThreadingCondition = vtkConditionVariable::New();
   this->Internals->ScheduledStackSize = 0;
@@ -105,6 +100,11 @@ vtkMultiThreadedOsmLayer::vtkMultiThreadedOsmLayer()
     NUMBER_OF_REQUEST_THREADS);
   this->Internals->RequestThreader->SetSingleMethod(
     StaticRequestThreadExecute, this);
+
+  // Start the background thread
+  this->Internals->BackgroundThreadId =
+    this->Internals->BackgroundThreader->SpawnThread(
+      StaticBackgroundThreadExecute, this);
 }
 
 //----------------------------------------------------------------------------
@@ -117,12 +117,13 @@ vtkMultiThreadedOsmLayer::~vtkMultiThreadedOsmLayer()
     this->Internals->BackgroundThreadId);
   vtkDebugMacro("Terminate Thread " << this->Internals->BackgroundThreadId);
 
+  this->Internals->BackgroundThreader->Delete();
+  this->Internals->RequestThreader->Delete();
+
   this->Internals->ThreadingCondition->Delete();
   this->Internals->ScheduledTilesLock->Delete();
   this->Internals->NewTilesLock->Delete();
 
-  this->Internals->BackgroundThreader->Delete();
-  this->Internals->RequestThreader->Delete();
   delete this->Internals;
 }
 
@@ -310,6 +311,7 @@ vtkMap::AsyncState vtkMultiThreadedOsmLayer::ResolveAsync()
     int zoom = spec.ZoomXY[0];
     int x = spec.ZoomXY[1];
     int y = spec.ZoomXY[2];
+    spec.Tile->SetLayer(this);
     this->AddTileToCache(zoom, x, y, spec.Tile);
     }
 
@@ -405,6 +407,7 @@ DownloadImageFile(std::string url, std::string filename)
   // If there was an error, remove invalid image file
   if (res != CURLE_OK)
     {
+    //std::cerr << "Removing invalid file: " << filename << std::endl;
     remove(filename.c_str());
     vtkErrorMacro(<< errorBuffer);
     return false;
@@ -421,7 +424,6 @@ CreateTile(vtkMapTileSpecInternal& spec)
   std::stringstream oss;
 
   vtkMapTile *tile = vtkMapTile::New();
-  tile->SetLayer(this);
   tile->SetCorners(spec.Corners);
 
   // Set the image key
