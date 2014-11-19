@@ -98,8 +98,10 @@ int main()
   // Note: Always set map's renderer *before* adding layers
   vtkNew<vtkRenderer> rend;
   map->SetRenderer(rend.GetPointer());
-  map->SetCenter(kwLatitude, kwLongitude);
-  map->SetZoom(5);
+
+  // Set viewpoint to display continental US
+  double latLngCoords[] = {25.0, -115.0, 50.0, -75.0};
+  map->SetVisibleBounds(latLngCoords);
 
   vtkOsmLayer* osmLayer = vtkOsmLayer::New();
   map->AddLayer(osmLayer);
@@ -117,8 +119,12 @@ int main()
   intr->Initialize();
   map->Draw();
 
-  double center[2];
-  map->GetCenter(center);
+  double latLon[4];
+  map->GetVisibleBounds(latLon);
+  std::cout << "lat-lon bounds: "
+            << "(" << latLon[0] << ", " << latLon[1] << ")" << "  "
+            << "(" << latLon[2] << ", " << latLon[3] << ")"
+            << std::endl;
 
   // Initialize test polygon
   vtkFeatureLayer* featureLayer = vtkFeatureLayer::New();
