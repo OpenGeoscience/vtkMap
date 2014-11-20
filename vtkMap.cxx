@@ -327,6 +327,7 @@ void vtkMap::AddLayer(vtkLayer* layer)
       this->Layers.push_back(this->BaseLayer);
       }
     this->BaseLayer = layer;
+    layer->Register(this);
     }
   else
     {
@@ -336,6 +337,7 @@ void vtkMap::AddLayer(vtkLayer* layer)
       {
       // TODO Use bin numbers to sort layer and its actors
       this->Layers.push_back(layer);
+      layer->Register(this);
       }
     }
 

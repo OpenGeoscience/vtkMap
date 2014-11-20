@@ -103,8 +103,8 @@ int main()
   double latLngCoords[] = {25.0, -115.0, 50.0, -75.0};
   map->SetVisibleBounds(latLngCoords);
 
-  vtkOsmLayer* osmLayer = vtkOsmLayer::New();
-  map->AddLayer(osmLayer);
+  vtkNew<vtkOsmLayer> osmLayer;
+  map->AddLayer(osmLayer.GetPointer());
 
   vtkNew<vtkRenderWindow> wind;
   wind->AddRenderer(rend.GetPointer());;
@@ -127,10 +127,10 @@ int main()
             << std::endl;
 
   // Initialize test polygon
-  vtkFeatureLayer* featureLayer = vtkFeatureLayer::New();
+  vtkNew<vtkFeatureLayer> featureLayer;
   featureLayer->SetName("test-polygon");
   // Note: Always add feature layer to the map *before* adding features
-  map->AddLayer(featureLayer);
+  map->AddLayer(featureLayer.GetPointer());
   vtkNew<vtkRegularPolygonSource> testPolygon;
   testPolygon->SetNumberOfSides(50);
   testPolygon->SetRadius(2.0);
