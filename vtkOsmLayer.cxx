@@ -48,6 +48,7 @@ vtkOsmLayer::vtkOsmLayer() : vtkFeatureLayer()
 vtkOsmLayer::~vtkOsmLayer()
 {
   this->RemoveTiles();
+  delete [] this->CacheDirectory;
 }
 
 //----------------------------------------------------------------------------

@@ -119,7 +119,6 @@ qtWeatherStations::qtWeatherStations(QWidget *parent)
   this->Map->SetRenderer(this->Renderer);
 
   vtkNew<vtkOsmLayer> osmLayer;
-  osmLayer->Register(this->Map);
   this->Map->AddLayer(osmLayer.GetPointer());
   //this->resetMapCoords();
   //this->Map->SetCenter(32.2, -90.9);  // approx ERDC coords
