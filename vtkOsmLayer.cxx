@@ -349,7 +349,7 @@ void vtkOsmLayer::RenderTiles(std::vector<vtkMapTile*>& tiles)
     for (std::size_t i = 0; i < tiles.size(); ++i)
       {
       // Add tile to the renderer
-      this->AddFeature(tiles[i]);
+      this->Renderer->AddActor(tiles[i]->GetActor());
       }
 
     std::vector<vtkProp*>::iterator itr2 = otherProps.begin();
