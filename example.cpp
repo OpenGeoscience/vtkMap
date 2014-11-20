@@ -134,7 +134,7 @@ int main()
   vtkNew<vtkRegularPolygonSource> testPolygon;
   testPolygon->SetNumberOfSides(50);
   testPolygon->SetRadius(2.0);
-  vtkPolydataFeature* feature = vtkPolydataFeature::New();
+  vtkNew<vtkPolydataFeature> feature;
   feature->GetMapper()->SetInputConnection(testPolygon->GetOutputPort());
   feature->GetActor()->GetProperty()->SetColor(1.0, 0.1, 0.1);
   feature->GetActor()->GetProperty()->SetOpacity(0.5);
@@ -142,7 +142,7 @@ int main()
   double x = kwLongitude;
   double y = vtkMercator::lat2y(kwLatitude);
   feature->GetActor()->SetPosition(x, y, 0.0);
-  featureLayer->AddFeature(feature);
+  featureLayer->AddFeature(feature.GetPointer());
   map->Draw();
 
   // Instantiate markers for array of lat-lon coordinates
