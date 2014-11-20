@@ -138,8 +138,8 @@ qtWeatherStations::qtWeatherStations(QWidget *parent)
   intr->Initialize();
 
   // Pass *all* callbacks to MapCallback instance
-  MapCallback *mapCallback = new MapCallback(this);
-  intr->AddObserver(vtkCommand::AnyEvent, mapCallback);
+  this->InteractorCallback = new MapCallback(this);
+  intr->AddObserver(vtkCommand::AnyEvent, this->InteractorCallback);
   intr->Start();
 
   // Connect UI controls
@@ -156,6 +156,7 @@ qtWeatherStations::qtWeatherStations(QWidget *parent)
 qtWeatherStations::~qtWeatherStations()
 {
   curl_global_cleanup();
+  delete this->MapWidget;
   if (this->Map)
     {
     this->Map->Delete();
@@ -163,6 +164,10 @@ qtWeatherStations::~qtWeatherStations()
   if (this->Renderer)
     {
     this->Renderer->Delete();
+    }
+  if (this->InteractorCallback)
+    {
+    this->InteractorCallback->Delete();
     }
 }
 
