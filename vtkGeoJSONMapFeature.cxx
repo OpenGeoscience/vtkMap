@@ -57,8 +57,8 @@ void vtkGeoJSONMapFeature::Init()
   reader->SetStringInput(this->InputString);
   reader->TriangulatePolygonsOn();
   reader->Update();
-  this->PolyData = vtkPolyData::New();
-  this->PolyData->ShallowCopy(reader->GetOutput());
+  this->PolyData = reader->GetOutput();
+  this->PolyData->Register(this);
 
   // Convert poly data points from <lon, lat> to <x, y>
   vtkPoints *points = this->PolyData->GetPoints();
