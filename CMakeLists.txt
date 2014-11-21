@@ -12,6 +12,7 @@ set (VTK_REQUIRED_COMPONENTS
     vtkCommonCore
     vtkFiltersTexture
     vtkInteractionStyle
+    vtkIOGDAL
     vtkjsoncpp
     vtkRenderingCore
     vtkRenderingOpenGL
@@ -55,6 +56,7 @@ set (SOURCES
     vtkLayer.cxx
     vtkOsmLayer.cxx
     vtkPolydataFeature.cxx
+    vtkRasterFeature.cxx
     vtkTeardropSource.cxx
     )
 
@@ -72,6 +74,7 @@ set (HEADERS
     vtkMultiThreadedOsmLayer.h
     vtkOsmLayer.h
     vtkPolydataFeature.h
+    vtkRasterFeature.h
     ${CMAKE_CURRENT_BINARY_DIR}/vtkmap_export.h
     )
 
