@@ -155,7 +155,6 @@ qtWeatherStations::qtWeatherStations(QWidget *parent)
 qtWeatherStations::~qtWeatherStations()
 {
   curl_global_cleanup();
-  delete this->MapWidget;
   if (this->Map)
     {
     this->Map->Delete();
