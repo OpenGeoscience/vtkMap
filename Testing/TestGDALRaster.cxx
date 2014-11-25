@@ -18,11 +18,13 @@
 #include "vtkRasterFeature.h"
 #include "vtkOsmLayer.h"
 
+#include <vtkColorTransferFunction.h>
 #include <vtkGDALRasterReader.h>
 #include <vtkImageActor.h>
 #include <vtkImageData.h>
 #include <vtkImageMapper3D.h>
 #include <vtkImageMapToColors.h>
+#include <vtkImageProperty.h>
 #include <vtkInteractorStyle.h>
 #include <vtkLookupTable.h>
 #include <vtkNew.h>
@@ -30,30 +32,59 @@
 #include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
+#include <vtksys/CommandLineArguments.hxx>
 
 #include <iomanip>
 #include <iostream>
 
 int TestGDALRaster(int argc, char *argv[])
 {
-  if (argc < 2)
+  // Setup command line arguments
+  std::string inputFile;
+  bool showHelp = false;
+  int zoomLevel = 1;
+  std::vector<double> centerLatLon;
+  bool useBobColormap = false;
+
+  vtksys::CommandLineArguments arg;
+  arg.Initialize(argc, argv);
+  arg.StoreUnusedArguments(true);
+  arg.AddArgument("-h", vtksys::CommandLineArguments::NO_ARGUMENT,
+                  &showHelp, "show help message");
+  arg.AddArgument("--help", vtksys::CommandLineArguments::NO_ARGUMENT,
+                  &showHelp, "show help message");
+  arg.AddArgument("-b", vtksys::CommandLineArguments::NO_ARGUMENT,
+                  &useBobColormap, "use \"Bob\'s\" color map");
+  arg.AddArgument("-c", vtksys::CommandLineArguments::MULTI_ARGUMENT,
+                  &centerLatLon, "initial center (latitude longitude)");
+  arg.AddArgument("-z", vtksys::CommandLineArguments::SPACE_ARGUMENT,
+                  &zoomLevel, "initial zoom level (1-20)");
+
+  if (argc < 2 || !arg.Parse() || showHelp)
     {
     std::cout << "\n"
-              << "Input GDAL file and display on map." << "\n"
-              << "Usage: TestGDALImage  inputfile"
-              <<"  [ZoomLevel  [CenterLat  CenterLon] ]  " << "\n"
+              << "Input GDAL raster file and display on map." << "\n"
+              << "Usage: TestGDALRaster  inputfile  [options]" << "\n"
+              << "\n" << "Optional arguments:"
+              << arg.GetHelp()
               << std::endl;
     return -1;
     }
-
 
   // Instantiate vtkMap
   vtkNew<vtkMap> map;
   // Always set map's renderer *before* adding layers
   vtkNew<vtkRenderer> renderer;
   map->SetRenderer(renderer.GetPointer());
-  map->SetCenter(31.5, 50.8);
-  map->SetZoom(4);
+
+  // Set initial center and zoom
+  double latitude = centerLatLon.size() > 0 ? centerLatLon[0] : 0.0;
+  double longitude = centerLatLon.size() > 1 ? centerLatLon[1] : 0.0;
+  std::cout << "Setting map center to latitude " << latitude
+            << ", longitude " << longitude << std::endl;
+  map->SetCenter(latitude, longitude);
+  std::cout << "Setting zoom level to " << zoomLevel << std::endl;
+  map->SetZoom(zoomLevel);
 
    // Add OSM layer
   vtkNew<vtkOsmLayer> osmLayer;
@@ -100,20 +131,37 @@ int TestGDALRaster(int argc, char *argv[])
 
   std::cout << std::endl;
 
-  // Setup color lookup table
-  vtkNew<vtkLookupTable> colorTable;
-  colorTable->SetTableRange(range[0], range[1]);
-  colorTable->SetValueRange(0.5, 0.5);
-  colorTable->SetAlphaRange(0.5, 0.5);
-  colorTable->Build();
-  std::cout << "Table " << colorTable->GetNumberOfTableValues()
-            << " colors" << std::endl;
-  //colorTable->Print(std::cout);
+  // Setup color mapping
+  vtkImageMapToColors *colorFilter = vtkImageMapToColors::New();
+  if (useBobColormap)
+    {
+    std::cout << "Using Bob\'s color mapping function" << std::endl;
+    vtkNew<vtkColorTransferFunction> colorFunction;
+    colorFunction->AddRGBPoint(-1000.0, 0.0, 0.0, 0.0);
+    colorFunction->AddRGBPoint(1000.0, 0.0, 0.0, 0.498);
+    colorFunction->AddRGBPoint(2000.0, 0.0, 0.0, 1.0);
+    colorFunction->AddRGBPoint(2200.0, 0.0, 0.0, 1.0);
+    colorFunction->AddRGBPoint(2400.0, 0.333, 1.0, 0.0);
+    colorFunction->AddRGBPoint(2600.0, 1.0, 1.0, 0.0);
+    colorFunction->AddRGBPoint(3000.0, 1.0, 0.333, 0.0);
+    colorFunction->Build();
+    //colorFunction->Print(std::cout);
+    colorFilter->SetLookupTable(colorFunction.GetPointer());
+    }
+  else
+    {
+    std::cout << "Using default color lookup table" << std::endl;
+    vtkNew<vtkLookupTable> colorTable;
+    colorTable->SetTableRange(range[0], range[1]);
+    colorTable->SetValueRange(0.5, 0.5);
+    colorTable->Build();
+    std::cout << "Table " << colorTable->GetNumberOfTableValues()
+              << " colors" << std::endl;
+    //colorTable->Print(std::cout);
+    colorFilter->SetLookupTable(colorTable.GetPointer());
+    }
 
   // Apply color map to image data
-  vtkImageMapToColors *colorFilter = vtkImageMapToColors::New();
-  colorFilter->SetLookupTable(colorTable.GetPointer());
-  colorFilter->PassAlphaToOutputOn();
   colorFilter->SetInputData(reader->GetOutput());
   colorFilter->Update();
 
@@ -121,30 +169,11 @@ int TestGDALRaster(int argc, char *argv[])
   vtkImageData *image = colorFilter->GetOutput();
   vtkNew<vtkRasterFeature> feature;
   feature->SetImageData(image);
+  feature->GetActor()->GetProperty()->SetOpacity(0.5);
   featureLayer->AddFeature(feature.GetPointer());
 
   colorFilter->Delete();
   reader->Delete();
-
- // Process optional args and set zoom, center
-  int zoom = 1;  // default
-  if (argc > 2)
-    {
-    zoom = atoi(argv[2]);
-    }
-  std::cout << "Setting zoom level to " << zoom << std::endl;
-  map->SetZoom(zoom);
-
-  double latitude = 0.0;
-  double longitude = 0.0;
-  if (argc > 4)
-    {
-    latitude = atof(argv[3]);
-    longitude = atof(argv[4]);
-    }
-  std::cout << "Setting map center to latitude " << latitude
-            << ", longitude " << longitude << std::endl;
-  map->SetCenter(latitude, longitude);
 
   // Set up display
   vtkNew<vtkRenderWindow> renderWindow;
