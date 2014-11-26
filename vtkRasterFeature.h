@@ -23,7 +23,6 @@
 #include <vtkImageActor.h>
 #include <vtkImageData.h>
 #include <vtkImageMapper3D.h>
-#include <string>
 
 class VTKMAP_EXPORT vtkRasterFeature : public vtkFeature
 {
@@ -34,6 +33,8 @@ public:
 
   // Description
   // Set input image data
+  // Must contain origin & spacing in vtk-mercator units
+  // Use vtkMercator to convert from lat-lon or EPSG:3857 units
   vtkSetObjectMacro(ImageData, vtkImageData);
 
   // Description

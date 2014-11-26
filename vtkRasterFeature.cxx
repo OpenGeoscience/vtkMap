@@ -13,8 +13,6 @@
 =========================================================================*/
 
 #include "vtkRasterFeature.h"
-#include "vtkImageActor.h"
-#include "vtkMercator.h"
 
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
@@ -52,23 +50,6 @@ void vtkRasterFeature::Init()
     {
     return;
     }
-
-  // Convert image origin from lat-lon to world coordinates
-  double *origin = this->ImageData->GetOrigin();
-  double lat0 = origin[1];
-  double y0 = vtkMercator::lat2y(lat0);
-  origin[1] = y0;
-  origin[2] = 0.1;  // in front of map tiles
-  this->ImageData->SetOrigin(origin);
-
-  // Convert image spacing from lat-lon to world coordinates
-  // Note that this only approximates the map projection
-  double *spacing = this->ImageData->GetSpacing();
-  int *dimensions = this->ImageData->GetDimensions();
-  double lat1 = lat0 + spacing[1] * dimensions[1];
-  double y1 = vtkMercator::lat2y(lat1);
-  spacing[1] = (y1 - y0) / dimensions[1];
-  this->ImageData->SetSpacing(spacing);
 
   this->Mapper->SetInputData(this->ImageData);
   this->Actor->Update();

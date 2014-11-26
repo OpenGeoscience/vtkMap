@@ -15,8 +15,9 @@
 
 #include "vtkMap.h"
 #include "vtkFeatureLayer.h"
-#include "vtkRasterFeature.h"
+#include "vtkMercator.h"
 #include "vtkOsmLayer.h"
+#include "vtkRasterFeature.h"
 
 #include <vtkColorTransferFunction.h>
 #include <vtkGDALRasterReader.h>
@@ -65,6 +66,11 @@ int TestGDALRaster(int argc, char *argv[])
     std::cout << "\n"
               << "Input GDAL raster file and display on map." << "\n"
               << "Usage: TestGDALRaster  inputfile  [options]" << "\n"
+              << "Note that:" << "\n"
+              << "  1. Inputfile must contain corner points"
+              << " specified in latitude/longitude" << "\n"
+              << "  2. Input image is NOT warped or resampled,"
+              << " therefore, assigned colors are NOT precise." << "\n"
               << "\n" << "Optional arguments:"
               << arg.GetHelp()
               << std::endl;
@@ -130,6 +136,23 @@ int TestGDALRaster(int argc, char *argv[])
             << ", " << range[1] << "\n";
 
   std::cout << std::endl;
+
+  // Convert image origin from lat-lon to world coordinates
+  double *origin = rasterData->GetOrigin();
+  double lat0 = origin[1];
+  double y0 = vtkMercator::lat2y(lat0);
+  origin[1] = y0;
+  origin[2] = 0.1;  // in front of map tiles
+  rasterData->SetOrigin(origin);
+
+  // Convert image spacing from lat-lon to world coordinates
+  // Note that this only approximates the map projection
+  double *spacing = rasterData->GetSpacing();
+  int *dimensions = rasterData->GetDimensions();
+  double lat1 = lat0 + spacing[1] * dimensions[1];
+  double y1 = vtkMercator::lat2y(lat1);
+  spacing[1] = (y1 - y0) / dimensions[1];
+  rasterData->SetSpacing(spacing);
 
   // Setup color mapping
   vtkImageMapToColors *colorFilter = vtkImageMapToColors::New();
