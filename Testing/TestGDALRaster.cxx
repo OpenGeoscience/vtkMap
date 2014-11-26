@@ -23,7 +23,6 @@
 #include <vtkGDALRasterReader.h>
 #include <vtkImageActor.h>
 #include <vtkImageData.h>
-#include <vtkImageMapper3D.h>
 #include <vtkImageMapToColors.h>
 #include <vtkImageProperty.h>
 #include <vtkInteractorStyle.h>
