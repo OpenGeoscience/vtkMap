@@ -39,6 +39,7 @@ vtkGeoJSONMapFeature::~vtkGeoJSONMapFeature()
     {
     this->PolyData->Delete();
     }
+  delete [] this->InputString;
 }
 
 //----------------------------------------------------------------------------
@@ -54,8 +55,10 @@ void vtkGeoJSONMapFeature::Init()
   vtkNew<vtkGeoJSONReader> reader;
   reader->StringInputModeOn();
   reader->SetStringInput(this->InputString);
+  reader->TriangulatePolygonsOn();
   reader->Update();
   this->PolyData = reader->GetOutput();
+  this->PolyData->Register(this);
 
   // Convert poly data points from <lon, lat> to <x, y>
   vtkPoints *points = this->PolyData->GetPoints();

@@ -74,7 +74,6 @@ vtkMapTile::~vtkMapTile()
 //----------------------------------------------------------------------------
 void vtkMapTile::Build(const char* cacheDirectory)
 {
-
   this->Plane = vtkPlaneSource::New();
   this->Plane->SetPoint1(this->Corners[2], this->Corners[1], 0.0);
   this->Plane->SetPoint2(this->Corners[0], this->Corners[3], 0.0);
@@ -218,7 +217,6 @@ void vtkMapTile::Init()
     vtkOsmLayer *osmLayer = vtkOsmLayer::SafeDownCast(this->Layer);
     this->Build(osmLayer->GetCacheDirectory());
     }
-  this->Layer->GetRenderer()->AddActor(this->Actor);
 }
 
 //----------------------------------------------------------------------------

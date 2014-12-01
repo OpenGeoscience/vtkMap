@@ -105,9 +105,9 @@ int TestMultiThreadedOsmLayer(int argc, char* argv[])
   map->SetCenter(0.0, 0.0);
   map->SetZoom(1);
 
-  vtkMultiThreadedOsmLayer *osmLayer = vtkMultiThreadedOsmLayer::New();
+  vtkNew<vtkMultiThreadedOsmLayer> osmLayer;
   //osmLayer->DebugOn();
-  map->AddLayer(osmLayer);
+  map->AddLayer(osmLayer.GetPointer());
 
   // Argument 1 specifies test directory (optional)
   if (argc > 1)
