@@ -70,6 +70,7 @@ set (HEADERS
     vtkMapTile.h
     vtkMapTileSpecInternal.h
     vtkMap.h
+    vtkMercator.h
     vtkLayer.h
     vtkMultiThreadedOsmLayer.h
     vtkOsmLayer.h
