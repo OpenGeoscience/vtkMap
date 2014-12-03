@@ -27,6 +27,7 @@
 class vtkMap;
 class vtkRenderer;
 class QVTKWidget;
+class MapCallback;
 
 
 // Forward Qt class declarations
@@ -57,6 +58,7 @@ class qtWeatherStations : public QMainWindow
   QVTKWidget *MapWidget;     /// Map widget
   Ui_qtWeatherStations *UI;  /// Qt Designer form
   std::map<vtkIdType, StationReport> StationMap;
+  MapCallback *InteractorCallback;
 
  protected slots:
    void resetMapCoords();

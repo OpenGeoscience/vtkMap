@@ -119,7 +119,6 @@ qtWeatherStations::qtWeatherStations(QWidget *parent)
   this->Map->SetRenderer(this->Renderer);
 
   vtkNew<vtkOsmLayer> osmLayer;
-  osmLayer->Register(this->Map);
   this->Map->AddLayer(osmLayer.GetPointer());
   //this->resetMapCoords();
   //this->Map->SetCenter(32.2, -90.9);  // approx ERDC coords
@@ -138,8 +137,8 @@ qtWeatherStations::qtWeatherStations(QWidget *parent)
   intr->Initialize();
 
   // Pass *all* callbacks to MapCallback instance
-  MapCallback *mapCallback = new MapCallback(this);
-  intr->AddObserver(vtkCommand::AnyEvent, mapCallback);
+  this->InteractorCallback = new MapCallback(this);
+  intr->AddObserver(vtkCommand::AnyEvent, this->InteractorCallback);
   intr->Start();
 
   // Connect UI controls
@@ -163,6 +162,10 @@ qtWeatherStations::~qtWeatherStations()
   if (this->Renderer)
     {
     this->Renderer->Delete();
+    }
+  if (this->InteractorCallback)
+    {
+    this->InteractorCallback->Delete();
     }
 }
 

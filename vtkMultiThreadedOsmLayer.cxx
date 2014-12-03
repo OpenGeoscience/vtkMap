@@ -312,6 +312,7 @@ vtkMap::AsyncState vtkMultiThreadedOsmLayer::ResolveAsync()
     int x = spec.ZoomXY[1];
     int y = spec.ZoomXY[2];
     spec.Tile->SetLayer(this);
+    spec.Tile->Init();
     this->AddTileToCache(zoom, x, y, spec.Tile);
     }
 
@@ -417,7 +418,6 @@ DownloadImageFile(std::string url, std::string filename)
 }
 
 //----------------------------------------------------------------------------
-// Consider moving this to base class (vtkOsmLayer)
 vtkMapTile *vtkMultiThreadedOsmLayer::
 CreateTile(vtkMapTileSpecInternal& spec)
 {
@@ -442,7 +442,7 @@ CreateTile(vtkMapTileSpecInternal& spec)
       << ".png";
   tile->SetImageSource(oss.str());
 
-  // Initialize the tile
+  // Don't call tile->Init() here; must do that in the foreground thread
   spec.Tile = tile;
   return tile;
 }

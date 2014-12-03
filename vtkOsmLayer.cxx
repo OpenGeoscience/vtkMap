@@ -47,13 +47,8 @@ vtkOsmLayer::vtkOsmLayer() : vtkFeatureLayer()
 //----------------------------------------------------------------------------
 vtkOsmLayer::~vtkOsmLayer()
 {
- //The entries in the CachedTilesMap and also the CachedTiles are also
- //part of a vector held by our derived parent. The Caches are just for quick
- //lookup and the pointers inside of them don't need to be deleted, as our
- //derived parent owns them
-
-  this->CachedTiles.clear();
-  this->CachedTilesMap.clear();
+  this->RemoveTiles();
+  delete [] this->CacheDirectory;
 }
 
 //----------------------------------------------------------------------------
@@ -112,11 +107,14 @@ void vtkOsmLayer::Update()
 //----------------------------------------------------------------------------
 void vtkOsmLayer::RemoveTiles()
 {
-  // TODO
-  if (!this->Renderer)
+  this->CachedTilesMap.clear();
+  std::vector<vtkMapTile*>::iterator iter = this->CachedTiles.begin();
+  for (; iter != this->CachedTiles.end(); iter++)
     {
-    return;
+    vtkMapTile *tile = *iter;
+    tile->Delete();
     }
+  this->CachedTiles.clear();
 }
 
 //----------------------------------------------------------------------------
@@ -353,7 +351,7 @@ void vtkOsmLayer::RenderTiles(std::vector<vtkMapTile*>& tiles)
     for (std::size_t i = 0; i < tiles.size(); ++i)
       {
       // Add tile to the renderer
-      this->AddFeature(tiles[i]);
+      this->Renderer->AddActor(tiles[i]->GetActor());
       }
 
     std::vector<vtkProp*>::iterator itr2 = otherProps.begin();
