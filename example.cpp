@@ -98,11 +98,13 @@ int main()
   // Note: Always set map's renderer *before* adding layers
   vtkNew<vtkRenderer> rend;
   map->SetRenderer(rend.GetPointer());
-  map->SetCenter(kwLatitude, kwLongitude);
-  map->SetZoom(5);
 
-  vtkOsmLayer* osmLayer = vtkOsmLayer::New();
-  map->AddLayer(osmLayer);
+  // Set viewpoint to display continental US
+  double latLngCoords[] = {25.0, -115.0, 50.0, -75.0};
+  map->SetVisibleBounds(latLngCoords);
+
+  vtkNew<vtkOsmLayer> osmLayer;
+  map->AddLayer(osmLayer.GetPointer());
 
   vtkNew<vtkRenderWindow> wind;
   wind->AddRenderer(rend.GetPointer());;
@@ -117,18 +119,22 @@ int main()
   intr->Initialize();
   map->Draw();
 
-  double center[2];
-  map->GetCenter(center);
+  double latLon[4];
+  map->GetVisibleBounds(latLon);
+  std::cout << "lat-lon bounds: "
+            << "(" << latLon[0] << ", " << latLon[1] << ")" << "  "
+            << "(" << latLon[2] << ", " << latLon[3] << ")"
+            << std::endl;
 
   // Initialize test polygon
-  vtkFeatureLayer* featureLayer = vtkFeatureLayer::New();
+  vtkNew<vtkFeatureLayer> featureLayer;
   featureLayer->SetName("test-polygon");
   // Note: Always add feature layer to the map *before* adding features
-  map->AddLayer(featureLayer);
+  map->AddLayer(featureLayer.GetPointer());
   vtkNew<vtkRegularPolygonSource> testPolygon;
   testPolygon->SetNumberOfSides(50);
   testPolygon->SetRadius(2.0);
-  vtkPolydataFeature* feature = vtkPolydataFeature::New();
+  vtkNew<vtkPolydataFeature> feature;
   feature->GetMapper()->SetInputConnection(testPolygon->GetOutputPort());
   feature->GetActor()->GetProperty()->SetColor(1.0, 0.1, 0.1);
   feature->GetActor()->GetProperty()->SetOpacity(0.5);
@@ -136,7 +142,7 @@ int main()
   double x = kwLongitude;
   double y = vtkMercator::lat2y(kwLatitude);
   feature->GetActor()->SetPosition(x, y, 0.0);
-  featureLayer->AddFeature(feature);
+  featureLayer->AddFeature(feature.GetPointer());
   map->Draw();
 
   // Instantiate markers for array of lat-lon coordinates

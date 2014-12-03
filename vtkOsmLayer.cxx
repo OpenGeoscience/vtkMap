@@ -47,13 +47,8 @@ vtkOsmLayer::vtkOsmLayer() : vtkFeatureLayer()
 //----------------------------------------------------------------------------
 vtkOsmLayer::~vtkOsmLayer()
 {
- //The entries in the CachedTilesMap and also the CachedTiles are also
- //part of a vector held by our derived parent. The Caches are just for quick
- //lookup and the pointers inside of them don't need to be deleted, as our
- //derived parent owns them
-
-  this->CachedTiles.clear();
-  this->CachedTilesMap.clear();
+  this->RemoveTiles();
+  delete [] this->CacheDirectory;
 }
 
 //----------------------------------------------------------------------------
@@ -112,11 +107,14 @@ void vtkOsmLayer::Update()
 //----------------------------------------------------------------------------
 void vtkOsmLayer::RemoveTiles()
 {
-  // TODO
-  if (!this->Renderer)
+  this->CachedTilesMap.clear();
+  std::vector<vtkMapTile*>::iterator iter = this->CachedTiles.begin();
+  for (; iter != this->CachedTiles.end(); iter++)
     {
-    return;
+    vtkMapTile *tile = *iter;
+    tile->Delete();
     }
+  this->CachedTiles.clear();
 }
 
 //----------------------------------------------------------------------------
@@ -192,6 +190,7 @@ SelectTiles(std::vector<vtkMapTile*>& tiles,
   topRight[1] = std::min(topRight[1],  180.0);
 
   int zoomLevel = this->Map->GetZoom() + 1;
+  int zoomLevelFactor = 1 << zoomLevel; // Zoom levels are interpreted as powers of two.
 
   int tile1x = vtkMercator::long2tilex(bottomLeft[0], zoomLevel);
   int tile2x = vtkMercator::long2tilex(topRight[0], zoomLevel);
@@ -215,17 +214,17 @@ SelectTiles(std::vector<vtkMapTile*>& tiles,
 
   /// Clamp tilex and tiley
   tile1x = std::max(tile1x, 0);
-  tile1x = std::min(static_cast<int>(std::pow(2.0, zoomLevel)) - 1, tile1x);
+  tile1x = std::min(zoomLevelFactor - 1, tile1x);
   tile2x = std::max(tile2x, 0);
-  tile2x = std::min(static_cast<int>(std::pow(2.0, zoomLevel)) - 1, tile2x);
+  tile2x = std::min(zoomLevelFactor - 1, tile2x);
 
   tile1y = std::max(tile1y, 0);
-  tile1y = std::min(static_cast<int>(std::pow(2.0, zoomLevel)) - 1, tile1y);
+  tile1y = std::min(zoomLevelFactor - 1, tile1y);
   tile2y = std::max(tile2y, 0);
-  tile2y = std::min(static_cast<int>(std::pow(2.0, zoomLevel)) - 1, tile2y);
+  tile2y = std::min(zoomLevelFactor - 1, tile2y);
 
-  int noOfTilesX = std::max(1, static_cast<int>(std::pow(2.0, zoomLevel)));
-  int noOfTilesY = std::max(1, static_cast<int>(std::pow(2.0, zoomLevel)));
+  int noOfTilesX = std::max(1, zoomLevelFactor);
+  int noOfTilesY = std::max(1, zoomLevelFactor);
 
   double lonPerTile = 360.0 / noOfTilesX;
   double latPerTile = 360.0 / noOfTilesY;
@@ -244,7 +243,7 @@ SelectTiles(std::vector<vtkMapTile*>& tiles,
     for (int j = tile2y; j <= tile1y; ++j)
       {
       xIndex = i;
-      yIndex = static_cast<int>(std::pow(2.0, zoomLevel)) - 1 - j;
+      yIndex = zoomLevelFactor - 1 - j;
 
       vtkMapTile* tile = this->GetCachedTile(zoomLevel, xIndex, yIndex);
       if (tile)
@@ -264,7 +263,7 @@ SelectTiles(std::vector<vtkMapTile*>& tiles,
         tileSpec.ZoomRowCol[0] = zoomLevel;
         tileSpec.ZoomRowCol[1] = i;
         tileSpec.ZoomRowCol[2] =
-          static_cast<int>(pow(2, zoomLevel)) - 1 - yIndex;
+          zoomLevelFactor - 1 - yIndex;
 
         tileSpec.ZoomXY[0] = zoomLevel;
         tileSpec.ZoomXY[1] = xIndex;
@@ -352,7 +351,7 @@ void vtkOsmLayer::RenderTiles(std::vector<vtkMapTile*>& tiles)
     for (std::size_t i = 0; i < tiles.size(); ++i)
       {
       // Add tile to the renderer
-      this->AddFeature(tiles[i]);
+      this->Renderer->AddActor(tiles[i]->GetActor());
       }
 
     std::vector<vtkProp*>::iterator itr2 = otherProps.begin();
