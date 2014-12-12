@@ -52,6 +52,7 @@ set (SOURCES
     vtkFeature.cxx
     vtkFeatureLayer.cxx
     vtkGDALRasterConverter.cxx
+    vtkGDALRasterReprojection.cxx
     vtkGeoJSONMapFeature.cxx
     vtkInteractorStyleMap.cxx
     vtkMapMarkerSet.cxx
@@ -63,6 +64,7 @@ set (SOURCES
     vtkOsmLayer.cxx
     vtkPolydataFeature.cxx
     vtkRasterFeature.cxx
+    vtkRasterReprojectionFilter.cxx
     vtkTeardropSource.cxx
     )
 
@@ -71,6 +73,7 @@ set (HEADERS
     vtkFeature.h
     vtkFeatureLayer.h
     vtkGDALRasterConverter.h
+    vtkGDALRasterReprojection.h
     vtkInteractorStyleMap.h
     vtkMapMarkerSet.h
     vtkMapPickResult.h
@@ -82,6 +85,7 @@ set (HEADERS
     vtkOsmLayer.h
     vtkPolydataFeature.h
     vtkRasterFeature.h
+    vtkRasterReprojectionFilter.cxx
     ${CMAKE_CURRENT_BINARY_DIR}/vtkmap_export.h
     )
 

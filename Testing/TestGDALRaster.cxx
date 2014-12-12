@@ -37,6 +37,7 @@
 #include <iomanip>
 #include <iostream>
 
+//----------------------------------------------------------------------------
 int TestGDALRaster(int argc, char *argv[])
 {
   // Setup command line arguments
@@ -216,6 +217,7 @@ int TestGDALRaster(int argc, char *argv[])
 }
 
 
+//----------------------------------------------------------------------------
 int main(int argc, char *argv[])
 {
   TestGDALRaster(argc, argv);
