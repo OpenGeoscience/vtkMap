@@ -42,10 +42,16 @@ set(READERS_LIB_DIRECTORY "" CACHE PATH "Location of vtkDataSetReaders library")
 set(READERS_LIBRARIES vtkDataSetReaders)
 link_directories(${READERS_LIB_DIRECTORY})
 
+# Specify GDAL components (used by vtkGDALRasterReprojection)
+find_package(GDAL REQUIRED)
+mark_as_advanced(GDAL_INCLUDE_DIR GDAL_LIBRARY)
+
+
 # Specify source files
 set (SOURCES
     vtkFeature.cxx
     vtkFeatureLayer.cxx
+    vtkGDALRasterConverter.cxx
     vtkGeoJSONMapFeature.cxx
     vtkInteractorStyleMap.cxx
     vtkMapMarkerSet.cxx
@@ -64,6 +70,7 @@ set (SOURCES
 set (HEADERS
     vtkFeature.h
     vtkFeatureLayer.h
+    vtkGDALRasterConverter.h
     vtkInteractorStyleMap.h
     vtkMapMarkerSet.h
     vtkMapPickResult.h
@@ -88,6 +95,7 @@ target_link_libraries(vtkMap
                         ${READERS_LIBRARIES}
                       LINK_PRIVATE
                         ${CURL_LIBRARIES}
+                        ${GDAL_LIBRARY}
                       )
 
 target_include_directories(vtkMap
@@ -95,6 +103,7 @@ target_include_directories(vtkMap
                              ${CMAKE_CURRENT_BINARY_DIR}
                            PRIVATE
                              ${CURL_INCLUDE_DIRS}
+                             ${GDAL_INCLUDE_DIRS}
                              ${READERS_INCLUDE_DIRECTORY}
                           )
 
