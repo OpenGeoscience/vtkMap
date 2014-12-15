@@ -18,6 +18,7 @@
 #include <vtkObjectFactory.h>
 
 // GDAL Includes
+#include <gdal_alg.h>
 #include <gdal_priv.h>
 #include <gdalwarper.h>
 #include <ogr_spatialref.h>
@@ -95,5 +96,21 @@ bool vtkGDALRasterReprojection::Reproject(GDALDataset *output)
     return false;
     }
 
-  return false;
+  // Convert this->ResamplingAlgorithm to GDALResampleAlg
+  GDALResampleAlg algorithm = GRA_NearestNeighbour;
+  switch (this->ResamplingAlgorithm)
+    {
+    case 0:  algorithm = GRA_NearestNeighbour; break;
+    case 1:  algorithm = GRA_Bilinear;         break;
+    case 2:  algorithm = GRA_Cubic;            break;
+    case 3:  algorithm = GRA_CubicSpline;      break;
+    case 4:  algorithm = GRA_Lanczos;          break;
+    case 5:  algorithm = GRA_Average;          break;
+    case 6:  algorithm = GRA_Mode;             break;
+    }
+
+  GDALReprojectImage(this->InputDataset, this->InputDataset->GetProjectionRef(),
+                     output, output->GetProjectionRef(),
+                     algorithm, 0, this->MaxError, NULL, NULL, NULL);
+  return true;
 }

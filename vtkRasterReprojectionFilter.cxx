@@ -13,9 +13,12 @@
 =========================================================================*/
 
 #include "vtkRasterReprojectionFilter.h"
+
+// VTK includes
 #include "vtkGDALRasterConverter.h"
 #include "vtkGDALRasterReprojection.h"
 
+#include <vtkDataArray.h>
 #include <vtkDataObject.h>
 #include <vtkImageData.h>
 #include <vtkInformation.h>
@@ -23,10 +26,15 @@
 #include <vtkMath.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
+#include <vtkPointData.h>
 #include <vtkStreamingDemandDrivenPipeline.h>
 #include <vtkUniformGrid.h>
 
+// GDAL includes
 #include <gdal_priv.h>
+
+// std includes
+#include <algorithm>
 
 vtkStandardNewMacro(vtkRasterReprojectionFilter)
 
@@ -37,10 +45,19 @@ public:
   vtkRasterReprojectionFilterInternal();
   ~vtkRasterReprojectionFilterInternal();
 
+  GDALDataset *CreateFromVTK(vtkImageData *data, const char *projection);
+
   vtkGDALRasterConverter *GDALConverter;
   vtkGDALRasterReprojection *GDALReprojection;
-  GDALDataset *InputGDALDataset;
+  // GDALDataset *InputGDALDataset;
   GDALDataset *OutputGDALDataset;
+
+  // Data saved during RequestInformation
+  int InputImageExtent[6];
+  double InputImageOrigin[3];
+  double InputImageSpacing[3];
+
+  double OutputImageGeoTransform[6];
 };
 
 //----------------------------------------------------------------------------
@@ -49,8 +66,13 @@ vtkRasterReprojectionFilterInternal::vtkRasterReprojectionFilterInternal()
 {
   this->GDALConverter = vtkGDALRasterConverter::New();
   this->GDALReprojection = vtkGDALRasterReprojection::New();
-  this->InputGDALDataset = NULL;
+  // this->InputGDALDataset = NULL;
   this->OutputGDALDataset = NULL;
+  std::fill(this->InputImageExtent, this->InputImageExtent+6, 0);
+  std::fill(this->InputImageOrigin, this->InputImageOrigin+3, 0.0);
+  std::fill(this->InputImageSpacing, this->InputImageSpacing+3, 0.0);
+  std::fill(this->OutputImageGeoTransform,
+            this->OutputImageGeoTransform+6, 0.0);
 }
 
 //----------------------------------------------------------------------------
@@ -59,14 +81,33 @@ vtkRasterReprojectionFilterInternal::~vtkRasterReprojectionFilterInternal()
 {
   this->GDALConverter->Delete();
   this->GDALReprojection->Delete();
-  if (this->InputGDALDataset)
-    {
-    GDALClose(this->InputGDALDataset);
-    }
+  // if (this->InputGDALDataset)
+  //   {
+  //   GDALClose(this->InputGDALDataset);
+  //   }
   if (this->OutputGDALDataset)
     {
     GDALClose(this->OutputGDALDataset);
     }
+}
+
+//----------------------------------------------------------------------------
+// Uses data saved in previous RequestInformation() call
+GDALDataset *vtkRasterReprojectionFilter::
+vtkRasterReprojectionFilterInternal::CreateFromVTK(vtkImageData *imageData,
+                                                   const char *projection)
+{
+  int *dimensions = imageData->GetDimensions();
+  vtkDataArray *array = imageData->GetPointData()->GetScalars();
+  int vtkDataType = array->GetDataType();
+  int rasterCount = array->GetNumberOfComponents();
+  GDALDataset *dataset =
+    this->GDALConverter->CreateGDALDataset(dimensions[0], dimensions[1],
+                                           vtkDataType, rasterCount);
+  this->GDALConverter->SetGDALProjection(dataset, projection);
+  this->GDALConverter->SetGDALGeoTransform(dataset, this->InputImageOrigin,
+                                           this->InputImageSpacing);
+  return dataset;
 }
 
 //----------------------------------------------------------------------------
@@ -133,9 +174,74 @@ void vtkRasterReprojectionFilter::PrintSelf(ostream &os, vtkIndent indent)
 //-----------------------------------------------------------------------------
 int vtkRasterReprojectionFilter::
 RequestData(vtkInformation * vtkNotUsed(request),
-            vtkInformationVector **vtkNotUsed(inputVector),
+            vtkInformationVector **inputVector,
             vtkInformationVector *outputVector)
 {
+  // Get the input image data
+  vtkInformation *inInfo = inputVector[0]->GetInformationObject(0);
+  if (!inInfo)
+    {
+    return 0;
+    }
+
+  vtkDataObject *inDataObject = inInfo->Get(vtkDataObject::DATA_OBJECT());
+  if (!inDataObject)
+    {
+    return 0;
+    }
+
+  vtkImageData *inImageData = vtkImageData::SafeDownCast(inDataObject);
+  if (!inImageData)
+    {
+    return 0;
+    }
+  //std::cout << "RequestData() has image to reproject!" << std::endl;
+
+  // Get the output image
+  vtkInformation *outInfo = outputVector->GetInformationObject(0);
+  if (!outInfo)
+    {
+    return 0;
+    }
+
+  vtkDataObject *outDataObject = outInfo->Get(vtkDataObject::DATA_OBJECT());
+  if (!outDataObject)
+    {
+    return 0;
+    }
+
+  vtkUniformGrid *outUniformGrid = vtkUniformGrid::SafeDownCast(outDataObject);
+  if (!outUniformGrid)
+    {
+    return 0;
+    }
+  //std::cout << "RequestData() has image (vtkUniformGrid) to output" << std::endl;
+
+  // Construct GDAL dataset from input image
+  GDALDataset *inputGDAL =
+    this->Internal->CreateFromVTK(inImageData, this->InputProjection);
+
+  // Construct GDAL dataset for output image
+  vtkDataArray *array = inImageData->GetPointData()->GetScalars();
+  int vtkDataType = array->GetDataType();
+  int rasterCount = array->GetNumberOfComponents();
+  this->Internal->OutputGDALDataset =
+    this->Internal->GDALConverter->CreateGDALDataset(this->OutputDimensions[0],
+      this->OutputDimensions[1], vtkDataType, rasterCount);
+  this->Internal->GDALConverter->SetGDALProjection(
+    this->Internal->OutputGDALDataset, this->OutputProjection);
+
+  // Apply the reprojection
+  this->Internal->GDALReprojection->SetInputDataset(inputGDAL);
+  this->Internal->GDALReprojection->SetMaxError(this->MaxError);
+  this->Internal->GDALReprojection->SetResamplingAlgorithm(this->ResamplingAlgorithm);
+  this->Internal->GDALReprojection->Reproject(this->Internal->OutputGDALDataset);
+
+  // Done with input dataset
+  GDALClose(inputGDAL);
+
+  // Convert output dataset to vtkUniformGrid
+
   return VTK_ERROR;
 }
 
@@ -156,8 +262,12 @@ RequestInformation(vtkInformation * vtkNotUsed(request),
     }
   int *inputDataExtent =
     inInfo->Get(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT());
-  double *inputSpacing = inInfo->Get(vtkDataObject::SPACING());
+  std::copy(inputDataExtent, inputDataExtent+6, this->Internal->InputImageExtent);
+
   double *inputOrigin = inInfo->Get(vtkDataObject::ORIGIN());
+  std::copy(inputOrigin, inputOrigin+3, this->Internal->InputImageOrigin);
+
+  double *inputSpacing = inInfo->Get(vtkDataObject::SPACING());
 
   std::cout << "Whole extent: " << inputDataExtent[0]
             << ", " << inputDataExtent[1]
@@ -194,25 +304,27 @@ RequestInformation(vtkInformation * vtkNotUsed(request),
     }
 
   // Hack in origin & spacing for sa052483.tif
-  inputOrigin[0] = 45.999583454395179;
-  inputOrigin[1] = 29.250416763514124;
-  inputSpacing[0] = 0.000833333333333;
-  inputSpacing[1] = -0.000833333333333;  // think I have to invert
+  this->Internal->InputImageOrigin[0] = 45.999583454395179;
+  this->Internal->InputImageOrigin[1] = 29.250416763514124;
+  this->Internal->InputImageSpacing[0] = 0.000833333333333;
+  this->Internal->InputImageSpacing[1] = -0.000833333333333;  // think I have to invert
 
   // Create GDALDataset to compute suggested output
-  GDALDataset *inGDALData =
+  GDALDataset *gdalDataset =
     this->Internal->GDALConverter->CreateGDALDataset(
-      inputDataExtent[1], inputDataExtent[3], 1, VTK_UNSIGNED_CHAR);
+      inputDataExtent[1], inputDataExtent[3], VTK_UNSIGNED_CHAR, 1);
   this->Internal->GDALConverter->SetGDALProjection(
-    inGDALData, this->InputProjection);
+    gdalDataset, this->InputProjection);
   this->Internal->GDALConverter->SetGDALGeoTransform(
-    inGDALData, inputOrigin, inputSpacing);
+    gdalDataset, this->Internal->InputImageOrigin,
+    this->Internal->InputImageSpacing);
 
   int nPixels = 0;
   int nLines = 0;
-  double geoTransform[6] = {};
   this->Internal->GDALReprojection->SuggestOutputDimensions(
-    inGDALData, this->OutputProjection, geoTransform, &nPixels, &nLines);
+    gdalDataset, this->OutputProjection,
+    this->Internal->OutputImageGeoTransform, &nPixels, &nLines);
+  GDALClose(gdalDataset);
 
   if ((this->OutputDimensions[0] < 1) || (this->OutputDimensions[1] < 1))
     {
@@ -227,19 +339,39 @@ RequestInformation(vtkInformation * vtkNotUsed(request),
   outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),
                outputDataExtent, 6);
 
-  double outputOrigin[3];
-  outputOrigin[0] = geoTransform[0];
-  outputOrigin[1] = geoTransform[3];
-  outputOrigin[2] = 1.0;
-  outInfo->Set(vtkDataObject::SPACING(), outputOrigin, 3);
+  double outputImageOrigin[3] = {};
+  outputImageOrigin[0] = this->Internal->OutputImageGeoTransform[0];
+  outputImageOrigin[1] = this->Internal->OutputImageGeoTransform[3];
+  outputImageOrigin[2] = 1.0;
+  outInfo->Set(vtkDataObject::SPACING(), outputImageOrigin, 3);
 
-  double outputSpacing[3];
-  outputSpacing[0] = geoTransform[1];
-  outputSpacing[1] = -geoTransform[5];
-  outputSpacing[2] = 1.0;
-  outInfo->Set(vtkDataObject::ORIGIN(), outputSpacing, 3);
+  double outputImageSpacing[3] = {};
+  outputImageSpacing[0] =  this->Internal->OutputImageGeoTransform[1];
+  outputImageSpacing[1] = -this->Internal->OutputImageGeoTransform[5];
+  outputImageSpacing[2] = 1.0;
+  outInfo->Set(vtkDataObject::ORIGIN(), outputImageSpacing, 3);
 
   return VTK_OK;
+}
+
+//-----------------------------------------------------------------------------
+// Override ProcessRequest() in order to set the input image extents
+int vtkRasterReprojectionFilter::
+ProcessRequest(vtkInformation* request,
+               vtkInformationVector** inputVector,
+               vtkInformationVector* outputVector)
+{
+  if (request->Has(vtkStreamingDemandDrivenPipeline::REQUEST_UPDATE_EXTENT()))
+    {
+    // Set update extent for input image, which can be different than output
+    //std::cout << "ProcessRequest() w/update extent "
+    //          << this->GetClassName()  << std::endl;
+    vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
+    inInfo->Set(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(),
+                this->Internal->InputImageExtent, 6);
+    }
+
+  return this->Superclass::ProcessRequest(request, inputVector, outputVector);
 }
 
 //-----------------------------------------------------------------------------

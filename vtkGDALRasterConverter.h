@@ -37,6 +37,7 @@ public:
   vtkSetMacro(NoDataValue, double);
   vtkGetMacro(NoDataValue, double);
 
+  // DEPRECATED
   // Description
   // Builds GDALDataset to match vtkImageData
   // GDALDataset must be initialized to same dimensions as vtk image.
