@@ -6,6 +6,7 @@ set (TEST_NAMES
   TestMapClustering
   TestMultiThreadedOsmLayer
   TestOsmLayer
+  TestRasterReprojectionFilter
 )
 
 foreach(name ${TEST_NAMES})

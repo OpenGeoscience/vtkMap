@@ -32,6 +32,27 @@
 vtkStandardNewMacro(vtkGDALRasterConverter)
 
 //----------------------------------------------------------------------------
+class vtkGDALRasterConverter::vtkGDALRasterConverterInternal
+{
+public:
+  GDALDataType ToGDALDataType(int vtkDataType)
+  {
+    GDALDataType gdalType = GDT_Unknown;
+    switch (vtkDataType)
+      {
+      case VTK_TYPE_UINT8: gdalType = GDT_Byte; break;
+      case VTK_TYPE_INT16: gdalType = GDT_Int16; break;
+      case VTK_TYPE_UINT16: gdalType = GDT_UInt16; break;
+      case VTK_TYPE_INT32: gdalType = GDT_Int32; break;
+      case VTK_TYPE_UINT32: gdalType = GDT_UInt32; break;
+      case VTK_TYPE_FLOAT32: gdalType = GDT_Float32; break;
+      case VTK_TYPE_FLOAT64: gdalType = GDT_Float64; break;
+      }
+    return gdalType;
+  }
+};
+
+//----------------------------------------------------------------------------
 template<class Iterator, typename VTK_TYPE>
 void copyToGDAL(Iterator begin, Iterator end, VTK_TYPE typeVar,
                 vtkDataArray *vtkData, GDALDataset *gdalData)
@@ -88,6 +109,7 @@ void copyToGDAL(Iterator begin, Iterator end, VTK_TYPE typeVar,
 //----------------------------------------------------------------------------
 vtkGDALRasterConverter::vtkGDALRasterConverter()
 {
+  this->Internal = new vtkGDALRasterConverterInternal();
   this->ImageData = NULL;
   this->GDALData = NULL;
   this->NoDataValue = vtkMath::Nan();
@@ -96,6 +118,7 @@ vtkGDALRasterConverter::vtkGDALRasterConverter()
 //----------------------------------------------------------------------------
 vtkGDALRasterConverter::~vtkGDALRasterConverter()
 {
+  delete this->Internal;
 }
 
 //----------------------------------------------------------------------------
@@ -121,24 +144,13 @@ ConvertToGDAL(vtkImageData *input, GDALDataset *output)
   this->ImageData = input;
   this->GDALData = output;
 
-  // Set spatial reference
-  OGRSpatialReference ref;
-  ref.SetFromUserInput("EPSG:4326");  // presume lat-lon for now
-  char *outputWKT = NULL;
-  ref.exportToWkt(&outputWKT);
-  output->SetProjection(outputWKT);
+  // Set spatial reference - presume lat-lon for now
+  this->SetGDALProjection(output, "EPSG:4326");
 
   // Initialize geo transform
   double *origin = input->GetOrigin();
   double *spacing = input->GetSpacing();
-  double geoTransform[6];
-  geoTransform[0] = origin[0];
-  geoTransform[1] = spacing[0];
-  geoTransform[2] = 0.0;
-  geoTransform[3] = origin[1];
-  geoTransform[4] = 0.0;
-  geoTransform[5] = -spacing[1];
-  output->SetGeoTransform(geoTransform);
+  this->SetGDALGeoTransform(output, origin, spacing);
 
   if (!vtkMath::IsNan(this->NoDataValue))
     {
@@ -159,4 +171,43 @@ ConvertToGDAL(vtkImageData *input, GDALDataset *output)
 
   // Finis
   return true;
+}
+
+//----------------------------------------------------------------------------
+GDALDataset *vtkGDALRasterConverter::
+CreateGDALDataset(int xDim, int yDim, int vtkDataType, int numberOfBands)
+{
+  GDALDriver *driver = static_cast<GDALDriver*>(GDALGetDriverByName("MEM"));
+  GDALDataType gdalType = this->Internal->ToGDALDataType(vtkDataType);
+  GDALDataset *dataset = driver->Create("", xDim, yDim, numberOfBands,
+                                        gdalType, NULL);
+  return dataset;
+}
+
+//----------------------------------------------------------------------------
+void vtkGDALRasterConverter::
+SetGDALProjection(GDALDataset *dataset, const char *projectionString)
+{
+  // Use OGRSpatialReference to convert to WKT
+  OGRSpatialReference ref;
+  ref.SetFromUserInput(projectionString);
+  char *wkt = NULL;
+  ref.exportToWkt(&wkt);
+  //std::cout << "Projection WKT: " << wkt << std::endl;
+  dataset->SetProjection(wkt);
+  CPLFree(wkt);
+}
+
+//----------------------------------------------------------------------------
+void vtkGDALRasterConverter::
+SetGDALGeoTransform(GDALDataset *dataset, double origin[2], double spacing[2])
+{
+  double geoTransform[6];
+  geoTransform[0] = origin[0];
+  geoTransform[1] = spacing[0];
+  geoTransform[2] = 0.0;
+  geoTransform[3] = origin[1];
+  geoTransform[4] = 0.0;
+  geoTransform[5] = -spacing[1];
+  dataset->SetGeoTransform(geoTransform);
 }

@@ -60,8 +60,11 @@ public:
   // definition, or shorter commonly-used names such as "EPSG:4326" or
   // "WGS84".
   // Returns boolean indicating if computed dimensions are valid.
-  bool SuggestOutputDimensions(const char *outputProjection,
-                               int *nPixels, int *nLines);
+  bool SuggestOutputDimensions(GDALDataset *inputDataset,
+                               const char *outputProjection,
+                               double geoTransform[6],
+                               int *nPixels, int *nLines,
+                               double maxError = 0.0);
 
   // Description
   // Compute the reprojection from the previously-set input dataset.

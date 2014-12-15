@@ -46,6 +46,23 @@ public:
   // Builds vtkImageData to match GDALDataset
   //bool ConvertToVTK(GDALDataset *input, vtkImageData *output);
 
+  // Description:
+  // Create GDAL dataset in memory.
+  // This dataset must be released by the calling code,
+  // using GDALClose().
+  GDALDataset *CreateGDALDataset(int xDim, int yDim, int vtkDataType,
+                                 int numberOfBands);
+
+  // Description:
+  // Set projection on GDAL dataset, using any projection string
+  // recognized by GDAL.
+  void SetGDALProjection(GDALDataset *dataset, const char *projectionString);
+
+  // Description:
+  // Set geo-transform on GDAL dataset.
+  void SetGDALGeoTransform(GDALDataset *dataset, double origin[2],
+                           double spacing[2]);
+
 protected:
   vtkGDALRasterConverter();
   ~vtkGDALRasterConverter();
@@ -53,6 +70,9 @@ protected:
   vtkImageData *ImageData;
   GDALDataset *GDALData;
   double NoDataValue;
+
+  class vtkGDALRasterConverterInternal;
+  vtkGDALRasterConverterInternal *Internal;
 
 private:
    // Not implemented:

@@ -50,40 +50,35 @@ void vtkGDALRasterReprojection::PrintSelf(ostream &os, vtkIndent indent)
 
 //----------------------------------------------------------------------------
 bool vtkGDALRasterReprojection::
-SuggestOutputDimensions(const char *outputProjection,
-                        int *nPixels, int *nLines)
+SuggestOutputDimensions(GDALDataset *dataset,const char *projection,
+                        double geoTransform[6], int *nPixels, int *nLines,
+                        double maxError)
 {
-  if (!this->InputDataset)
-    {
-    vtkErrorMacro(<< "InputDataset is not set");
-    return false;
-    }
-
-  // Create OGRSpatialReference for outputProjection
+  // Create OGRSpatialReference for projection
   OGRSpatialReference ref;
-  ref.SetFromUserInput(outputProjection);
+  ref.SetFromUserInput(projection);
   if (ref.Validate() != OGRERR_NONE)
     {
-    vtkErrorMacro(<< "outputProjection is not valid or not supported: "
-                  << outputProjection);
-    return false;
+    vtkErrorMacro(<< "Projection is not valid or not supported: "
+                  << projection);
+    //return false;
     }
   char *outputWKT = NULL;
   ref.exportToWkt(&outputWKT);
+  std::cout << "outputWKT: \n" << outputWKT << std::endl;
 
   // Create transformer
-  const char *inputWKT = this->InputDataset->GetProjectionRef();
+  const char *inputWKT = dataset->GetProjectionRef();
   bool useGCPs = false;
   int order = 0;  // only applies to GCP transforms
   void *transformer =
-    GDALCreateGenImgProjTransformer(this->InputDataset, inputWKT,
-                                    NULL, outputWKT,
-                                    useGCPs, this->MaxError, order);
+    GDALCreateGenImgProjTransformer(dataset, inputWKT, NULL, outputWKT,
+                                    useGCPs, maxError, order);
+  CPLFree(outputWKT);
 
   // Estimate transform coefficients and output image dimensions
-  double geoTransform[6];
   CPLErr err =
-    GDALSuggestedWarpOutput(this->InputDataset, GDALGenImgProjTransform,
+    GDALSuggestedWarpOutput(dataset, GDALGenImgProjTransform,
                             transformer, geoTransform, nPixels, nLines);
   GDALDestroyGenImgProjTransformer(transformer);
   std::cout << "Output image: " << *nPixels << " by " << *nLines << std::endl;

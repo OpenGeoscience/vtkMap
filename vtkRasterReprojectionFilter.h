@@ -19,20 +19,21 @@
 #ifndef __vtkRasterReprojectionFilter_h
 #define __vtkRasterReprojectionFilter_h
 
-#include "vtkDataObjectAlgorithm.h"
+#include "vtkImageAlgorithm.h"
 #include "vtkmap_export.h"
 
-class VTKMAP_EXPORT vtkRasterReprojectionFilter : public vtkDataObjectAlgorithm
+class VTKMAP_EXPORT vtkRasterReprojectionFilter : public vtkImageAlgorithm
 {
 public:
   static vtkRasterReprojectionFilter* New();
   virtual void PrintSelf(ostream &os, vtkIndent indent);
-  vtkTypeMacro(vtkRasterReprojectionFilter, vtkDataObjectAlgorithm);
+  vtkTypeMacro(vtkRasterReprojectionFilter, vtkImageAlgorithm);
 
   // Description:
   // Set the map-projection string for the input image data.
-  // Can be specified either with "well known text" (WKT) formats,
-  // (GEOGS[]), or shorter "user string" formats, such as EPSG:3857.
+  // Can be specified using any string formats supported by GDAL,
+  // such as "well known text" (WKT) formats (GEOGS[]),
+  // or shorter "user string" formats, such as EPSG:3857.
   // The default value is "EPSG:4326" (latitude/longitude).
   vtkSetStringMacro(InputProjection);
   vtkGetStringMacro(InputProjection);
@@ -44,9 +45,9 @@ public:
 
   // Description:
   // Set the width and height of the output image.
-  // The default case is to leave this variable unset, in which case,
-  // the filter will use the GDAL suggested dimensions to construct the
-  // output image. This set method can be used to override this, and
+  // It is recommended to leave this variable unset, in which case,
+  // the filter will use the GDAL suggested dimensions to construct
+  // the output image. This method can be used to override this, and
   // impose specific output image dimensions.
   vtkSetVector2Macro(OutputDimensions, int);
   vtkGetVector2Macro(OutputDimensions, int);
@@ -76,20 +77,6 @@ public:
   //   5 = Average
   //   6 = Mode
   vtkSetClampMacro(ResamplingAlgorithm, int, 0, 6);
-
-
-  // Is this relevant/practical?
-  // Description:
-  // Compute the suggested image dimensions for a specified projection.
-  // The outputProjection parameter can be either the full "well known text"
-  // definition, or shorter commonly-used names such as "EPSG:4326" or
-  // "WGS84".
-  // This method is not required to use the filter, but is provided
-  // for convenience, to obtain the output dimensions without performing
-  // the reprojection calculations.
-  // Returns boolean indicating if computed dimensions are valid.
-  bool SuggestOutputDimensions(const char *outputProjection,
-                               int *nPixels, int *nLines) const;
 
 protected:
   vtkRasterReprojectionFilter();

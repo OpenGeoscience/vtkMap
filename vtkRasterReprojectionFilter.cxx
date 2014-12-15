@@ -21,6 +21,7 @@
 #include <vtkInformation.h>
 #include <vtkInformationVector.h>
 #include <vtkMath.h>
+#include <vtkNew.h>
 #include <vtkObjectFactory.h>
 #include <vtkStreamingDemandDrivenPipeline.h>
 #include <vtkUniformGrid.h>
@@ -129,28 +130,20 @@ void vtkRasterReprojectionFilter::PrintSelf(ostream &os, vtkIndent indent)
      << std::endl;
 }
 
-//----------------------------------------------------------------------------
-bool vtkRasterReprojectionFilter::
-SuggestOutputDimensions(const char *outputProjection,
-                        int *nPixels, int *nLines) const
+//-----------------------------------------------------------------------------
+int vtkRasterReprojectionFilter::
+RequestData(vtkInformation * vtkNotUsed(request),
+            vtkInformationVector **vtkNotUsed(inputVector),
+            vtkInformationVector *outputVector)
 {
-  return false;
+  return VTK_ERROR;
 }
 
 //-----------------------------------------------------------------------------
 int vtkRasterReprojectionFilter::
 RequestInformation(vtkInformation * vtkNotUsed(request),
-                   vtkInformationVector **vtkNotUsed(inputVector),
+                   vtkInformationVector **inputVector,
                    vtkInformationVector *outputVector)
-{
-  return VTK_ERROR;
-}
-
-//----------------------------------------------------------------------------
-int vtkRasterReprojectionFilter::
-RequestData(vtkInformation *vtkNotUsed(request),
-            vtkInformationVector **inputVector,
-            vtkInformationVector *outputVector)
 {
   // Get the info objects
   vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
@@ -166,7 +159,21 @@ RequestData(vtkInformation *vtkNotUsed(request),
   double *inputSpacing = inInfo->Get(vtkDataObject::SPACING());
   double *inputOrigin = inInfo->Get(vtkDataObject::ORIGIN());
 
-  vtkInformation* outInfo = outputVector->GetInformationObject(0);
+  std::cout << "Whole extent: " << inputDataExtent[0]
+            << ", " << inputDataExtent[1]
+            << ", " << inputDataExtent[2]
+            << ", " << inputDataExtent[3]
+            << ", " << inputDataExtent[4]
+            << ", " << inputDataExtent[5]
+            << std::endl;
+  std::cout << "Input spacing: " << inputSpacing[0]
+            << ", " << inputSpacing[1]
+            << ", " << inputSpacing[2] << std::endl;
+  std::cout << "Input origin: " << inputOrigin[0]
+            << ", " << inputOrigin[1]
+            << ", " << inputOrigin[2] << std::endl;
+
+   vtkInformation* outInfo = outputVector->GetInformationObject(0);
   if (!outInfo)
     {
     vtkErrorMacro("Invalid output information object");
@@ -174,24 +181,63 @@ RequestData(vtkInformation *vtkNotUsed(request),
     }
 
   // Validate current settings
-  if (!this->OutputProjection)
+  if (!this->InputProjection)
     {
-    vtkErrorMacro("No output projection specific");
+    vtkErrorMacro("No input projection specified");
     return VTK_ERROR;
     }
 
-  // Compute output dimensions if needed
-  if ((this->OutputDimensions[0] < 1) || (this->OutputDimensions[1] < !))
+  if (!this->OutputProjection)
     {
-    // Create mock GDALDataset
+    vtkErrorMacro("No output projection specified");
+    return VTK_ERROR;
+    }
+
+  // Hack in origin & spacing for sa052483.tif
+  inputOrigin[0] = 45.999583454395179;
+  inputOrigin[1] = 29.250416763514124;
+  inputSpacing[0] = 0.000833333333333;
+  inputSpacing[1] = -0.000833333333333;  // think I have to invert
+
+  // Create GDALDataset to compute suggested output
+  GDALDataset *inGDALData =
+    this->Internal->GDALConverter->CreateGDALDataset(
+      inputDataExtent[1], inputDataExtent[3], 1, VTK_UNSIGNED_CHAR);
+  this->Internal->GDALConverter->SetGDALProjection(
+    inGDALData, this->InputProjection);
+  this->Internal->GDALConverter->SetGDALGeoTransform(
+    inGDALData, inputOrigin, inputSpacing);
+
+  int nPixels = 0;
+  int nLines = 0;
+  double geoTransform[6] = {};
+  this->Internal->GDALReprojection->SuggestOutputDimensions(
+    inGDALData, this->OutputProjection, geoTransform, &nPixels, &nLines);
+
+  if ((this->OutputDimensions[0] < 1) || (this->OutputDimensions[1] < 1))
+    {
+    this->OutputDimensions[0] = nPixels;
+    this->OutputDimensions[1] = nLines;
     }
 
   // Set output info
-  // TEMP for testing only
+  int outputDataExtent[6] = {};
+  outputDataExtent[1] = this->OutputDimensions[0];
+  outputDataExtent[3] = this->OutputDimensions[1];
   outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),
-               inputDataExtent, 6);
-  outInfo->Set(vtkDataObject::SPACING(), inputSpacing, 3);
-  outInfo->Set(vtkDataObject::ORIGIN(), inputOrigin, 3);
+               outputDataExtent, 6);
+
+  double outputOrigin[3];
+  outputOrigin[0] = geoTransform[0];
+  outputOrigin[1] = geoTransform[3];
+  outputOrigin[2] = 1.0;
+  outInfo->Set(vtkDataObject::SPACING(), outputOrigin, 3);
+
+  double outputSpacing[3];
+  outputSpacing[0] = geoTransform[1];
+  outputSpacing[1] = -geoTransform[5];
+  outputSpacing[2] = 1.0;
+  outInfo->Set(vtkDataObject::ORIGIN(), outputSpacing, 3);
 
   return VTK_OK;
 }
