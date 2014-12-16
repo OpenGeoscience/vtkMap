@@ -16,6 +16,10 @@ set (VTK_REQUIRED_COMPONENTS
     vtkjsoncpp
     vtkRenderingCore
     vtkRenderingOpenGL
+
+    # For testing:
+    vtkIOXML
+    vtkImagingStatistics
 )
 
 option(BUILD_QT_APPS "Build Qt applications (source files in Qt subdirectory)" OFF)

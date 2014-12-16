@@ -234,14 +234,22 @@ RequestData(vtkInformation * vtkNotUsed(request),
   // Apply the reprojection
   this->Internal->GDALReprojection->SetInputDataset(inputGDAL);
   this->Internal->GDALReprojection->SetMaxError(this->MaxError);
-  this->Internal->GDALReprojection->SetResamplingAlgorithm(this->ResamplingAlgorithm);
-  this->Internal->GDALReprojection->Reproject(this->Internal->OutputGDALDataset);
+  this->Internal->GDALReprojection->SetResamplingAlgorithm(
+    this->ResamplingAlgorithm);
+  this->Internal->GDALReprojection->Reproject(
+    this->Internal->OutputGDALDataset);
 
   // Done with input dataset
   GDALClose(inputGDAL);
 
   // Convert output dataset to vtkUniformGrid
+  vtkUniformGrid *outputImage =
+    this->Internal->GDALConverter->CreateVTKUniformGrid(
+      this->Internal->OutputGDALDataset);
 
+  outUniformGrid->ShallowCopy(outputImage);
+
+  outputImage->Delete();
   return VTK_ERROR;
 }
 

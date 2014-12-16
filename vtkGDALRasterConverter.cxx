@@ -21,6 +21,7 @@
 #include <vtkMath.h>
 #include <vtkObjectFactory.h>
 #include <vtkPointData.h>
+#include <vtkUniformGrid.h>
 
 // GDAL Includes
 #include <gdal_priv.h>
@@ -35,6 +36,9 @@ vtkStandardNewMacro(vtkGDALRasterConverter)
 class vtkGDALRasterConverter::vtkGDALRasterConverterInternal
 {
 public:
+  template<typename VTK_TYPE> void
+  CopyToVTK(GDALDataset *gdalData, vtkDataArray *vtkData);
+
   GDALDataType ToGDALDataType(int vtkDataType)
   {
     GDALDataType gdalType = GDT_Unknown;
@@ -51,6 +55,48 @@ public:
     return gdalType;
   }
 };
+
+
+//----------------------------------------------------------------------------
+template<typename VTK_TYPE>
+void vtkGDALRasterConverter::vtkGDALRasterConverterInternal::
+CopyToVTK(GDALDataset *dataset, vtkDataArray *array)
+{
+  // Initialize array storage
+  int stride = dataset->GetRasterCount();
+  array->SetNumberOfComponents(stride);
+  int xSize = dataset->GetRasterXSize();
+  int ySize = dataset->GetRasterYSize();
+  int numElements = xSize * ySize;
+  array->SetNumberOfTuples(numElements);
+
+  // Copy from GDAL to vtkImageData, one band at a time
+  VTK_TYPE *buffer = new VTK_TYPE[numElements];
+  for (int i=0; i<stride; i++)
+    {
+    // Copy one band from dataset to buffer
+    GDALRasterBand *band = dataset->GetRasterBand(i+1);
+    GDALDataType gdalDataType = band->GetRasterDataType();
+    CPLErr err = band->RasterIO(GF_Read, 0, 0, xSize, ySize, buffer, xSize, ySize, gdalDataType, 0, 0);
+
+    // Copy data from buffer to vtkDataArray
+    // Traverse by gdal row & column to make y-inversion easier
+    for (int row=0, index=0; row < ySize; row++)
+      {
+      // GDAL data starts at top-left, vtk at bottom-left
+      // So need to invert in the y direction
+      int invertedRow = ySize - row - 1;
+      int offset = invertedRow * xSize;
+      for (int col=0; col < xSize; col++)
+        {
+        array->SetComponent(offset + col, i, buffer[index++]);
+        }
+      }
+
+    }
+  delete [] buffer;
+}
+
 
 //----------------------------------------------------------------------------
 template<class Iterator, typename VTK_TYPE>
@@ -171,6 +217,95 @@ ConvertToGDAL(vtkImageData *input, GDALDataset *output)
 
   // Finis
   return true;
+}
+
+//----------------------------------------------------------------------------
+vtkUniformGrid *vtkGDALRasterConverter::
+CreateVTKUniformGrid(GDALDataset *dataset)
+{
+  // Set vtk origin & spacing from GDALGeoTransform
+  double geoTransform[6] = {};
+  if (dataset->GetGeoTransform(geoTransform) != CE_None)
+    {
+    vtkErrorMacro(<< "Error calling GetGeoTransform()");
+    //return NULL;
+    }
+
+  // Initialize image
+  vtkUniformGrid *image = vtkUniformGrid::New();
+  int imageDimensions[3];
+  imageDimensions[0] = dataset->GetRasterXSize();
+  imageDimensions[1] = dataset->GetRasterYSize();
+  imageDimensions[2] = 0.0;
+  image->SetDimensions(imageDimensions);
+
+  double origin[3];
+  origin[0] = geoTransform[0];
+  origin[1] = geoTransform[3];
+  origin[2] = 0.0;
+  image->SetOrigin(origin);
+
+  double spacing[3];
+  spacing[0] = geoTransform[1];
+  spacing[1] = geoTransform[5];
+  spacing[2] = 0.0;
+  image->SetSpacing(spacing);
+
+  // Copy pixel data
+  int rasterCount = dataset->GetRasterCount();
+  if (rasterCount < 1)
+    {
+    return NULL;
+    }
+
+  vtkDataArray *array = NULL;
+  switch (dataset->GetRasterBand(1)->GetRasterDataType())
+    {
+    case GDT_Byte:
+      array = vtkDataArray::CreateDataArray(VTK_TYPE_UINT8);
+      this->Internal->CopyToVTK<vtkTypeUInt8>(dataset, array);
+      break;
+
+    case GDT_UInt16:
+      array = vtkDataArray::CreateDataArray(VTK_TYPE_UINT16);
+      this->Internal->CopyToVTK<vtkTypeUInt16>(dataset, array);
+      break;
+
+    case GDT_Int16:
+      array = vtkDataArray::CreateDataArray(VTK_TYPE_INT16);
+      this->Internal->CopyToVTK<vtkTypeInt16>(dataset, array);
+      break;
+
+    case GDT_UInt32:
+      array = vtkDataArray::CreateDataArray(VTK_TYPE_UINT32);
+      this->Internal->CopyToVTK<vtkTypeUInt32>(dataset, array);
+      break;
+
+    case GDT_Int32:
+      array = vtkDataArray::CreateDataArray(VTK_TYPE_INT32);
+      this->Internal->CopyToVTK<vtkTypeInt32>(dataset, array);
+      break;
+
+    case GDT_Float32:
+      array = vtkDataArray::CreateDataArray(VTK_TYPE_FLOAT32);
+      this->Internal->CopyToVTK<vtkTypeFloat32>(dataset, array);
+      break;
+
+    case GDT_Float64:
+      array = vtkDataArray::CreateDataArray(VTK_TYPE_FLOAT64);
+      this->Internal->CopyToVTK<vtkTypeFloat64>(dataset, array);
+      break;
+    }
+
+  if (!array)
+    {
+    return NULL;
+    }
+
+  image->GetPointData()->SetScalars(array);
+  array->Delete();
+
+  return image;
 }
 
 //----------------------------------------------------------------------------

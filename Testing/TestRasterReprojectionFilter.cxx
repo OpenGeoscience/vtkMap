@@ -16,10 +16,12 @@
 #include "vtkRasterReprojectionFilter.h"
 
 #include <vtkGDALRasterReader.h>
+#include <vtkImageAccumulate.h>
 #include <vtkImageData.h>
 #include <vtkNew.h>
 #include <vtkRasterReprojectionFilter.h>
 #include <vtkUniformGrid.h>
+#include <vtkXMLImageDataWriter.h>
 
 #include <gdal_priv.h>
 
@@ -40,11 +42,22 @@ int TestRasterReprojectionFilter(const char *inputFilename)
   filter->SetInputConnection(reader->GetOutputPort());
   filter->SetInputProjection("EPSG:4326");
   filter->SetOutputProjection("EPSG:3857");
-  filter->Update();
+  //filter->Update();
+
+  // Write image to file
+  const char *outputFilename = "image.vti";
+  vtkNew<vtkXMLImageDataWriter> writer;
+  writer->SetFileName(outputFilename);
+  writer->SetInputConnection(filter->GetOutputPort());
+  writer->SetDataModeToAscii();
+  writer->Write();
 
   // Check output
   vtkUniformGrid *output = vtkUniformGrid::SafeDownCast(filter->GetOutput());
-  //output->Print(std::cout);
+  output->Print(std::cout);
+
+  std::cout << "Wrote " << outputFilename << std::endl;
+  return 0;
 }
 
 

@@ -22,6 +22,7 @@
 #include "vtkObject.h"
 #include "vtkmap_export.h"
 class vtkImageData;
+class vtkUniformGrid;
 class GDALDataset;
 
 class VTKMAP_EXPORT vtkGDALRasterConverter : public vtkObject
@@ -45,7 +46,7 @@ public:
 
   // Description
   // Builds vtkImageData to match GDALDataset
-  //bool ConvertToVTK(GDALDataset *input, vtkImageData *output);
+  vtkUniformGrid *CreateVTKUniformGrid(GDALDataset *input);
 
   // Description:
   // Create GDAL dataset in memory.
