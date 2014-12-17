@@ -14,7 +14,7 @@
 
 #include "vtkGDALRasterConverter.h"
 
-// VTK Includes
+// VTK includes
 #include <vtkDataArray.h>
 #include <vtkDataArrayIteratorMacro.h>
 #include <vtkImageData.h>
@@ -23,12 +23,13 @@
 #include <vtkPointData.h>
 #include <vtkUniformGrid.h>
 
-// GDAL Includes
+// GDAL includes
 #include <gdal_priv.h>
 #include <ogr_spatialref.h>
 
-#include <exception>
+// STD includes
 #include <iostream>
+#include <sstream>
 
 vtkStandardNewMacro(vtkGDALRasterConverter)
 
@@ -343,6 +344,17 @@ SetGDALGeoTransform(GDALDataset *dataset, double origin[2], double spacing[2])
   geoTransform[2] = 0.0;
   geoTransform[3] = origin[1];
   geoTransform[4] = 0.0;
-  geoTransform[5] = -spacing[1];
+  geoTransform[5] = spacing[1];
   dataset->SetGeoTransform(geoTransform);
+}
+
+//----------------------------------------------------------------------------
+void vtkGDALRasterConverter::
+WriteTifFile(GDALDataset *dataset, const char *filename)
+{
+  // Copy dataset to GTiFF driver, which creates file
+  GDALDriver *driver = static_cast<GDALDriver*>(GDALGetDriverByName("GTiff"));
+  GDALDataset *copy =
+    driver->CreateCopy(filename, dataset, false, NULL, NULL, NULL);
+  GDALClose(copy);
 }

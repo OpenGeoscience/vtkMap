@@ -65,6 +65,10 @@ public:
   void SetGDALGeoTransform(GDALDataset *dataset, double origin[2],
                            double spacing[2]);
 
+  // Description:
+  // Write GDALDataset to tiff file
+  void WriteTifFile(GDALDataset *dataset, const char *filename);
+
 protected:
   vtkGDALRasterConverter();
   ~vtkGDALRasterConverter();

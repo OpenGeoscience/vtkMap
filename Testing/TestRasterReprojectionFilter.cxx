@@ -42,6 +42,7 @@ int TestRasterReprojectionFilter(const char *inputFilename)
   filter->SetInputConnection(reader->GetOutputPort());
   filter->SetInputProjection("EPSG:4326");
   filter->SetOutputProjection("EPSG:3857");
+  filter->DebugOn();
   //filter->Update();
 
   // Write image to file
