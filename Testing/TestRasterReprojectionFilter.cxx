@@ -42,8 +42,25 @@ int TestRasterReprojectionFilter(const char *inputFilename)
   filter->SetInputConnection(reader->GetOutputPort());
   filter->SetInputProjection("EPSG:4326");
   filter->SetOutputProjection("EPSG:3857");
-  filter->DebugOn();
+  //filter->DebugOn();
   //filter->Update();
+
+  // Capture minimal statistics
+  vtkNew<vtkImageAccumulate> accumulator;
+  accumulator->SetInputConnection(filter->GetOutputPort());
+  accumulator->SetComponentExtent(0, 1, 0, 1, 0, 0);
+  accumulator->Update();
+
+  double *min = accumulator->GetMin();
+  double *mean = accumulator->GetMean();
+  double *max = accumulator->GetMax();
+  double *std = accumulator->GetStandardDeviation();
+  vtkIdType count = accumulator->GetVoxelCount();
+
+  std::cout << "Accumulator results:" << "\n"
+            << "  Voxel count: " << count
+            << "  Min, Mean, Max StdDev:  " << min[0]
+            << ", " << mean[0] << ", " << max[0] << ", " << std[0] << "\n";
 
   // Write image to file
   const char *outputFilename = "image.vti";
@@ -52,12 +69,12 @@ int TestRasterReprojectionFilter(const char *inputFilename)
   writer->SetInputConnection(filter->GetOutputPort());
   writer->SetDataModeToAscii();
   writer->Write();
-
-  // Check output
-  vtkUniformGrid *output = vtkUniformGrid::SafeDownCast(filter->GetOutput());
-  output->Print(std::cout);
-
   std::cout << "Wrote " << outputFilename << std::endl;
+
+  // Dump info
+  //vtkUniformGrid *output = vtkUniformGrid::SafeDownCast(filter->GetOutput());
+  //output->Print(std::cout);
+
   return 0;
 }
 

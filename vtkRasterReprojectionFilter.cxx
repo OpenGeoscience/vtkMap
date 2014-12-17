@@ -65,9 +65,7 @@ vtkRasterReprojectionFilter::
 vtkRasterReprojectionFilterInternal::vtkRasterReprojectionFilterInternal()
 {
   this->GDALConverter = vtkGDALRasterConverter::New();
-  this->GDALConverter->DebugOn();
   this->GDALReprojection = vtkGDALRasterReprojection::New();
-  // this->InputGDALDataset = NULL;
   this->OutputGDALDataset = NULL;
   std::fill(this->InputImageExtent, this->InputImageExtent+6, 0);
   std::fill(this->InputImageOrigin, this->InputImageOrigin+3, 0.0);
@@ -295,9 +293,10 @@ RequestUpdateExtent(vtkInformation * vtkNotUsed(request),
                     vtkInformationVector **inputVector,
                     vtkInformationVector *outputVector)
 {
-  vtkInformation* inInfo = outputVector->GetInformationObject(0);
+  vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
   inInfo->Set(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(),
               this->Internal->InputImageExtent, 6);
+  return VTK_OK;
 }
 
 //-----------------------------------------------------------------------------
