@@ -69,6 +69,13 @@ public:
   // Write GDALDataset to tiff file
   void WriteTifFile(GDALDataset *dataset, const char *filename);
 
+  // Description:
+  // Traverse values in specified band to find min/max.
+  // Note that the bandId starts at 1, not zero.
+  // Returns boolean indicating success.
+  bool FindDataRange(GDALDataset *dataset, int bandId,
+                     double *minValue, double *maxValue);
+
 protected:
   vtkGDALRasterConverter();
   ~vtkGDALRasterConverter();

@@ -37,9 +37,6 @@ vtkStandardNewMacro(vtkGDALRasterConverter)
 class vtkGDALRasterConverter::vtkGDALRasterConverterInternal
 {
 public:
-  template<typename VTK_TYPE> void
-  CopyToVTK(GDALDataset *gdalData, vtkDataArray *vtkData);
-
   GDALDataType ToGDALDataType(int vtkDataType)
   {
     GDALDataType gdalType = GDT_Unknown;
@@ -55,6 +52,12 @@ public:
       }
     return gdalType;
   }
+
+  template<typename VTK_TYPE> void
+  CopyToVTK(GDALDataset *gdalData, vtkDataArray *vtkData);
+
+  template<typename GDAL_TYPE> void
+  FindDataRange(GDALRasterBand *band, double *minValue, double *maxValue);
 };
 
 
@@ -98,6 +101,30 @@ CopyToVTK(GDALDataset *dataset, vtkDataArray *array)
   delete [] buffer;
 }
 
+//----------------------------------------------------------------------------
+template<typename VTK_TYPE> void
+vtkGDALRasterConverter::vtkGDALRasterConverterInternal::
+FindDataRange(GDALRasterBand *band, double *minValue, double *maxValue)
+{
+  int xSize = band->GetDataset()->GetRasterXSize();
+  int ySize = band->GetDataset()->GetRasterYSize();
+  VTK_TYPE *buffer = new VTK_TYPE[xSize*ySize];
+  GDALDataType gdalDataType = band->GetRasterDataType();
+  band->RasterIO(GF_Read, 0, 0, xSize, ySize, buffer, xSize, ySize,
+                 gdalDataType, 0, 0);
+
+  *minValue = VTK_DOUBLE_MAX;
+  *maxValue = VTK_DOUBLE_MIN;
+  *minValue = 999999.9;
+  *maxValue = -999999.9;
+  for (int i=0; i<xSize*ySize; i++)
+    {
+    *minValue = *minValue < buffer[i] ? *minValue : buffer[i];
+    *maxValue = *maxValue > buffer[i] ? *maxValue : buffer[i];
+    }
+
+  delete [] buffer;
+}
 
 //----------------------------------------------------------------------------
 template<class Iterator, typename VTK_TYPE>
@@ -357,4 +384,49 @@ WriteTifFile(GDALDataset *dataset, const char *filename)
   GDALDataset *copy =
     driver->CreateCopy(filename, dataset, false, NULL, NULL, NULL);
   GDALClose(copy);
+}
+
+//----------------------------------------------------------------------------
+bool vtkGDALRasterConverter::
+FindDataRange(GDALDataset *dataset, int bandId,
+              double *minValue, double *maxValue)
+{
+  if ((bandId < 1) || (bandId > dataset->GetRasterCount()))
+    {
+    return false;
+    }
+  GDALRasterBand *band = dataset->GetRasterBand(bandId);
+  GDALDataType gdalDataType = band->GetRasterDataType();
+  switch (gdalDataType)
+    {
+    case GDT_Byte:
+      this->Internal->FindDataRange<vtkTypeUInt8>(band, minValue, maxValue);
+      break;
+
+    case GDT_Int16:
+      this->Internal->FindDataRange<vtkTypeInt16>(band, minValue, maxValue);
+      break;
+
+    case GDT_UInt16:
+      this->Internal->FindDataRange<vtkTypeUInt16>(band, minValue, maxValue);
+      break;
+
+    case GDT_UInt32:
+      this->Internal->FindDataRange<vtkTypeUInt32>(band, minValue, maxValue);
+      break;
+
+    case GDT_Int32:
+      this->Internal->FindDataRange<vtkTypeInt32>(band, minValue, maxValue);
+      break;
+
+    case GDT_Float32:
+      this->Internal->FindDataRange<vtkTypeFloat32>(band, minValue, maxValue);
+      break;
+
+    case GDT_Float64:
+      this->Internal->FindDataRange<vtkTypeFloat64>(band, minValue, maxValue);
+      break;
+    }
+
+  return true;
 }

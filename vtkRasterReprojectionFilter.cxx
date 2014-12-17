@@ -215,6 +215,11 @@ RequestData(vtkInformation * vtkNotUsed(request),
     std::string tifFileName = "inputGDAL.tif";
     this->Internal->GDALConverter->WriteTifFile(inputGDAL, tifFileName.c_str());
     std::cout << "Wrote " << tifFileName << std::endl;
+
+    double minValue, maxValue;
+    this->Internal->GDALConverter->FindDataRange(inputGDAL, 1,
+                                                 &minValue, &maxValue);
+    std::cout << "Min: " << minValue << "  Max: " << maxValue << std::endl;
     }
 
   // Construct GDAL dataset for output image
@@ -226,6 +231,8 @@ RequestData(vtkInformation * vtkNotUsed(request),
       this->OutputDimensions[1], vtkDataType, rasterCount);
   this->Internal->GDALConverter->SetGDALProjection(
     this->Internal->OutputGDALDataset, this->OutputProjection);
+  this->Internal->OutputGDALDataset->SetGeoTransform(
+    this->Internal->OutputImageGeoTransform);
 
   // Apply the reprojection
   this->Internal->GDALReprojection->SetInputDataset(inputGDAL);
@@ -241,6 +248,10 @@ RequestData(vtkInformation * vtkNotUsed(request),
     this->Internal->GDALConverter->WriteTifFile(
       this->Internal->OutputGDALDataset, tifFileName.c_str());
     std::cout << "Wrote " << tifFileName << std::endl;
+    double minValue, maxValue;
+    this->Internal->GDALConverter->FindDataRange(
+      this->Internal->OutputGDALDataset, 1, &minValue, &maxValue);
+    std::cout << "Min: " << minValue << "  Max: " << maxValue << std::endl;
     }
 
   // Done with input dataset
