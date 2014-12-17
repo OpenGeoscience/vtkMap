@@ -29,7 +29,7 @@
 #include <vtkPointData.h>
 #include <vtkStreamingDemandDrivenPipeline.h>
 #include <vtkUniformGrid.h>
-
+#include <vtkXMLImageDataWriter.h>
 // GDAL includes
 #include <gdal_priv.h>
 
@@ -261,8 +261,28 @@ RequestData(vtkInformation * vtkNotUsed(request),
   vtkUniformGrid *outputImage =
     this->Internal->GDALConverter->CreateVTKUniformGrid(
       this->Internal->OutputGDALDataset);
+  outputImage->SetDimensions(279, 320, 1);
 
-  vtkDataObject *output = outInfo->Get(vtkDataObject::DATA_OBJECT());
+
+  // Write image to file
+  const char *outputFilename = "computed.vti";
+  vtkNew<vtkXMLImageDataWriter> writer;
+  writer->SetFileName(outputFilename);
+  writer->SetInputData(outputImage);
+  writer->SetDataModeToAscii();
+  writer->Write();
+  std::cout << "Wrote " << outputFilename << std::endl;
+
+
+  //vtkDataObject *output = outInfo->Get(vtkDataObject::DATA_OBJECT());
+  vtkUniformGrid *output = vtkUniformGrid::GetData(outInfo);
+
+  int extent[] = {0, 278, 0, 319, 0, 0};
+  outputImage->SetExtent(extent);
+  output->SetExtent(outputImage->GetExtent());
+  output->SetDimensions(outputImage->GetDimensions());
+  output->SetOrigin(outputImage->GetOrigin());
+  output->SetSpacing(outputImage->GetSpacing());
   output->ShallowCopy(outputImage);
 
   outputImage->Delete();
@@ -371,8 +391,8 @@ RequestInformation(vtkInformation * vtkNotUsed(request),
 
   // Set output info
   int outputDataExtent[6] = {};
-  outputDataExtent[1] = this->OutputDimensions[0];
-  outputDataExtent[3] = this->OutputDimensions[1];
+  outputDataExtent[1] = this->OutputDimensions[0] - 1;
+  outputDataExtent[3] = this->OutputDimensions[1] - 1;
   outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),
                outputDataExtent, 6);
 
