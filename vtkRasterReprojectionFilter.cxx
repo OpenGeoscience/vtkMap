@@ -45,8 +45,6 @@ public:
   vtkRasterReprojectionFilterInternal();
   ~vtkRasterReprojectionFilterInternal();
 
-  GDALDataset *CreateFromVTK(vtkImageData *data, const char *projection);
-
   vtkGDALRasterConverter *GDALConverter;
   vtkGDALRasterReprojection *GDALReprojection;
 
@@ -76,26 +74,6 @@ vtkRasterReprojectionFilterInternal::~vtkRasterReprojectionFilterInternal()
 {
   this->GDALConverter->Delete();
   this->GDALReprojection->Delete();
-}
-
-//----------------------------------------------------------------------------
-// Uses data saved in previous RequestInformation() call
-GDALDataset *vtkRasterReprojectionFilter::
-vtkRasterReprojectionFilterInternal::CreateFromVTK(vtkImageData *imageData,
-                                                   const char *projection)
-{
-  int *dimensions = imageData->GetDimensions();
-  vtkDataArray *array = imageData->GetPointData()->GetScalars();
-  int vtkDataType = array->GetDataType();
-  int rasterCount = array->GetNumberOfComponents();
-  GDALDataset *dataset =
-    this->GDALConverter->CreateGDALDataset(dimensions[0], dimensions[1],
-                                           vtkDataType, rasterCount);
-  this->GDALConverter->CopyToGDAL(imageData, dataset);
-  this->GDALConverter->SetGDALProjection(dataset, projection);
-  this->GDALConverter->SetGDALGeoTransform(dataset, this->InputImageOrigin,
-                                           this->InputImageSpacing);
-  return dataset;
 }
 
 //----------------------------------------------------------------------------
@@ -192,9 +170,13 @@ RequestData(vtkInformation * vtkNotUsed(request),
     return 0;
     }
 
-  // Construct GDAL dataset from input image
-  GDALDataset *inputGDAL =
-    this->Internal->CreateFromVTK(inImageData, this->InputProjection);
+  // Fix input origin & spacing
+  inImageData->SetOrigin(this->Internal->InputImageOrigin);
+  inImageData->SetSpacing(this->Internal->InputImageSpacing);
+
+  // Convert input image to GDALDataset
+  GDALDataset *inputGDAL = this->Internal->GDALConverter->CreateGDALDataset(
+    inImageData, this->InputProjection);
 
   if (this->Debug)
     {

@@ -249,6 +249,24 @@ CopyToGDAL(vtkImageData *input, GDALDataset *output)
 }
 
 //----------------------------------------------------------------------------
+GDALDataset *vtkGDALRasterConverter::
+CreateGDALDataset(vtkImageData *imageData, const char *mapProjection)
+{
+  int *dimensions = imageData->GetDimensions();
+  vtkDataArray *array = imageData->GetPointData()->GetScalars();
+  int vtkDataType = array->GetDataType();
+  int rasterCount = array->GetNumberOfComponents();
+  GDALDataset *dataset =
+    this->CreateGDALDataset(dimensions[0], dimensions[1],
+                            vtkDataType, rasterCount);
+  this->CopyToGDAL(imageData, dataset);
+  this->SetGDALProjection(dataset, mapProjection);
+  this->SetGDALGeoTransform(dataset, imageData->GetOrigin(),
+                            imageData->GetSpacing());
+  return dataset;
+}
+
+//----------------------------------------------------------------------------
 vtkUniformGrid *vtkGDALRasterConverter::
 CreateVTKUniformGrid(GDALDataset *dataset)
 {

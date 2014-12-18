@@ -38,21 +38,24 @@ public:
   vtkSetMacro(NoDataValue, double);
   vtkGetMacro(NoDataValue, double);
 
-  // Description
-  // Copies vtkImageData contents to GDALDataset
-  // GDALDataset must be initialized to same dimensions as vtk image.
-  bool CopyToGDAL(vtkImageData *input, GDALDataset *output);
-
-  // Description
-  // Builds vtkImageData to match GDALDataset
-  vtkUniformGrid *CreateVTKUniformGrid(GDALDataset *input);
-
   // Description:
   // Create GDAL dataset in memory.
   // This dataset must be released by the calling code,
   // using GDALClose().
   GDALDataset *CreateGDALDataset(int xDim, int yDim, int vtkDataType,
                                  int numberOfBands);
+
+  // Description:
+  // Create GDALDataset to match vtkImageData.
+  // This dataset must be released by the calling code,
+  // using GDALClose().
+  GDALDataset *CreateGDALDataset(vtkImageData *data, const char *mapProjection);
+
+  // Description
+  // Create vtkUniformGrid to match GDALDataset.
+  // The calling code must call the Delete() method
+  // to release the returned instance.
+  vtkUniformGrid *CreateVTKUniformGrid(GDALDataset *input);
 
   // Description:
   // Set projection on GDAL dataset, using any projection string
@@ -80,6 +83,11 @@ protected:
   ~vtkGDALRasterConverter();
 
   double NoDataValue;
+
+  // Description
+  // Copies vtkImageData contents to GDALDataset
+  // GDALDataset must be initialized to same dimensions as vtk image.
+  bool CopyToGDAL(vtkImageData *input, GDALDataset *output);
 
   class vtkGDALRasterConverterInternal;
   vtkGDALRasterConverterInternal *Internal;
