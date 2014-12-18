@@ -28,7 +28,6 @@ vtkStandardNewMacro(vtkGDALRasterReprojection)
 //----------------------------------------------------------------------------
 vtkGDALRasterReprojection::vtkGDALRasterReprojection()
 {
-  this->InputDataset = NULL;
   this->MaxError = 0.0;
   this->ResamplingAlgorithm = 0;
 }
@@ -43,7 +42,6 @@ void vtkGDALRasterReprojection::PrintSelf(ostream &os, vtkIndent indent)
 {
   Superclass::PrintSelf(os, indent);
   os << "vtkGDALRasterReprojection" << std::endl
-     << "InputDataset" << this->InputDataset << "\n"
      << "MaxError: " << this->MaxError << "\n"
      << "ResamplingAlgorithm" << this->ResamplingAlgorithm << "\n"
      << std::endl;
@@ -51,7 +49,7 @@ void vtkGDALRasterReprojection::PrintSelf(ostream &os, vtkIndent indent)
 
 //----------------------------------------------------------------------------
 bool vtkGDALRasterReprojection::
-SuggestOutputDimensions(GDALDataset *dataset,const char *projection,
+SuggestOutputDimensions(GDALDataset *dataset, const char *projection,
                         double geoTransform[6], int *nPixels, int *nLines,
                         double maxError)
 {
@@ -62,11 +60,11 @@ SuggestOutputDimensions(GDALDataset *dataset,const char *projection,
     {
     vtkErrorMacro(<< "Projection is not valid or not supported: "
                   << projection);
-    //return false;
+    return false;
     }
   char *outputWKT = NULL;
   ref.exportToWkt(&outputWKT);
-  std::cout << "outputWKT: \n" << outputWKT << std::endl;
+  //std::cout << "outputWKT: \n" << outputWKT << std::endl;
 
   // Create transformer
   const char *inputWKT = dataset->GetProjectionRef();
@@ -82,20 +80,15 @@ SuggestOutputDimensions(GDALDataset *dataset,const char *projection,
     GDALSuggestedWarpOutput(dataset, GDALGenImgProjTransform,
                             transformer, geoTransform, nPixels, nLines);
   GDALDestroyGenImgProjTransformer(transformer);
-  std::cout << "Output image: " << *nPixels << " by " << *nLines << std::endl;
+  //std::cout << "Output image: " << *nPixels << " by " << *nLines << std::endl;
 
   return true;
 }
 
 //----------------------------------------------------------------------------
-bool vtkGDALRasterReprojection::Reproject(GDALDataset *output)
+bool vtkGDALRasterReprojection::
+Reproject(GDALDataset *input, GDALDataset *output)
 {
-  if (!this->InputDataset)
-    {
-    vtkErrorMacro(<< "InputDataset is not set");
-    return false;
-    }
-
   // Convert this->ResamplingAlgorithm to GDALResampleAlg
   GDALResampleAlg algorithm = GRA_NearestNeighbour;
   switch (this->ResamplingAlgorithm)
@@ -109,7 +102,7 @@ bool vtkGDALRasterReprojection::Reproject(GDALDataset *output)
     case 6:  algorithm = GRA_Mode;             break;
     }
 
-  GDALReprojectImage(this->InputDataset, this->InputDataset->GetProjectionRef(),
+  GDALReprojectImage(input, input->GetProjectionRef(),
                      output, output->GetProjectionRef(),
                      algorithm, 0, this->MaxError, NULL, NULL, NULL);
   return true;

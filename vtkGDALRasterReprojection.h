@@ -32,11 +32,6 @@ public:
   vtkTypeMacro(vtkGDALRasterReprojection, vtkObject)
 
   // Description:
-  // The source GDALDataset. Applications are responsible for
-  // releasing the dataset when done.
-  vtkSetMacro(InputDataset, GDALDataset*);
-
-  // Description:
   // The maximum error measured in input pixels that is allowed
   // in approximating the reprojection transformation
   // (0.0 for exact calculations).
@@ -67,17 +62,16 @@ public:
                                double maxError = 0.0);
 
   // Description
-  // Compute the reprojection from the previously-set input dataset.
+  // Compute the reprojection of the input dataset.
   // The output dataset must have its projection initialized to the
-  // desired result.
-  // Returns boolean indicating if computed dimensions are valid.
-  bool Reproject(GDALDataset *output);
+  // desired result, as well as its raster dimensions.
+  // Returns boolean indicating if the result is valid.
+  bool Reproject(GDALDataset *input, GDALDataset *output);
 
 protected:
   vtkGDALRasterReprojection();
   ~vtkGDALRasterReprojection();
 
-  GDALDataset *InputDataset;
   double MaxError;
   int ResamplingAlgorithm;
 

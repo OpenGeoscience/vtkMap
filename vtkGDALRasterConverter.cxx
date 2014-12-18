@@ -37,21 +37,7 @@ vtkStandardNewMacro(vtkGDALRasterConverter)
 class vtkGDALRasterConverter::vtkGDALRasterConverterInternal
 {
 public:
-  GDALDataType ToGDALDataType(int vtkDataType)
-  {
-    GDALDataType gdalType = GDT_Unknown;
-    switch (vtkDataType)
-      {
-      case VTK_TYPE_UINT8: gdalType = GDT_Byte; break;
-      case VTK_TYPE_INT16: gdalType = GDT_Int16; break;
-      case VTK_TYPE_UINT16: gdalType = GDT_UInt16; break;
-      case VTK_TYPE_INT32: gdalType = GDT_Int32; break;
-      case VTK_TYPE_UINT32: gdalType = GDT_UInt32; break;
-      case VTK_TYPE_FLOAT32: gdalType = GDT_Float32; break;
-      case VTK_TYPE_FLOAT64: gdalType = GDT_Float64; break;
-      }
-    return gdalType;
-  }
+  GDALDataType ToGDALDataType(int vtkDataType);
 
   template<typename VTK_TYPE> void
   CopyToVTK(GDALDataset *gdalData, vtkDataArray *vtkData);
@@ -60,8 +46,28 @@ public:
   FindDataRange(GDALRasterBand *band, double *minValue, double *maxValue);
 };
 
+//----------------------------------------------------------------------------
+// Translates vtk data type to GDAL data type
+GDALDataType
+vtkGDALRasterConverter::vtkGDALRasterConverterInternal::
+ToGDALDataType(int vtkDataType)
+{
+  GDALDataType gdalType = GDT_Unknown;
+  switch (vtkDataType)
+    {
+    case VTK_TYPE_UINT8: gdalType = GDT_Byte; break;
+    case VTK_TYPE_INT16: gdalType = GDT_Int16; break;
+    case VTK_TYPE_UINT16: gdalType = GDT_UInt16; break;
+    case VTK_TYPE_INT32: gdalType = GDT_Int32; break;
+    case VTK_TYPE_UINT32: gdalType = GDT_UInt32; break;
+    case VTK_TYPE_FLOAT32: gdalType = GDT_Float32; break;
+    case VTK_TYPE_FLOAT64: gdalType = GDT_Float64; break;
+    }
+  return gdalType;
+}
 
 //----------------------------------------------------------------------------
+// Copies contents of GDALDataset to vtkDataArray
 template<typename VTK_TYPE>
 void vtkGDALRasterConverter::vtkGDALRasterConverterInternal::
 CopyToVTK(GDALDataset *dataset, vtkDataArray *array)
@@ -81,7 +87,8 @@ CopyToVTK(GDALDataset *dataset, vtkDataArray *array)
     // Copy one band from dataset to buffer
     GDALRasterBand *band = dataset->GetRasterBand(i+1);
     GDALDataType gdalDataType = band->GetRasterDataType();
-    CPLErr err = band->RasterIO(GF_Read, 0, 0, xSize, ySize, buffer, xSize, ySize, gdalDataType, 0, 0);
+    CPLErr err = band->RasterIO(GF_Read, 0, 0, xSize, ySize, buffer,
+                                xSize, ySize, gdalDataType, 0, 0);
 
     // Copy data from buffer to vtkDataArray
     // Traverse by gdal row & column to make y-inversion easier
@@ -102,6 +109,7 @@ CopyToVTK(GDALDataset *dataset, vtkDataArray *array)
 }
 
 //----------------------------------------------------------------------------
+// Iterate overall values in raster band to find min & max
 template<typename VTK_TYPE> void
 vtkGDALRasterConverter::vtkGDALRasterConverterInternal::
 FindDataRange(GDALRasterBand *band, double *minValue, double *maxValue)
@@ -115,8 +123,6 @@ FindDataRange(GDALRasterBand *band, double *minValue, double *maxValue)
 
   *minValue = VTK_DOUBLE_MAX;
   *maxValue = VTK_DOUBLE_MIN;
-  *minValue = 999999.9;
-  *maxValue = -999999.9;
   for (int i=0; i<xSize*ySize; i++)
     {
     *minValue = *minValue < buffer[i] ? *minValue : buffer[i];
@@ -127,8 +133,9 @@ FindDataRange(GDALRasterBand *band, double *minValue, double *maxValue)
 }
 
 //----------------------------------------------------------------------------
+// Copy vtkDataArray contents to GDAL raster bands
 template<class Iterator, typename VTK_TYPE>
-void copyToGDAL(Iterator begin, Iterator end, VTK_TYPE typeVar,
+void StaticCopyToGDAL(Iterator begin, Iterator end, VTK_TYPE typeVar,
                 vtkDataArray *vtkData, GDALDataset *gdalData)
 {
   // Create local buffer
@@ -174,7 +181,8 @@ void copyToGDAL(Iterator begin, Iterator end, VTK_TYPE typeVar,
 
     // Copy from buffer to GDAL band
     GDALDataType gdalDataType = band->GetRasterDataType();
-    CPLErr err = band->RasterIO(GF_Write, 0, 0, xSize, ySize, buffer, xSize, ySize, gdalDataType, 0, 0);
+    CPLErr err = band->RasterIO(GF_Write, 0, 0, xSize, ySize, buffer,
+                                xSize, ySize, gdalDataType, 0, 0);
     }
 
   delete [] buffer;
@@ -184,8 +192,6 @@ void copyToGDAL(Iterator begin, Iterator end, VTK_TYPE typeVar,
 vtkGDALRasterConverter::vtkGDALRasterConverter()
 {
   this->Internal = new vtkGDALRasterConverterInternal();
-  this->ImageData = NULL;
-  this->GDALData = NULL;
   this->NoDataValue = vtkMath::Nan();
 }
 
@@ -203,8 +209,9 @@ void vtkGDALRasterConverter::PrintSelf(ostream &os, vtkIndent indent)
 }
 
 //----------------------------------------------------------------------------
+// Copy image data contents, origin, & spacing to GDALDataset
 bool vtkGDALRasterConverter::
-ConvertToGDAL(vtkImageData *input, GDALDataset *output)
+CopyToGDAL(vtkImageData *input, GDALDataset *output)
 {
   // Check that both images have the same dimensions
   int *inputDimensions = input->GetDimensions();
@@ -214,12 +221,6 @@ ConvertToGDAL(vtkImageData *input, GDALDataset *output)
     vtkErrorMacro(<< "Image dimensions do not match.");
     return false;
     }
-
-  this->ImageData = input;
-  this->GDALData = output;
-
-  // Set spatial reference - presume lat-lon for now
-  this->SetGDALProjection(output, "EPSG:4326");
 
   // Initialize geo transform
   double *origin = input->GetOrigin();
@@ -236,11 +237,11 @@ ConvertToGDAL(vtkImageData *input, GDALDataset *output)
     }
 
   // Copy scalars to gdal bands
-  vtkDataArray *array = this->ImageData->GetPointData()->GetScalars();
+  vtkDataArray *array = input->GetPointData()->GetScalars();
   switch (array->GetDataType())
     {
     vtkDataArrayIteratorMacro(array,
-      copyToGDAL(vtkDABegin, vtkDAEnd, vtkDAValueType(), array, output));
+      StaticCopyToGDAL(vtkDABegin, vtkDAEnd, vtkDAValueType(), array, output));
     }
 
   // Finis
@@ -256,7 +257,7 @@ CreateVTKUniformGrid(GDALDataset *dataset)
   if (dataset->GetGeoTransform(geoTransform) != CE_None)
     {
     vtkErrorMacro(<< "Error calling GetGeoTransform()");
-    //return NULL;
+    return NULL;
     }
 
   // Initialize image
@@ -264,7 +265,7 @@ CreateVTKUniformGrid(GDALDataset *dataset)
   int imageDimensions[3];
   imageDimensions[0] = dataset->GetRasterXSize();
   imageDimensions[1] = dataset->GetRasterYSize();
-  imageDimensions[2] = 0.0;
+  imageDimensions[2] = 1;
   image->SetDimensions(imageDimensions);
 
   double origin[3];

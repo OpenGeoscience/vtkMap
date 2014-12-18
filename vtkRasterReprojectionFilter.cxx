@@ -49,14 +49,11 @@ public:
 
   vtkGDALRasterConverter *GDALConverter;
   vtkGDALRasterReprojection *GDALReprojection;
-  // GDALDataset *InputGDALDataset;
-  GDALDataset *OutputGDALDataset;
 
-  // Data saved during RequestInformation
+  // Data saved during RequestInformation()
   int InputImageExtent[6];
   double InputImageOrigin[3];
   double InputImageSpacing[3];
-
   double OutputImageGeoTransform[6];
 };
 
@@ -66,7 +63,6 @@ vtkRasterReprojectionFilterInternal::vtkRasterReprojectionFilterInternal()
 {
   this->GDALConverter = vtkGDALRasterConverter::New();
   this->GDALReprojection = vtkGDALRasterReprojection::New();
-  this->OutputGDALDataset = NULL;
   std::fill(this->InputImageExtent, this->InputImageExtent+6, 0);
   std::fill(this->InputImageOrigin, this->InputImageOrigin+3, 0.0);
   std::fill(this->InputImageSpacing, this->InputImageSpacing+3, 0.0);
@@ -80,14 +76,6 @@ vtkRasterReprojectionFilterInternal::~vtkRasterReprojectionFilterInternal()
 {
   this->GDALConverter->Delete();
   this->GDALReprojection->Delete();
-  // if (this->InputGDALDataset)
-  //   {
-  //   GDALClose(this->InputGDALDataset);
-  //   }
-  if (this->OutputGDALDataset)
-    {
-    GDALClose(this->OutputGDALDataset);
-    }
 }
 
 //----------------------------------------------------------------------------
@@ -103,7 +91,7 @@ vtkRasterReprojectionFilterInternal::CreateFromVTK(vtkImageData *imageData,
   GDALDataset *dataset =
     this->GDALConverter->CreateGDALDataset(dimensions[0], dimensions[1],
                                            vtkDataType, rasterCount);
-  this->GDALConverter->ConvertToGDAL(imageData, dataset);
+  this->GDALConverter->CopyToGDAL(imageData, dataset);
   this->GDALConverter->SetGDALProjection(dataset, projection);
   this->GDALConverter->SetGDALGeoTransform(dataset, this->InputImageOrigin,
                                            this->InputImageSpacing);
@@ -224,66 +212,58 @@ RequestData(vtkInformation * vtkNotUsed(request),
   vtkDataArray *array = inImageData->GetPointData()->GetScalars();
   int vtkDataType = array->GetDataType();
   int rasterCount = array->GetNumberOfComponents();
-  this->Internal->OutputGDALDataset =
+  GDALDataset *outputGDAL =
     this->Internal->GDALConverter->CreateGDALDataset(this->OutputDimensions[0],
       this->OutputDimensions[1], vtkDataType, rasterCount);
   this->Internal->GDALConverter->SetGDALProjection(
-    this->Internal->OutputGDALDataset, this->OutputProjection);
-  this->Internal->OutputGDALDataset->SetGeoTransform(
-    this->Internal->OutputImageGeoTransform);
+    outputGDAL, this->OutputProjection);
+  outputGDAL->SetGeoTransform(this->Internal->OutputImageGeoTransform);
 
   // Apply the reprojection
-  this->Internal->GDALReprojection->SetInputDataset(inputGDAL);
   this->Internal->GDALReprojection->SetMaxError(this->MaxError);
   this->Internal->GDALReprojection->SetResamplingAlgorithm(
     this->ResamplingAlgorithm);
-  this->Internal->GDALReprojection->Reproject(
-    this->Internal->OutputGDALDataset);
+  this->Internal->GDALReprojection->Reproject(inputGDAL, outputGDAL);
 
   if (this->Debug)
     {
     std::string tifFileName = "reprojectGDAL.tif";
     this->Internal->GDALConverter->WriteTifFile(
-      this->Internal->OutputGDALDataset, tifFileName.c_str());
+      outputGDAL, tifFileName.c_str());
     std::cout << "Wrote " << tifFileName << std::endl;
     double minValue, maxValue;
     this->Internal->GDALConverter->FindDataRange(
-      this->Internal->OutputGDALDataset, 1, &minValue, &maxValue);
+      outputGDAL, 1, &minValue, &maxValue);
     std::cout << "Min: " << minValue << "  Max: " << maxValue << std::endl;
     }
 
-  // Done with input dataset
+  // Done with input GDAL dataset
   GDALClose(inputGDAL);
 
   // Convert output dataset to vtkUniformGrid
-  vtkUniformGrid *outputImage =
-    this->Internal->GDALConverter->CreateVTKUniformGrid(
-      this->Internal->OutputGDALDataset);
-  outputImage->SetDimensions(279, 320, 1);
+  vtkUniformGrid *reprojectedImage =
+    this->Internal->GDALConverter->CreateVTKUniformGrid(outputGDAL);
 
+  // Done with output GDAL dataset
+  GDALClose(outputGDAL);
 
   // Write image to file
-  const char *outputFilename = "computed.vti";
-  vtkNew<vtkXMLImageDataWriter> writer;
-  writer->SetFileName(outputFilename);
-  writer->SetInputData(outputImage);
-  writer->SetDataModeToAscii();
-  writer->Write();
-  std::cout << "Wrote " << outputFilename << std::endl;
+  if (this->Debug)
+    {
+    const char *outputFilename = "computed.vti";
+    vtkNew<vtkXMLImageDataWriter> writer;
+    writer->SetFileName(outputFilename);
+    writer->SetInputData(reprojectedImage);
+    writer->SetDataModeToAscii();
+    writer->Write();
+    std::cout << "Wrote " << outputFilename << std::endl;
+    }
 
-
-  //vtkDataObject *output = outInfo->Get(vtkDataObject::DATA_OBJECT());
+  // Update pipeline output instance
   vtkUniformGrid *output = vtkUniformGrid::GetData(outInfo);
+  output->ShallowCopy(reprojectedImage);
 
-  int extent[] = {0, 278, 0, 319, 0, 0};
-  outputImage->SetExtent(extent);
-  output->SetExtent(outputImage->GetExtent());
-  output->SetDimensions(outputImage->GetDimensions());
-  output->SetOrigin(outputImage->GetOrigin());
-  output->SetSpacing(outputImage->GetSpacing());
-  output->ShallowCopy(outputImage);
-
-  outputImage->Delete();
+  reprojectedImage->Delete();
   return VTK_OK;
 }
 
@@ -293,6 +273,7 @@ RequestUpdateExtent(vtkInformation * vtkNotUsed(request),
                     vtkInformationVector **inputVector,
                     vtkInformationVector *outputVector)
 {
+  // Set input extent to values saved in last RequestInformation() call
   vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
   inInfo->Set(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(),
               this->Internal->InputImageExtent, 6);
@@ -323,21 +304,21 @@ RequestInformation(vtkInformation * vtkNotUsed(request),
 
   double *inputSpacing = inInfo->Get(vtkDataObject::SPACING());
 
-  std::cout << "Whole extent: " << inputDataExtent[0]
-            << ", " << inputDataExtent[1]
-            << ", " << inputDataExtent[2]
-            << ", " << inputDataExtent[3]
-            << ", " << inputDataExtent[4]
-            << ", " << inputDataExtent[5]
-            << std::endl;
-  std::cout << "Input spacing: " << inputSpacing[0]
-            << ", " << inputSpacing[1]
-            << ", " << inputSpacing[2] << std::endl;
-  std::cout << "Input origin: " << inputOrigin[0]
-            << ", " << inputOrigin[1]
-            << ", " << inputOrigin[2] << std::endl;
+  // std::cout << "Whole extent: " << inputDataExtent[0]
+  //           << ", " << inputDataExtent[1]
+  //           << ", " << inputDataExtent[2]
+  //           << ", " << inputDataExtent[3]
+  //           << ", " << inputDataExtent[4]
+  //           << ", " << inputDataExtent[5]
+  //           << std::endl;
+  // std::cout << "Input spacing: " << inputSpacing[0]
+  //           << ", " << inputSpacing[1]
+  //           << ", " << inputSpacing[2] << std::endl;
+  // std::cout << "Input origin: " << inputOrigin[0]
+  //           << ", " << inputOrigin[1]
+  //           << ", " << inputOrigin[2] << std::endl;
 
-   vtkInformation* outInfo = outputVector->GetInformationObject(0);
+  vtkInformation* outInfo = outputVector->GetInformationObject(0);
   if (!outInfo)
     {
     vtkErrorMacro("Invalid output information object");

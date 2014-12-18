@@ -53,10 +53,8 @@ public:
   vtkGetVector2Macro(OutputDimensions, int);
 
   // Description:
-  // Set the data value to represent blank points in the output image.
-  // Note that this value only used when the input data is a
-  // vtkUniformGrid; the NoDataValue is *not* used when the input data
-  // is a vtkImageData object, since it does not support black points.
+  // The data value to use internally to represent blank points in GDAL datasets.
+  // By default, this will be set to the minimum value for the input data type.
   vtkSetMacro(NoDataValue, double);
   vtkGetMacro(NoDataValue, double);
 

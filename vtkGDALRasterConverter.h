@@ -38,11 +38,10 @@ public:
   vtkSetMacro(NoDataValue, double);
   vtkGetMacro(NoDataValue, double);
 
-  // DEPRECATED
   // Description
-  // Builds GDALDataset to match vtkImageData
+  // Copies vtkImageData contents to GDALDataset
   // GDALDataset must be initialized to same dimensions as vtk image.
-  bool ConvertToGDAL(vtkImageData *input, GDALDataset *output);
+  bool CopyToGDAL(vtkImageData *input, GDALDataset *output);
 
   // Description
   // Builds vtkImageData to match GDALDataset
@@ -80,8 +79,6 @@ protected:
   vtkGDALRasterConverter();
   ~vtkGDALRasterConverter();
 
-  vtkImageData *ImageData;
-  GDALDataset *GDALData;
   double NoDataValue;
 
   class vtkGDALRasterConverterInternal;
