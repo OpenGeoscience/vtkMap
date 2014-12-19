@@ -20,6 +20,7 @@ set (VTK_REQUIRED_COMPONENTS
     # For testing:
     vtkIOXML
     vtkImagingStatistics
+    vtkInteractionImage
 )
 
 option(BUILD_QT_APPS "Build Qt applications (source files in Qt subdirectory)" OFF)

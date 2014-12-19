@@ -18,6 +18,7 @@
 #include <vtkGDALRasterReader.h>
 #include <vtkImageAccumulate.h>
 #include <vtkImageData.h>
+#include <vtkImageViewer2.h>
 #include <vtkNew.h>
 #include <vtkRasterReprojectionFilter.h>
 #include <vtkUniformGrid.h>
@@ -70,6 +71,39 @@ int TestRasterReprojectionFilter(const char *inputFilename)
   writer->SetDataModeToAscii();
   writer->Write();
   std::cout << "Wrote " << outputFilename << std::endl;
+
+  // Display input image
+  vtkImageData *inputImage = reader->GetOutput();
+  double *scalarRange = inputImage->GetScalarRange();
+  double colorLevel = 0.5*(scalarRange[0] + scalarRange[1]);
+  double colorRange = scalarRange[1] - scalarRange[0];
+
+  vtkImageViewer2 *inputViewer = vtkImageViewer2::New();
+  inputViewer->SetInputData(inputImage);
+  inputViewer->SetColorLevel(colorLevel);
+  inputViewer->SetColorWindow(colorRange);
+  inputViewer->Render();
+  int *inputDims = inputImage->GetDimensions();
+  std::cout << "Input image " << inputDims[0]
+            << " x " << inputDims[1] << std::endl;
+
+  // Display reprojected image
+  vtkImageData *outputImage = filter->GetOutput();
+  vtkImageViewer2 *outputViewer = vtkImageViewer2::New();
+  outputViewer->SetInputData(outputImage);
+  outputViewer->SetColorLevel(colorLevel);
+  outputViewer->SetColorWindow(colorRange);
+  outputViewer->Render();
+  int *outputDims = outputImage->GetDimensions();
+  std::cout << "Output image " << outputDims[0]
+            << " x " << outputDims[1] << std::endl;
+
+  std::cout << "Hit any key plus <ENTER> to exit: ";
+  char c;
+  std::cin >> c;
+
+  outputViewer->Delete();
+  inputViewer->Delete();
 
   // Dump info
   //vtkUniformGrid *output = vtkUniformGrid::SafeDownCast(filter->GetOutput());
