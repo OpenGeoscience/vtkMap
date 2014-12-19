@@ -50,8 +50,6 @@ public:
 
   // Data saved during RequestInformation()
   int InputImageExtent[6];
-  double InputImageOrigin[3];
-  double InputImageSpacing[3];
   double OutputImageGeoTransform[6];
 };
 
@@ -62,8 +60,6 @@ vtkRasterReprojectionFilterInternal::vtkRasterReprojectionFilterInternal()
   this->GDALConverter = vtkGDALRasterConverter::New();
   this->GDALReprojection = vtkGDALRasterReprojection::New();
   std::fill(this->InputImageExtent, this->InputImageExtent+6, 0);
-  std::fill(this->InputImageOrigin, this->InputImageOrigin+3, 0.0);
-  std::fill(this->InputImageSpacing, this->InputImageSpacing+3, 0.0);
   std::fill(this->OutputImageGeoTransform,
             this->OutputImageGeoTransform+6, 0.0);
 }
@@ -169,10 +165,6 @@ RequestData(vtkInformation * vtkNotUsed(request),
     {
     return 0;
     }
-
-  // Fix input origin & spacing
-  inImageData->SetOrigin(this->Internal->InputImageOrigin);
-  inImageData->SetSpacing(this->Internal->InputImageSpacing);
 
   // Convert input image to GDALDataset
   GDALDataset *inputGDAL = this->Internal->GDALConverter->CreateGDALDataset(
@@ -282,10 +274,7 @@ RequestInformation(vtkInformation * vtkNotUsed(request),
   std::copy(inputDataExtent, inputDataExtent+6, this->Internal->InputImageExtent);
 
   double *inputOrigin = inInfo->Get(vtkDataObject::ORIGIN());
-  std::copy(inputOrigin, inputOrigin+3, this->Internal->InputImageOrigin);
-
   double *inputSpacing = inInfo->Get(vtkDataObject::SPACING());
-
   // std::cout << "Whole extent: " << inputDataExtent[0]
   //           << ", " << inputDataExtent[1]
   //           << ", " << inputDataExtent[2]
@@ -320,12 +309,6 @@ RequestInformation(vtkInformation * vtkNotUsed(request),
     return VTK_ERROR;
     }
 
-  // Hack in origin & spacing for sa052483.tif
-  this->Internal->InputImageOrigin[0] = 45.999583454395179;
-  this->Internal->InputImageOrigin[1] = 29.250416763514124;
-  this->Internal->InputImageSpacing[0] = 0.000833333333333;
-  this->Internal->InputImageSpacing[1] = -0.000833333333333;  // think I have to invert
-
   // Create GDALDataset to compute suggested output
   int xDim = inputDataExtent[1] - inputDataExtent[0] + 1;
   int yDim = inputDataExtent[3] - inputDataExtent[2] + 1;
@@ -335,8 +318,7 @@ RequestInformation(vtkInformation * vtkNotUsed(request),
   this->Internal->GDALConverter->SetGDALProjection(
     gdalDataset, this->InputProjection);
   this->Internal->GDALConverter->SetGDALGeoTransform(
-    gdalDataset, this->Internal->InputImageOrigin,
-    this->Internal->InputImageSpacing);
+    gdalDataset, inputOrigin, inputSpacing);
 
   int nPixels = 0;
   int nLines = 0;
