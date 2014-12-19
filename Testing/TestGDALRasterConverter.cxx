@@ -87,22 +87,16 @@ int TestVTKToGDAL(const char *inputFilename)
 
   std::cout << std::endl;
 
-  GDALDriver *driver =
-    static_cast<GDALDriver*>(GDALGetDriverByName("GTiff"));
-
-  GDALDataType dataType = vtkDataTypeToGDAL(rasterData->GetScalarType());
-  int numBands = rasterData->GetNumberOfScalarComponents();
-  GDALDataset *gdalData = driver->Create("converted.tif",
-    dim[0], dim[1], numBands, dataType, NULL);
-
-  double noDataValue = reader->GetInvalidValue();
-
-  // Use converter to convert vtkImageData back to GDALDataset
+  // Convert back to GDALDataset and write as tif file
   vtkNew<vtkGDALRasterConverter> converter;
+  double noDataValue = reader->GetInvalidValue();
   converter->SetNoDataValue(noDataValue);
-  converter->ConvertToGDAL(rasterData, gdalData);
-
+  GDALDataset *gdalData =
+    converter->CreateGDALDataset(rasterData, reader->GetProjectionString());
+  converter->WriteTifFile(gdalData, "converted.tif");
   GDALClose(gdalData);
+
+  return 0;
 }
 
 
