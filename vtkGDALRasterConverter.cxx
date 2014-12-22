@@ -140,7 +140,7 @@ void StaticCopyToGDAL(Iterator begin, Iterator end, VTK_TYPE typeVar,
 {
   // Create local buffer
   int stride = vtkData->GetNumberOfComponents();
-  int numElements = vtkData->GetNumberOfTuples() / stride;
+  int numElements = vtkData->GetNumberOfTuples();
   VTK_TYPE *buffer = new VTK_TYPE[numElements];
   int xSize = gdalData->GetRasterXSize();
   int ySize = gdalData->GetRasterYSize();

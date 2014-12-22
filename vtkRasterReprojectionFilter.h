@@ -36,7 +36,6 @@ public:
   // Can be specified using any string formats supported by GDAL,
   // such as "well known text" (WKT) formats (GEOGS[]),
   // or shorter "user string" formats, such as EPSG:3857.
-  // The default value is "EPSG:4326" (latitude/longitude).
   vtkSetStringMacro(InputProjection);
   vtkGetStringMacro(InputProjection);
 
