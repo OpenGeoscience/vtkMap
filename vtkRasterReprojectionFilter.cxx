@@ -113,8 +113,8 @@ void vtkRasterReprojectionFilter::PrintSelf(ostream &os, vtkIndent indent)
     os << "(not specified)";
     }
   os << "\n";
-  os << indent << "InputProjection: ";
 
+  os << indent << "OutputProjection: ";
   if (this->OutputProjection)
     {
     os << this->OutputProjection;
@@ -289,6 +289,17 @@ RequestInformation(vtkInformation * vtkNotUsed(request),
   //           << ", " << inputOrigin[1]
   //           << ", " << inputOrigin[2] << std::endl;
 
+  // InputProjection can be overriden, so only get from pipeline if needed
+  if (!this->InputProjection)
+    {
+    if (!inInfo->Has(vtkDataObject::MAP_PROJECTION()))
+      {
+      vtkErrorMacro("No map-projection for input image");
+      return VTK_ERROR;
+      }
+    this->SetInputProjection(inInfo->Get(vtkDataObject::MAP_PROJECTION()));
+    }
+
   vtkInformation* outInfo = outputVector->GetInformationObject(0);
   if (!outInfo)
     {
@@ -297,12 +308,6 @@ RequestInformation(vtkInformation * vtkNotUsed(request),
     }
 
   // Validate current settings
-  if (!this->InputProjection)
-    {
-    vtkErrorMacro("No input projection specified");
-    return VTK_ERROR;
-    }
-
   if (!this->OutputProjection)
     {
     vtkErrorMacro("No output projection specified");

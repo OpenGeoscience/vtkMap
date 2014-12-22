@@ -31,6 +31,8 @@ public:
 
   // Description:
   // Set the map-projection string for the input image data.
+  // This should *only* be used for nonstandard image inputs,
+  // when the MAP_PROJECTION is not embedded as field data.
   // Can be specified using any string formats supported by GDAL,
   // such as "well known text" (WKT) formats (GEOGS[]),
   // or shorter "user string" formats, such as EPSG:3857.

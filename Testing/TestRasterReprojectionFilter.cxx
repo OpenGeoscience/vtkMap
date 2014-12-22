@@ -41,7 +41,6 @@ int TestRasterReprojectionFilter(const char *inputFilename)
   // Apply reprojection filter
   vtkNew<vtkRasterReprojectionFilter> filter;
   filter->SetInputConnection(reader->GetOutputPort());
-  filter->SetInputProjection("EPSG:4326");
   filter->SetOutputProjection("EPSG:3857");
   //filter->DebugOn();
   //filter->Update();
