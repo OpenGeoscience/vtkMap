@@ -22,7 +22,6 @@
 #include <vtkGDALRasterReader.h>
 #include <vtkImageActor.h>
 #include <vtkImageData.h>
-#include <vtkImageMapToColors.h>
 #include <vtkImageProperty.h>
 #include <vtkInteractorStyle.h>
 #include <vtkLookupTable.h>
@@ -136,8 +135,19 @@ int TestGDALRaster(int argc, char *argv[])
 
   std::cout << std::endl;
 
+  vtkImageData *image = reader->GetOutput();
+  vtkNew<vtkRasterFeature> feature;
+  feature->SetImageData(image);
+  feature->GetActor()->GetProperty()->SetOpacity(0.5);
+  featureLayer->AddFeature(feature.GetPointer());
+  reader->Delete();
+
   // Setup color mapping
-  vtkImageMapToColors *colorFilter = vtkImageMapToColors::New();
+  vtkImageProperty *prop = feature->GetActor()->GetProperty();
+  double window = range[1] - range[0];
+  double level = 0.5 * (range[0] + range[1]);
+  prop->SetColorWindow(window);
+  prop->SetColorLevel(level);
   if (useBobColormap)
     {
     std::cout << "Using Bob\'s color mapping function" << std::endl;
@@ -151,7 +161,8 @@ int TestGDALRaster(int argc, char *argv[])
     colorFunction->AddRGBPoint(3000.0, 1.0, 0.333, 0.0);
     colorFunction->Build();
     //colorFunction->Print(std::cout);
-    colorFilter->SetLookupTable(colorFunction.GetPointer());
+    //colorFilter->SetLookupTable(colorFunction.GetPointer());
+    prop->SetLookupTable(colorFunction.GetPointer());
     }
   else
     {
@@ -160,25 +171,10 @@ int TestGDALRaster(int argc, char *argv[])
     colorTable->SetTableRange(range[0], range[1]);
     colorTable->SetValueRange(0.5, 0.5);
     colorTable->Build();
-    std::cout << "Table " << colorTable->GetNumberOfTableValues()
-              << " colors" << std::endl;
-    //colorTable->Print(std::cout);
-    colorFilter->SetLookupTable(colorTable.GetPointer());
+    //std::cout << "Table " << colorTable->GetNumberOfTableValues()
+    //          << " colors" << std::endl;
+    prop->SetLookupTable(colorTable.GetPointer());
     }
-
-  // Apply color map to image data
-  colorFilter->SetInputData(reader->GetOutput());
-  colorFilter->Update();
-
-  // Initialize vtkRasterFeature
-  vtkImageData *image = colorFilter->GetOutput();
-  vtkNew<vtkRasterFeature> feature;
-  feature->SetImageData(image);
-  feature->GetActor()->GetProperty()->SetOpacity(0.5);
-  featureLayer->AddFeature(feature.GetPointer());
-
-  colorFilter->Delete();
-  reader->Delete();
 
   // Set up display
   vtkNew<vtkRenderWindow> renderWindow;
