@@ -140,7 +140,6 @@ int TestGDALRaster(int argc, char *argv[])
   feature->SetImageData(image);
   feature->GetActor()->GetProperty()->SetOpacity(0.5);
   featureLayer->AddFeature(feature.GetPointer());
-  reader->Delete();
 
   // Setup color mapping
   vtkImageProperty *prop = feature->GetActor()->GetProperty();
@@ -161,7 +160,6 @@ int TestGDALRaster(int argc, char *argv[])
     colorFunction->AddRGBPoint(3000.0, 1.0, 0.333, 0.0);
     colorFunction->Build();
     //colorFunction->Print(std::cout);
-    //colorFilter->SetLookupTable(colorFunction.GetPointer());
     prop->SetLookupTable(colorFunction.GetPointer());
     }
   else
@@ -191,6 +189,7 @@ int TestGDALRaster(int argc, char *argv[])
   interactor->Start();
 
   // Finis
+  reader->Delete();
   return EXIT_SUCCESS;
 }
 
