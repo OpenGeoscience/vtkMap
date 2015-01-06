@@ -18,6 +18,8 @@
 
 #include <cmath>
 
+#define WEB_MERCATOR_EXTENT 20037508.34
+
 class vtkMercator : vtkObject
 {
 //by default visual studio doesn't provide the M_PI define as it is a
@@ -75,6 +77,20 @@ public:
   static double lat2y(double a)
   {
     return 180.0 / m_pi() * log(tan(m_pi() / 4.0 + a * (m_pi() / 180.0) / 2.0));
+  }
+
+  //----------------------------------------------------------------------------
+  // Convert coodinate from web-mercator (EPSG:3857) to VTK map coordinates
+  static double web2vtk(double webMercatorCoord)
+  {
+    return 180.0 * webMercatorCoord / WEB_MERCATOR_EXTENT;
+  }
+
+  //----------------------------------------------------------------------------
+  // Convert coodinate from VTK map coordinates to web-mercator (EPSG:3857)
+  static double vtk2web(double vtkCoord)
+  {
+    return vtkCoord / 180.0 * WEB_MERCATOR_EXTENT;
   }
 
 protected:
