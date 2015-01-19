@@ -300,7 +300,7 @@ ComputePolyData(vtkPoints *path, vtkDoubleArray *pathNormals, vtkPolyData *outpu
   int pointId = 1;
   int firstId = 1;
   int deltaPointIds = path->GetNumberOfPoints() - 2;
-  std::cout << "deltaPointIds: " << deltaPointIds << std::endl;
+  //std::cout << "deltaPointIds: " << deltaPointIds << std::endl;
   for (int i=0; i<this->Resolution; i++)
     {
     theta = i * 2.0*vtkMath::Pi() / this->Resolution;

@@ -37,6 +37,16 @@ public:
   // Use vtkMercator to convert from lat-lon or EPSG:3857 units
   vtkSetObjectMacro(ImageData, vtkImageData);
 
+  // Description:
+  // Set the map-projection string for the input image data.
+  // This should *only* be used for nonstandard image inputs,
+  // when the MAP_PROJECTION is not embedded as field data.
+  // Can be specified using any string formats supported by GDAL,
+  // such as "well known text" (WKT) formats (GEOGS[]),
+  // or shorter "user string" formats, such as EPSG:3857.
+  vtkSetStringMacro(InputProjection);
+  vtkGetStringMacro(InputProjection);
+
   // Description
   // Get actor for the image data
   vtkGetObjectMacro(Actor, vtkImageActor);
@@ -62,6 +72,7 @@ protected:
   ~vtkRasterFeature();
 
   vtkImageData *ImageData;
+  char *InputProjection;
   vtkImageActor *Actor;
   vtkImageMapper3D *Mapper;
 

@@ -16,6 +16,11 @@ set (VTK_REQUIRED_COMPONENTS
     vtkjsoncpp
     vtkRenderingCore
     vtkRenderingOpenGL
+
+    # For testing:
+    vtkIOXML
+    vtkImagingStatistics
+    vtkInteractionImage
 )
 
 option(BUILD_QT_APPS "Build Qt applications (source files in Qt subdirectory)" OFF)
@@ -42,10 +47,17 @@ set(READERS_LIB_DIRECTORY "" CACHE PATH "Location of vtkDataSetReaders library")
 set(READERS_LIBRARIES vtkDataSetReaders)
 link_directories(${READERS_LIB_DIRECTORY})
 
+# Specify GDAL components (used by vtkGDALRasterReprojection)
+find_package(GDAL REQUIRED)
+mark_as_advanced(GDAL_INCLUDE_DIR GDAL_LIBRARY)
+
+
 # Specify source files
 set (SOURCES
     vtkFeature.cxx
     vtkFeatureLayer.cxx
+    vtkGDALRasterConverter.cxx
+    vtkGDALRasterReprojection.cxx
     vtkGeoJSONMapFeature.cxx
     vtkInteractorStyleMap.cxx
     vtkMapMarkerSet.cxx
@@ -57,6 +69,7 @@ set (SOURCES
     vtkOsmLayer.cxx
     vtkPolydataFeature.cxx
     vtkRasterFeature.cxx
+    vtkRasterReprojectionFilter.cxx
     vtkTeardropSource.cxx
     )
 
@@ -64,6 +77,8 @@ set (SOURCES
 set (HEADERS
     vtkFeature.h
     vtkFeatureLayer.h
+    vtkGDALRasterConverter.h
+    vtkGDALRasterReprojection.h
     vtkInteractorStyleMap.h
     vtkMapMarkerSet.h
     vtkMapPickResult.h
@@ -76,6 +91,7 @@ set (HEADERS
     vtkOsmLayer.h
     vtkPolydataFeature.h
     vtkRasterFeature.h
+    vtkRasterReprojectionFilter.cxx
     ${CMAKE_CURRENT_BINARY_DIR}/vtkmap_export.h
     )
 
@@ -89,6 +105,7 @@ target_link_libraries(vtkMap
                         ${READERS_LIBRARIES}
                       LINK_PRIVATE
                         ${CURL_LIBRARIES}
+                        ${GDAL_LIBRARY}
                       )
 
 target_include_directories(vtkMap
@@ -96,6 +113,7 @@ target_include_directories(vtkMap
                              ${CMAKE_CURRENT_BINARY_DIR}
                            PRIVATE
                              ${CURL_INCLUDE_DIRS}
+                             ${GDAL_INCLUDE_DIRS}
                              ${READERS_INCLUDE_DIRECTORY}
                           )
 
