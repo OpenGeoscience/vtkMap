@@ -98,8 +98,10 @@ Reproject(GDALDataset *input, GDALDataset *output)
     case 2:  algorithm = GRA_Cubic;            break;
     case 3:  algorithm = GRA_CubicSpline;      break;
     case 4:  algorithm = GRA_Lanczos;          break;
-    case 5:  algorithm = GRA_Average;          break;
-    case 6:  algorithm = GRA_Mode;             break;
+
+      // GRA_Average and GRA_Mode available starting GDAL version 1.10
+      //case 5:  algorithm = GRA_Average;          break;
+      //case 6:  algorithm = GRA_Mode;             break;
     }
 
   GDALReprojectImage(input, input->GetProjectionRef(),

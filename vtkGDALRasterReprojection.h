@@ -44,8 +44,8 @@ public:
   //   2 = Cubic
   //   3 = CubicSpline
   //   4 = Lanczos
-  //   5 = Average
-  //   6 = Mode
+  //   5 = Average (GDAL 1.10)
+  //   6 = Mode    (GDAL 1.10)
   vtkSetClampMacro(ResamplingAlgorithm, int, 0, 6);
 
   // Description:
