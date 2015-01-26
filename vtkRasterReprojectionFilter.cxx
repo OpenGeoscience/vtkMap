@@ -20,6 +20,7 @@
 
 #include <vtkDataArray.h>
 #include <vtkDataObject.h>
+#include <vtkGDAL.h>
 #include <vtkImageData.h>
 #include <vtkInformation.h>
 #include <vtkInformationVector.h>
@@ -292,12 +293,12 @@ RequestInformation(vtkInformation * vtkNotUsed(request),
   // InputProjection can be overriden, so only get from pipeline if needed
   if (!this->InputProjection)
     {
-    if (!inInfo->Has(vtkDataObject::MAP_PROJECTION()))
+    if (!inInfo->Has(vtkGDAL::MAP_PROJECTION()))
       {
       vtkErrorMacro("No map-projection for input image");
       return VTK_ERROR;
       }
-    this->SetInputProjection(inInfo->Get(vtkDataObject::MAP_PROJECTION()));
+    this->SetInputProjection(inInfo->Get(vtkGDAL::MAP_PROJECTION()));
     }
 
   vtkInformation* outInfo = outputVector->GetInformationObject(0);
