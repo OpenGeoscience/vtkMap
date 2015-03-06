@@ -59,6 +59,7 @@ set (SOURCES
     vtkGDALRasterConverter.cxx
     vtkGDALRasterReprojection.cxx
     vtkGeoJSONMapFeature.cxx
+    vtkInteractorStyleGeoMap.cxx
     vtkInteractorStyleMap.cxx
     vtkMapMarkerSet.cxx
     vtkMapPickResult.cxx

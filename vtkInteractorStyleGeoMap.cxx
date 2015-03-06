@@ -1,12 +1,21 @@
-/*ckwg +5
- * Copyright 2013 by Kitware, Inc. All Rights Reserved. Please refer to
- * KITWARE_LICENSE.TXT for licensing information, or contact General Counsel,
- * Kitware, Inc., 28 Corporate Drive, Clifton Park, NY 12065.
- */
+/*=========================================================================
 
-#include "vtkVgInteractorStyleRubberBand2D.h"
+  Program:   Visualization Toolkit
+  Module:    vtkInteractorStyleMap.cxx
 
-#include "vtkVgRendererUtils.h"
+  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+  All rights reserved.
+  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
+
+   This software is distributed WITHOUT ANY WARRANTY; without even
+   the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+   PURPOSE.  See the above copyright notice for more information.
+
+=========================================================================*/
+
+#include "vtkInteractorStyleGeoMap.h"
+
+//#include "vtkVgRendererUtils.h"
 
 // VTK includes.
 #include <vtkActor2D.h>
@@ -23,11 +32,11 @@
 #include <vtkRenderWindowInteractor.h>
 #include <vtkUnsignedCharArray.h>
 
-vtkStandardNewMacro(vtkVgInteractorStyleRubberBand2D);
-vtkCxxSetObjectMacro(vtkVgInteractorStyleRubberBand2D, Renderer, vtkRenderer);
+vtkStandardNewMacro(vtkInteractorStyleGeoMap);
+vtkCxxSetObjectMacro(vtkInteractorStyleGeoMap, Renderer, vtkRenderer);
 
 //-----------------------------------------------------------------------------
-vtkVgInteractorStyleRubberBand2D::vtkVgInteractorStyleRubberBand2D() :
+vtkInteractorStyleGeoMap::vtkInteractorStyleGeoMap() :
   vtkInteractorStyleRubberBand2D()
 {
   this->AllowPanning = 1;
@@ -40,7 +49,7 @@ vtkVgInteractorStyleRubberBand2D::vtkVgInteractorStyleRubberBand2D() :
 }
 
 //-----------------------------------------------------------------------------
-vtkVgInteractorStyleRubberBand2D::~vtkVgInteractorStyleRubberBand2D()
+vtkInteractorStyleGeoMap::~vtkInteractorStyleGeoMap()
 {
   if (this->Renderer)
     {
@@ -53,13 +62,13 @@ vtkVgInteractorStyleRubberBand2D::~vtkVgInteractorStyleRubberBand2D()
 }
 
 //-----------------------------------------------------------------------------
-void vtkVgInteractorStyleRubberBand2D::PrintSelf(ostream& os, vtkIndent indent)
+void vtkInteractorStyleGeoMap::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }
 
 //----------------------------------------------------------------------------
-void vtkVgInteractorStyleRubberBand2D::OnKeyPress()
+void vtkInteractorStyleGeoMap::OnKeyPress()
 {
   switch (this->Interactor->GetKeyCode())
     {
@@ -93,7 +102,7 @@ void vtkVgInteractorStyleRubberBand2D::OnKeyPress()
 }
 
 //-----------------------------------------------------------------------------
-void vtkVgInteractorStyleRubberBand2D::OnChar()
+void vtkInteractorStyleGeoMap::OnChar()
 {
   // FIXME - may break vsPlay
   // hide ResetCamera
@@ -108,7 +117,7 @@ void vtkVgInteractorStyleRubberBand2D::OnChar()
 }
 
 //-----------------------------------------------------------------------------
-void vtkVgInteractorStyleRubberBand2D::OnLeftButtonDown()
+void vtkInteractorStyleGeoMap::OnLeftButtonDown()
 {
   if (this->Interactor->GetShiftKey())
     {
@@ -118,7 +127,7 @@ void vtkVgInteractorStyleRubberBand2D::OnLeftButtonDown()
     }
   this->LeftButtonIsMiddleButton = false;
 
-  if (this->RubberBandMode == vtkVgInteractorStyleRubberBand2D::DisabledMode &&
+  if (this->RubberBandMode == vtkInteractorStyleGeoMap::DisabledMode &&
       !this->Interactor->GetControlKey())
     {
     return;
@@ -216,7 +225,7 @@ void vtkVgInteractorStyleRubberBand2D::OnLeftButtonDown()
 }
 
 //-----------------------------------------------------------------------------
-void vtkVgInteractorStyleRubberBand2D::OnLeftButtonUp()
+void vtkInteractorStyleGeoMap::OnLeftButtonUp()
 {
   if (this->LeftButtonIsMiddleButton)
     {
@@ -270,7 +279,7 @@ void vtkVgInteractorStyleRubberBand2D::OnLeftButtonUp()
 }
 
 //--------------------------------------------------------------------------
-void vtkVgInteractorStyleRubberBand2D::OnRightButtonDown()
+void vtkInteractorStyleGeoMap::OnRightButtonDown()
 {
   this->StartPosition[0] = this->Interactor->GetEventPosition()[0];
   this->StartPosition[1] = this->Interactor->GetEventPosition()[1];
@@ -278,7 +287,7 @@ void vtkVgInteractorStyleRubberBand2D::OnRightButtonDown()
 }
 
 //--------------------------------------------------------------------------
-void vtkVgInteractorStyleRubberBand2D::OnRightButtonUp()
+void vtkInteractorStyleGeoMap::OnRightButtonUp()
 {
   int pos[2];
   this->Interactor->GetEventPosition(pos);
@@ -293,7 +302,7 @@ void vtkVgInteractorStyleRubberBand2D::OnRightButtonUp()
 }
 
 //--------------------------------------------------------------------------
-void vtkVgInteractorStyleRubberBand2D::OnMiddleButtonDown()
+void vtkInteractorStyleGeoMap::OnMiddleButtonDown()
 {
   if (!this->AllowPanning)
     {
@@ -306,7 +315,7 @@ void vtkVgInteractorStyleRubberBand2D::OnMiddleButtonDown()
 }
 
 //--------------------------------------------------------------------------
-void vtkVgInteractorStyleRubberBand2D::OnMiddleButtonUp()
+void vtkInteractorStyleGeoMap::OnMiddleButtonUp()
 {
   if (!this->AllowPanning)
     {
@@ -319,7 +328,7 @@ void vtkVgInteractorStyleRubberBand2D::OnMiddleButtonUp()
 }
 
 //--------------------------------------------------------------------------
-void vtkVgInteractorStyleRubberBand2D::OnMouseMove()
+void vtkInteractorStyleGeoMap::OnMouseMove()
 {
   if (this->RubberBandMode == DisabledMode)
     {
@@ -386,15 +395,16 @@ void vtkVgInteractorStyleRubberBand2D::OnMouseMove()
 }
 
 //-----------------------------------------------------------------------------
-void vtkVgInteractorStyleRubberBand2D::ZoomToExtents(vtkRenderer* ren,
+void vtkInteractorStyleGeoMap::ZoomToExtents(vtkRenderer* ren,
     double extents[4])
 {
-  vtkVgRendererUtils::ZoomToExtents2D(ren, extents);
+  // vtkVgRendererUtils::ZoomToExtents2D(ren, extents);
+  vtkWarningMacro("Sorry - ZoomToExtents not implemented");
   this->InvokeEvent(ZoomCompleteEvent);
 }
 
 //-----------------------------------------------------------------------------
-void vtkVgInteractorStyleRubberBand2D::Zoom()
+void vtkInteractorStyleGeoMap::Zoom()
 {
   int width, height;
   width = abs(this->EndPosition[0] - this->StartPosition[0]);

@@ -1,22 +1,35 @@
-/*ckwg +5
- * Copyright 2013 by Kitware, Inc. All Rights Reserved. Please refer to
- * KITWARE_LICENSE.TXT for licensing information, or contact General Counsel,
- * Kitware, Inc., 28 Corporate Drive, Clifton Park, NY 12065.
- */
+/*=========================================================================
 
-#ifndef __vtkVgInteractorStyleRubberBand2D_h
-#define __vtkVgInteractorStyleRubberBand2D_h
+  Program:   Visualization Toolkit
+  Module:    vtkInteractorStyleMap.h
+
+  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+  All rights reserved.
+  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
+
+   This software is distributed WITHOUT ANY WARRANTY; without even
+   the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+   PURPOSE.  See the above copyright notice for more information.
+
+=========================================================================*/
+// .NAME vtkInteractorStyleGeoMap - interactor style specifically for map views
+// .SECTION Description
+//
+
+
+#ifndef __vtkInteractorStyleGeoMap_h
+#define __vtkInteractorStyleGeoMap_h
 
 #include <vtkCommand.h>
 #include <vtkInteractorStyleRubberBand2D.h>
 
-#include <vgExport.h>
+#include <vtkmap_export.h>
 
 class vtkActor2D;
 class vtkPoints;
 class vtkRenderer;
 
-class VTKVG_CORE_EXPORT vtkVgInteractorStyleRubberBand2D
+class VTKMAP_EXPORT vtkInteractorStyleGeoMap
   : public vtkInteractorStyleRubberBand2D
 {
 public:
@@ -37,15 +50,15 @@ public:
 public:
   // Description:
   // Standard VTK functions.
-  static vtkVgInteractorStyleRubberBand2D* New();
-  vtkTypeMacro(vtkVgInteractorStyleRubberBand2D, vtkInteractorStyleRubberBand2D);
+  static vtkInteractorStyleGeoMap* New();
+  vtkTypeMacro(vtkInteractorStyleGeoMap, vtkInteractorStyleRubberBand2D);
 
   virtual void PrintSelf(ostream& os, vtkIndent indent);
 
   // Description:
   // Constructor / Destructor.
-  vtkVgInteractorStyleRubberBand2D();
-  ~vtkVgInteractorStyleRubberBand2D();
+  vtkInteractorStyleGeoMap();
+  ~vtkInteractorStyleGeoMap();
 
   // Description:
   virtual void OnKeyPress();
@@ -114,8 +127,8 @@ protected:
 
 private:
 // Not implemented.
-  vtkVgInteractorStyleRubberBand2D(const vtkVgInteractorStyleRubberBand2D&);
-  void operator=(const vtkVgInteractorStyleRubberBand2D&);
+  vtkInteractorStyleGeoMap(const vtkInteractorStyleGeoMap&);
+  void operator=(const vtkInteractorStyleGeoMap&);
 
   int AllowPanning;
   int RubberBandMode;
@@ -129,4 +142,4 @@ private:
   vtkPoints*  RubberBandPoints;
 };
 
-#endif // __vtkVgInteractorStyleRubberBand2D_h
+#endif // __vtkInteractorStyleGeoMap_h
