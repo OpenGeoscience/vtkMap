@@ -94,7 +94,7 @@ void vtkInteractorStyleMap::OnLeftButtonDown()
 void vtkInteractorStyleMap::OnLeftButtonUp()
 {
   vtkDebugMacro("EndPan()");
-      this->Interactor->GetRenderWindow()->SetCurrentCursor(VTK_CURSOR_DEFAULT);
+  this->Interactor->GetRenderWindow()->SetCurrentCursor(VTK_CURSOR_DEFAULT);
   this->EndPan();
   this->Superclass::OnLeftButtonUp();
 }

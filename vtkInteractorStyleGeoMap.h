@@ -70,10 +70,6 @@ public:
   // interactions.
   virtual void OnLeftButtonDown();
   virtual void OnLeftButtonUp();
-  virtual void OnRightButtonDown();
-  virtual void OnRightButtonUp();
-  virtual void OnMiddleButtonDown();
-  virtual void OnMiddleButtonUp();
   virtual void OnMouseMove();
   virtual void OnMouseWheelForward();
   virtual void OnMouseWheelBackward();
@@ -85,24 +81,18 @@ public:
   int* GetEndPosition()   { return this->EndPosition; }
 
   // Description:
-  // Enable/disable panning.
-  vtkSetMacro(AllowPanning, int);
-  vtkGetMacro(AllowPanning, int);
-  vtkBooleanMacro(AllowPanning, int);
-
-  // Description:
   // Modes for RubberBandMode
   enum enumRubberBandMode
     {
-    ZoomMode = 0,
+    DisabledMode = 0,   // standard map interaction (select/pan)
     SelectionMode,
-    DisplayOnlyMode,
-    DisabledMode
+    ZoomMode,
+    DisplayOnlyMode
     };
 
   // Description:
   // Control whether we do zoom, selection, or nothing special if rubberband
-  vtkSetClampMacro(RubberBandMode, int, ZoomMode, DisabledMode);
+  vtkSetClampMacro(RubberBandMode, int, DisabledMode, DisplayOnlyMode);
   vtkGetMacro(RubberBandMode, int);
   void SetRubberBandModeToZoom()
     {this->SetRubberBandMode(ZoomMode);}
@@ -125,6 +115,7 @@ public:
   void SetMap(vtkMap* map);
 
 protected:
+  void Pan();
   void Zoom();
 
 private:
@@ -134,11 +125,8 @@ private:
 
   vtkMap *Map;
 
-  int AllowPanning;
   int RubberBandMode;
   int RubberBandSelectionWithCtrlKey;
-
-  bool LeftButtonIsMiddleButton;
 
   vtkActor2D* RubberBandActor;
   vtkPoints*  RubberBandPoints;

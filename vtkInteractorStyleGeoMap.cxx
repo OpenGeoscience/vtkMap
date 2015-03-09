@@ -15,6 +15,7 @@
 
 #include "vtkInteractorStyleGeoMap.h"
 #include "vtkMap.h"
+#include "vtkMapPickResult.h"
 
 //#include "vtkVgRendererUtils.h"
 
@@ -25,6 +26,7 @@
 #include <vtkCellData.h>
 #include <vtkCommand.h>
 #include <vtkMath.h>
+#include <vtkNew.h>
 #include <vtkObjectFactory.h>
 #include <vtkPolyData.h>
 #include <vtkPolyDataMapper2D.h>
@@ -41,10 +43,8 @@ vtkInteractorStyleGeoMap::vtkInteractorStyleGeoMap() :
   vtkInteractorStyleRubberBand2D()
 {
   this->Map = NULL;
-  this->AllowPanning = 1;
-  this->RubberBandMode = ZoomMode;
+  this->RubberBandMode = DisabledMode;
   this->RubberBandSelectionWithCtrlKey = 0;
-  this->LeftButtonIsMiddleButton = false;
   this->RubberBandActor = 0;
   this->RubberBandPoints = 0;
 }
@@ -116,17 +116,26 @@ void vtkInteractorStyleGeoMap::OnChar()
 //-----------------------------------------------------------------------------
 void vtkInteractorStyleGeoMap::OnLeftButtonDown()
 {
-  if (this->Interactor->GetShiftKey())
+  if (this->RubberBandMode == vtkInteractorStyleGeoMap::DisabledMode)
     {
-    this->LeftButtonIsMiddleButton = true;
-    this->Superclass::OnMiddleButtonDown();
-    return;
-    }
-  this->LeftButtonIsMiddleButton = false;
+    // Default map interaction == select feature otherwise start pan
+    int *pos = this->Interactor->GetEventPosition();
 
-  if (this->RubberBandMode == vtkInteractorStyleGeoMap::DisabledMode &&
-      !this->Interactor->GetControlKey())
-    {
+    // Check if anything was picked
+    vtkNew<vtkMapPickResult> pickResult;
+    this->Map->PickPoint(pos, pickResult.GetPointer());
+    switch (pickResult->GetMapFeatureType())
+      {
+      case VTK_MAP_FEATURE_NONE:
+        vtkDebugMacro("StartPan()");
+        this->StartPan();
+        break;
+
+      case VTK_MAP_FEATURE_MARKER:
+      case VTK_MAP_FEATURE_CLUSTER:
+        // Todo highlight marker (?)
+        break;
+      }
     return;
     }
 
@@ -225,10 +234,12 @@ void vtkInteractorStyleGeoMap::OnLeftButtonDown()
 //-----------------------------------------------------------------------------
 void vtkInteractorStyleGeoMap::OnLeftButtonUp()
 {
-  if (this->LeftButtonIsMiddleButton)
+  if (this->RubberBandMode == vtkInteractorStyleGeoMap::DisabledMode)
     {
-    this->LeftButtonIsMiddleButton = false;
-    this->Superclass::OnMiddleButtonUp();
+    // Default map interaction == end panning
+    vtkDebugMacro("EndPan()");
+    this->Interactor->GetRenderWindow()->SetCurrentCursor(VTK_CURSOR_DEFAULT);
+    this->EndPan();
     return;
     }
 
@@ -277,59 +288,22 @@ void vtkInteractorStyleGeoMap::OnLeftButtonUp()
 }
 
 //--------------------------------------------------------------------------
-void vtkInteractorStyleGeoMap::OnRightButtonDown()
-{
-  this->StartPosition[0] = this->Interactor->GetEventPosition()[0];
-  this->StartPosition[1] = this->Interactor->GetEventPosition()[1];
-  this->Superclass::OnRightButtonDown();
-}
-
-//--------------------------------------------------------------------------
-void vtkInteractorStyleGeoMap::OnRightButtonUp()
-{
-  int pos[2];
-  this->Interactor->GetEventPosition(pos);
-
-  if (abs(pos[0] - this->StartPosition[0]) < 5 &&
-      abs(pos[1] - this->StartPosition[1]) < 5)
-    {
-    this->InvokeEvent(RightClickEvent);
-    }
-
-  this->Superclass::OnRightButtonUp();
-}
-
-//--------------------------------------------------------------------------
-void vtkInteractorStyleGeoMap::OnMiddleButtonDown()
-{
-  if (!this->AllowPanning)
-    {
-    // Do nothing.
-    }
-  else
-    {
-    this->Superclass::OnMiddleButtonDown();
-    }
-}
-
-//--------------------------------------------------------------------------
-void vtkInteractorStyleGeoMap::OnMiddleButtonUp()
-{
-  if (!this->AllowPanning)
-    {
-    // Do nothing.
-    }
-  else
-    {
-    this->Superclass::OnMiddleButtonUp();
-    }
-}
-
-//--------------------------------------------------------------------------
 void vtkInteractorStyleGeoMap::OnMouseMove()
 {
   if (this->RubberBandMode == DisabledMode)
     {
+    // Original map interaction == pan
+    int *pos = this->Interactor->GetEventPosition();
+    switch (this->State)
+      {
+      case VTKIS_PAN:
+        this->FindPokedRenderer(pos[0], pos[1]);
+        this->Interactor->GetRenderWindow()->SetCurrentCursor(VTK_CURSOR_SIZEALL);
+        this->Pan();
+        this->InvokeEvent(vtkCommand::InteractionEvent, NULL);
+        break;
+      }
+    // Do NOT call superclass OnMouseMove() here
     return;
     }
 
@@ -514,6 +488,66 @@ void vtkInteractorStyleGeoMap::SetMap(vtkMap *map)
 {
   this->Map = map;
   this->SetCurrentRenderer(map->GetRenderer());
+}
+
+//----------------------------------------------------------------------------
+void vtkInteractorStyleGeoMap::Pan()
+{
+  if (this->CurrentRenderer == NULL)
+    {
+    return;
+    }
+
+  if (this->Map == NULL)
+    {
+    return;
+    }
+
+  // Following logic is copied from vtkInteractorStyleTrackballCamera:
+
+  vtkRenderWindowInteractor *rwi = this->Interactor;
+
+  double viewFocus[4], focalDepth, viewPoint[3];
+  double newPickPoint[4], oldPickPoint[4], motionVector[3];
+
+  // Calculate the focal depth since we'll be using it a lot
+
+  vtkCamera *camera = this->CurrentRenderer->GetActiveCamera();
+  camera->GetFocalPoint(viewFocus);
+  this->ComputeWorldToDisplay(viewFocus[0], viewFocus[1], viewFocus[2],
+                              viewFocus);
+  focalDepth = viewFocus[2];
+
+  this->ComputeDisplayToWorld(rwi->GetEventPosition()[0],
+                              rwi->GetEventPosition()[1],
+                              focalDepth,
+                              newPickPoint);
+
+  // Has to recalc old mouse point since the viewport has moved,
+  // so can't move it outside the loop
+
+  this->ComputeDisplayToWorld(rwi->GetLastEventPosition()[0],
+                              rwi->GetLastEventPosition()[1],
+                              focalDepth,
+                              oldPickPoint);
+
+  // Camera motion is reversed
+
+  motionVector[0] = oldPickPoint[0] - newPickPoint[0];
+  motionVector[1] = oldPickPoint[1] - newPickPoint[1];
+  motionVector[2] = oldPickPoint[2] - newPickPoint[2];
+
+  camera->GetFocalPoint(viewFocus);
+  camera->GetPosition(viewPoint);
+  camera->SetFocalPoint(motionVector[0] + viewFocus[0],
+                        motionVector[1] + viewFocus[1],
+                        motionVector[2] + viewFocus[2]);
+
+  camera->SetPosition(motionVector[0] + viewPoint[0],
+                      motionVector[1] + viewPoint[1],
+                      motionVector[2] + viewPoint[2]);
+
+  this->Map->Draw();
 }
 
 //-----------------------------------------------------------------------------
