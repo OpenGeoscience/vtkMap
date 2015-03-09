@@ -13,8 +13,7 @@
 =========================================================================*/
 
 #include "vtkMap.h"
-
-#include "vtkInteractorStyleMap.h"
+#include "vtkInteractorStyleGeoMap.h"
 #include "vtkLayer.h"
 #include "vtkMapMarkerSet.h"
 #include "vtkMapTile.h"
@@ -82,7 +81,7 @@ vtkMap::vtkMap()
 {
   this->StorageDirectory = NULL;
   this->Renderer = NULL;
-  this->InteractorStyle = vtkInteractorStyleMap::New();
+  this->InteractorStyle = vtkInteractorStyleGeoMap::New();
   this->InteractorStyle->SetMap(this);
   this->Picker = vtkPointPicker::New();
   this->Zoom = 1;

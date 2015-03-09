@@ -26,7 +26,7 @@
 class vtkActor;
 class vtkCallbackCommand;
 class vtkInteractorStyle;
-class vtkInteractorStyleMap;
+class vtkInteractorStyleGeoMap;
 class vtkLayer;
 class vtkMapMarkerSet;
 class vtkMapPickResult;
@@ -66,7 +66,7 @@ public:
   // Description:
   // Get/Set the interactor style for the map renderer
   // Note these are asymmetric on purpose
-  vtkSetMacro(InteractorStyle, vtkInteractorStyleMap*)
+  vtkSetMacro(InteractorStyle, vtkInteractorStyleGeoMap*)
   vtkInteractorStyle *GetInteractorStyle();
 
   // Description:
@@ -161,7 +161,7 @@ protected:
 
   // Description:
   // The interactor style used by the map
-  vtkInteractorStyleMap* InteractorStyle;
+  vtkInteractorStyleGeoMap* InteractorStyle;
 
   // Description:
   // The picker used for picking map markers

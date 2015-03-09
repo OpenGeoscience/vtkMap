@@ -14,6 +14,7 @@
 =========================================================================*/
 
 #include "vtkInteractorStyleGeoMap.h"
+#include "vtkMap.h"
 
 //#include "vtkVgRendererUtils.h"
 
@@ -23,6 +24,7 @@
 #include <vtkCellArray.h>
 #include <vtkCellData.h>
 #include <vtkCommand.h>
+#include <vtkMath.h>
 #include <vtkObjectFactory.h>
 #include <vtkPolyData.h>
 #include <vtkPolyDataMapper2D.h>
@@ -33,17 +35,16 @@
 #include <vtkUnsignedCharArray.h>
 
 vtkStandardNewMacro(vtkInteractorStyleGeoMap);
-vtkCxxSetObjectMacro(vtkInteractorStyleGeoMap, Renderer, vtkRenderer);
 
 //-----------------------------------------------------------------------------
 vtkInteractorStyleGeoMap::vtkInteractorStyleGeoMap() :
   vtkInteractorStyleRubberBand2D()
 {
+  this->Map = NULL;
   this->AllowPanning = 1;
   this->RubberBandMode = ZoomMode;
   this->RubberBandSelectionWithCtrlKey = 0;
   this->LeftButtonIsMiddleButton = false;
-  this->Renderer = 0;
   this->RubberBandActor = 0;
   this->RubberBandPoints = 0;
 }
@@ -51,10 +52,6 @@ vtkInteractorStyleGeoMap::vtkInteractorStyleGeoMap() :
 //-----------------------------------------------------------------------------
 vtkInteractorStyleGeoMap::~vtkInteractorStyleGeoMap()
 {
-  if (this->Renderer)
-    {
-    this->Renderer->UnRegister(this);
-    }
   if (this->RubberBandActor)
     {
     this->RubberBandActor->Delete();
@@ -134,7 +131,7 @@ void vtkInteractorStyleGeoMap::OnLeftButtonDown()
     }
 
   // fall back to built-in rubberband drawing if no renderer was given
-  if (!this->Renderer)
+  if (!this->Map->GetRenderer())
     {
     this->Superclass::OnLeftButtonDown();
     return;
@@ -146,6 +143,7 @@ void vtkInteractorStyleGeoMap::OnLeftButtonDown()
     }
 
   this->Interaction = SELECTING;
+  vtkRenderer *renderer = this->Map->GetRenderer();
 
   // initialize the rubberband actor on first use
   if (!this->RubberBandActor)
@@ -180,7 +178,7 @@ void vtkInteractorStyleGeoMap::OnLeftButtonDown()
 
     this->RubberBandActor->SetMapper(PDM);
 
-    this->Renderer->AddViewProp(this->RubberBandActor);
+    renderer->AddViewProp(this->RubberBandActor);
 
     CA->FastDelete();
     CA2->FastDelete();
@@ -196,7 +194,7 @@ void vtkInteractorStyleGeoMap::OnLeftButtonDown()
     // Our actor may have been removed since it isn't in the scene graph.
     // Don't bother checking if it has already been added, since the renderer
     // will do that anyways.
-    this->Renderer->AddViewProp(this->RubberBandActor);
+    renderer->AddViewProp(this->RubberBandActor);
     }
 
   this->StartPosition[0] = this->Interactor->GetEventPosition()[0];
@@ -219,7 +217,7 @@ void vtkInteractorStyleGeoMap::OnLeftButtonDown()
   vtkPolyDataMapper2D::SafeDownCast(this->RubberBandActor->GetMapper())
   ->GetInput()->Modified();
 
-  this->SetCurrentRenderer(this->Renderer);
+  this->SetCurrentRenderer(renderer);
   this->InvokeEvent(vtkCommand::StartInteractionEvent);
   this->GetInteractor()->Render();
 }
@@ -394,13 +392,128 @@ void vtkInteractorStyleGeoMap::OnMouseMove()
   this->GetInteractor()->Render();
 }
 
-//-----------------------------------------------------------------------------
-void vtkInteractorStyleGeoMap::ZoomToExtents(vtkRenderer* ren,
-    double extents[4])
+//----------------------------------------------------------------------------
+void vtkInteractorStyleGeoMap::OnMouseWheelForward()
 {
-  // vtkVgRendererUtils::ZoomToExtents2D(ren, extents);
-  vtkWarningMacro("Sorry - ZoomToExtents not implemented");
-  this->InvokeEvent(ZoomCompleteEvent);
+  if (this->Map)
+    {
+    int zoom = this->Map->GetZoom();
+    if (zoom < 19)
+      {
+      zoom++;
+      this->Map->SetZoom(zoom);
+      this->SetCurrentRenderer(this->Map->GetRenderer());
+
+      vtkCamera *camera = this->Map->GetRenderer()->GetActiveCamera();
+
+      // Get current mouse coordinates (to make that screen position constant)
+      int *pos = this->Interactor->GetEventPosition();
+
+      // Get corresponding world coordinates
+      double zoomCoords[4];
+      this->ComputeDisplayToWorld(pos[0], pos[1], 0.0, zoomCoords);
+
+      // Get camera coordinates before zooming in
+      double cameraCoords[3];
+      camera->GetPosition(cameraCoords);
+
+      // Apply the dolly operation (move closer to focal point)
+      camera->Dolly(2.0);
+
+      // Get new camera coordinates
+      double nextCameraCoords[3];
+      camera->GetPosition(nextCameraCoords);
+
+      // Adjust xy position to be proportional to change in z
+      // That way, the zoom point remains stationary
+      const double f = 0.5;   // fraction that camera moved closer to origin
+      double losVector[3];  // line-of-sight vector, from camera to zoomCoords
+      vtkMath::Subtract(zoomCoords, cameraCoords, losVector);
+      vtkMath::Normalize(losVector);
+      vtkMath::MultiplyScalar(losVector, f * cameraCoords[2]);
+      nextCameraCoords[0] = cameraCoords[0] + losVector[0];
+      nextCameraCoords[1] = cameraCoords[1] + losVector[1];
+      camera->SetPosition(nextCameraCoords);
+
+      // Set same xy coords for the focal point
+      nextCameraCoords[2] = 0.0;
+      camera->SetFocalPoint(nextCameraCoords);
+
+      // Redraw the map
+      this->Map->Draw();
+      }
+    }
+  this->Superclass::OnMouseWheelForward();
+}
+
+//----------------------------------------------------------------------------
+void vtkInteractorStyleGeoMap::OnMouseWheelBackward()
+{
+  if (this->Map)
+    {
+    int zoom = this->Map->GetZoom();
+    if (zoom > 0)
+      {
+      zoom--;
+
+      this->Map->SetZoom(zoom);
+      this->SetCurrentRenderer(this->Map->GetRenderer());
+
+      vtkCamera *camera = this->Map->GetRenderer()->GetActiveCamera();
+
+      // Get current mouse coordinates (to make that screen position constant)
+      int *pos = this->Interactor->GetEventPosition();
+
+      // Get corresponding world coordinates
+      double zoomCoords[4];
+      this->ComputeDisplayToWorld(pos[0], pos[1], 0.0, zoomCoords);
+
+      // Get camera coordinates before zooming out
+      double cameraCoords[3];
+      camera->GetPosition(cameraCoords);
+
+      // Apply the dolly operation (move away from focal point)
+      camera->Dolly(0.5);
+
+      // Get new camera coordinates
+      double nextCameraCoords[3];
+      camera->GetPosition(nextCameraCoords);
+
+      // Adjust xy position to be proportional to change in z
+      // That way, the zoom point remains stationary
+      double losVector[3];  // line-of-sight vector, from camera to zoomCoords
+      vtkMath::Subtract(zoomCoords, cameraCoords, losVector);
+      vtkMath::Normalize(losVector);
+      vtkMath::MultiplyScalar(losVector, -1.0 * cameraCoords[2]);
+      nextCameraCoords[0] = cameraCoords[0] + losVector[0];
+      nextCameraCoords[1] = cameraCoords[1] + losVector[1];
+      camera->SetPosition(nextCameraCoords);
+
+      // Set same xy coords for the focal point
+      nextCameraCoords[2] = 0.0;
+      camera->SetFocalPoint(nextCameraCoords);
+
+      // Redraw the map
+      this->Map->Draw();
+      }
+    }
+  this->Superclass::OnMouseWheelBackward();
+}
+
+//-----------------------------------------------------------------------------
+// void vtkInteractorStyleGeoMap::ZoomToExtents(vtkRenderer* ren,
+//     double extents[4])
+// {
+//   // vtkVgRendererUtils::ZoomToExtents2D(ren, extents);
+//   vtkWarningMacro("Sorry - ZoomToExtents not implemented");
+//   this->InvokeEvent(ZoomCompleteEvent);
+// }
+
+//-----------------------------------------------------------------------------
+void vtkInteractorStyleGeoMap::SetMap(vtkMap *map)
+{
+  this->Map = map;
+  this->SetCurrentRenderer(map->GetRenderer());
 }
 
 //-----------------------------------------------------------------------------
@@ -454,5 +567,5 @@ void vtkInteractorStyleGeoMap::Zoom()
     };
 
   // zoom
-  this->ZoomToExtents(this->CurrentRenderer, extents);
+  //this->ZoomToExtents(this->CurrentRenderer, extents);
 }

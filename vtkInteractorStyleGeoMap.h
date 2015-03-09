@@ -26,8 +26,8 @@
 #include <vtkmap_export.h>
 
 class vtkActor2D;
+class vtkMap;
 class vtkPoints;
-class vtkRenderer;
 
 class VTKMAP_EXPORT vtkInteractorStyleGeoMap
   : public vtkInteractorStyleRubberBand2D
@@ -75,6 +75,8 @@ public:
   virtual void OnMiddleButtonDown();
   virtual void OnMiddleButtonUp();
   virtual void OnMouseMove();
+  virtual void OnMouseWheelForward();
+  virtual void OnMouseWheelBackward();
 
   using vtkInteractorStyleRubberBand2D::GetStartPosition;
   using vtkInteractorStyleRubberBand2D::GetEndPosition;
@@ -117,10 +119,10 @@ public:
   vtkGetMacro(RubberBandSelectionWithCtrlKey, int);
   vtkBooleanMacro(RubberBandSelectionWithCtrlKey, int);
 
-  void ZoomToExtents(vtkRenderer* renderer, double extents[4]);
+  //void ZoomToExtents(vtkRenderer* renderer, double extents[4]);
 
-  // Renderer to use for rubberband drawing.
-  void SetRenderer(vtkRenderer* renderer);
+  // Map
+  void SetMap(vtkMap* map);
 
 protected:
   void Zoom();
@@ -130,13 +132,13 @@ private:
   vtkInteractorStyleGeoMap(const vtkInteractorStyleGeoMap&);
   void operator=(const vtkInteractorStyleGeoMap&);
 
+  vtkMap *Map;
+
   int AllowPanning;
   int RubberBandMode;
   int RubberBandSelectionWithCtrlKey;
 
   bool LeftButtonIsMiddleButton;
-
-  vtkRenderer* Renderer;
 
   vtkActor2D* RubberBandActor;
   vtkPoints*  RubberBandPoints;
