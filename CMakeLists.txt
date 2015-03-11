@@ -59,6 +59,8 @@ set (SOURCES
     vtkGDALRasterConverter.cxx
     vtkGDALRasterReprojection.cxx
     vtkGeoJSONMapFeature.cxx
+    vtkGeoMapFeatureSelector.cxx
+    vtkGeoMapSelection.cxx
     vtkInteractorStyleGeoMap.cxx
     vtkInteractorStyleMap.cxx
     vtkMapMarkerSet.cxx
@@ -80,6 +82,8 @@ set (HEADERS
     vtkFeatureLayer.h
     vtkGDALRasterConverter.h
     vtkGDALRasterReprojection.h
+    vtkGeoMapFeatureSelector.h
+    vtkGeoMapSelection.h
     vtkInteractorStyleMap.h
     vtkMapMarkerSet.h
     vtkMapPickResult.h

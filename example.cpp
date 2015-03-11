@@ -1,5 +1,7 @@
 #include "vtkMap.h"
 #include "vtkFeatureLayer.h"
+#include "vtkGeoMapSelection.h"
+#include "vtkInteractorStyleGeoMap.h"
 #include "vtkMapMarkerSet.h"
 #include "vtkMapPickResult.h"
 #include "vtkMercator.h"
@@ -9,6 +11,7 @@
 #include <vtkActor.h>
 #include <vtkCallbackCommand.h>
 #include <vtkCamera.h>
+#include <vtkCollection.h>
 #include <vtkCommand.h>
 #include <vtkDistanceToCamera.h>
 #include <vtkGlyph3D.h>
@@ -42,40 +45,50 @@ class PickCallback : public vtkCommand
 public:
   static PickCallback *New()
     { return new PickCallback; }
-  virtual void Execute(vtkObject *caller, unsigned long, void*)
+  virtual void Execute(vtkObject *caller, unsigned long vtkNotUsed(event),
+                       void* data)
     {
-      vtkRenderWindowInteractor *interactor =
-        vtkRenderWindowInteractor::SafeDownCast(caller);
-      int *pos = interactor->GetEventPosition();
+      // vtkRenderWindowInteractor *interactor =
+      //   vtkRenderWindowInteractor::SafeDownCast(caller);
+      // int *pos = interactor->GetEventPosition();
       //std::cout << "Event position: " << pos[0] << ", " << pos[1] << std::endl;
       //std::cout << interactor->GetPicker()->GetClassName() << std::endl;
 
-      vtkNew<vtkMapPickResult> pickResult;
+      vtkObject *object = reinterpret_cast<vtkObject*>(data);
+      std::cout << "Selection object: " << object->GetClassName() << std::endl;
+      vtkGeoMapSelection *selection = vtkGeoMapSelection::SafeDownCast(object);
+      vtkCollection *collection = selection->GetSelectedFeatures();
+      std::cout << "Number of features: " << collection->GetNumberOfItems()
+                << std::endl;
 
-      this->Map->PickPoint(pos, pickResult.GetPointer());
-      switch (pickResult->GetMapFeatureType())
-        {
-        case VTK_MAP_FEATURE_NONE:
-          break;
 
-        case VTK_MAP_FEATURE_MARKER:
-          std::cout << "Picked marker " << pickResult->GetMapFeatureId()
-                    << std::endl;
-          break;
+      //vtkNew<vtkMapPickResult> pickResult;
+      // vtkNew<vtkGeoMapSelection> pickResult;
 
-        case VTK_MAP_FEATURE_CLUSTER:
-          std::cout << "Picked cluster containing "
-                    << pickResult->GetNumberOfMarkers() << " markers"
-                    << std::endl;
-        break;
+      // this->Map->PickPoint(pos, pickResult.GetPointer());
+      // switch (pickResult->GetMapFeatureType())
+      //   {
+      //   case VTK_MAP_FEATURE_NONE:
+      //     break;
 
-        default:
-          //vtkWarningMacro("Unrecognized map feature type "
-          //                << pickResult->GetMapFeatureType());
-          std::cerr << "Unrecognized map feature type "
-                    << pickResult->GetMapFeatureType() << std::endl;
-          break;
-        }
+      //   case VTK_MAP_FEATURE_MARKER:
+      //     std::cout << "Picked marker " << pickResult->GetMapFeatureId()
+      //               << std::endl;
+      //     break;
+
+      //   case VTK_MAP_FEATURE_CLUSTER:
+      //     std::cout << "Picked cluster containing "
+      //               << pickResult->GetNumberOfMarkers() << " markers"
+      //               << std::endl;
+      //   break;
+
+      //   default:
+      //     //vtkWarningMacro("Unrecognized map feature type "
+      //     //                << pickResult->GetMapFeatureType());
+      //     std::cerr << "Unrecognized map feature type "
+      //               << pickResult->GetMapFeatureType() << std::endl;
+      //     break;
+      //   }  // switch
     }
 
   void SetMap(vtkMap *map)
@@ -113,7 +126,12 @@ int main()
 
   vtkNew<vtkRenderWindowInteractor> intr;
   intr->SetRenderWindow(wind.GetPointer());
-  intr->SetInteractorStyle(map->GetInteractorStyle());
+  vtkInteractorStyle *style = map->GetInteractorStyle();
+  //style->DebugOn();
+  vtkInteractorStyleGeoMap *mapStyle =
+    vtkInteractorStyleGeoMap::SafeDownCast(style);
+  //mapStyle->SetRubberBandModeToDisplayOnly();
+  intr->SetInteractorStyle(style);
   intr->SetPicker(map->GetPicker());
 
   intr->Initialize();
@@ -166,7 +184,9 @@ int main()
   // Set callbacks
   vtkNew<PickCallback> pickCallback;
   pickCallback->SetMap(map.GetPointer());
-  intr->AddObserver(vtkCommand::LeftButtonPressEvent, pickCallback.GetPointer());
+  //intr->AddObserver(vtkCommand::LeftButtonPressEvent, pickCallback.GetPointer());
+  style->AddObserver(vtkInteractorStyleGeoMap::SelectionCompleteEvent,
+                    pickCallback.GetPointer());
 
   intr->Start();
 

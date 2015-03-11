@@ -14,8 +14,9 @@
 =========================================================================*/
 
 #include "vtkInteractorStyleGeoMap.h"
+#include "vtkGeoMapSelection.h"
 #include "vtkMap.h"
-#include "vtkMapPickResult.h"
+//#include "vtkMapPickResult.h"
 
 //#include "vtkVgRendererUtils.h"
 
@@ -64,55 +65,6 @@ void vtkInteractorStyleGeoMap::PrintSelf(ostream& os, vtkIndent indent)
   this->Superclass::PrintSelf(os, indent);
 }
 
-//----------------------------------------------------------------------------
-void vtkInteractorStyleGeoMap::OnKeyPress()
-{
-  switch (this->Interactor->GetKeyCode())
-    {
-    case 'a':
-    case 'A':
-      this->InvokeEvent(KeyPressEvent_A);
-      break;
-    case 'r':
-    case 'R':
-      this->InvokeEvent(KeyPressEvent_R);
-      break;
-    case 'z':
-    case 'Z':
-      this->InvokeEvent(KeyPressEvent_Z);
-      break;
-    case 's':
-    case 'S':
-      this->InvokeEvent(KeyPressEvent_S);
-      break;
-    case 'p':
-    case 'P':
-      this->InvokeEvent(KeyPressEvent_P);
-      break;
-    default:
-      if (strcmp(this->Interactor->GetKeySym(), "Delete") == 0)
-        {
-        this->InvokeEvent(KeyPressEvent_Delete);
-        break;
-        }
-    }
-}
-
-//-----------------------------------------------------------------------------
-void vtkInteractorStyleGeoMap::OnChar()
-{
-  // FIXME - may break vsPlay
-  // hide ResetCamera
-  switch (this->Interactor->GetKeyCode())
-    {
-    case 'r' :
-    case 'R' :
-      return;
-    default:
-      this->Superclass::OnChar();
-    }
-}
-
 //-----------------------------------------------------------------------------
 void vtkInteractorStyleGeoMap::OnLeftButtonDown()
 {
@@ -122,21 +74,23 @@ void vtkInteractorStyleGeoMap::OnLeftButtonDown()
     int *pos = this->Interactor->GetEventPosition();
 
     // Check if anything was picked
-    vtkNew<vtkMapPickResult> pickResult;
+    // vtkNew<vtkMapPickResult> pickResult;
+    vtkNew<vtkGeoMapSelection> pickResult;
     this->Map->PickPoint(pos, pickResult.GetPointer());
-    switch (pickResult->GetMapFeatureType())
-      {
-      case VTK_MAP_FEATURE_NONE:
-        vtkDebugMacro("StartPan()");
-        this->StartPan();
-        break;
+    this->InvokeEvent(SelectionCompleteEvent, pickResult.GetPointer());
+    // switch (pickResult->GetMapFeatureType())
+    //   {
+    //   case VTK_MAP_FEATURE_NONE:
+    //     vtkDebugMacro("StartPan()");
+    //     this->StartPan();
+    //     break;
 
-      case VTK_MAP_FEATURE_MARKER:
-      case VTK_MAP_FEATURE_CLUSTER:
-        // Todo highlight marker (?)
-        break;
-      }
-    return;
+    //   case VTK_MAP_FEATURE_MARKER:
+    //   case VTK_MAP_FEATURE_CLUSTER:
+    //     this->InvokeEvent(SelectionCompleteEvent);
+    //     break;
+    //   }
+    // return;
     }
 
   // fall back to built-in rubberband drawing if no renderer was given
@@ -249,22 +203,29 @@ void vtkInteractorStyleGeoMap::OnLeftButtonUp()
     return;
     }
 
-  if (this->Interaction != SELECTING)
-    {
-    return;
-    }
+  // if (this->Interaction != SELECTING)
+  //   {
+  //   return;
+  //   }
 
   this->RubberBandActor->VisibilityOff();
 
   int area = (this->EndPosition[0] - this->StartPosition[0]) *
              (this->EndPosition[1] - this->StartPosition[1]);
 
+
+  // Get corner points of interaction
+  vtkDebugMacro("RubberBandComplete with points:"
+                << " " << this->StartPosition[0] << ", " << this->EndPosition[0]
+                << "  " << this->StartPosition[1] << ", " << this->EndPosition[1]);
+
+
   // just a left click?
   if (this->RubberBandMode == DisabledMode ||
       this->RubberBandMode == DisplayOnlyMode ||
       area == 0)
     {
-    this->InvokeEvent(LeftClickEvent);
+    //this->InvokeEvent(LeftClickEvent);
     }
   // don't zoom or select for small rubberband; probably unintentional
   else if (abs(area) > 25)

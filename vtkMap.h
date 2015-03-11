@@ -25,6 +25,8 @@
 
 class vtkActor;
 class vtkCallbackCommand;
+class vtkGeoMapFeatureSelector;
+class vtkGeoMapSelection;
 class vtkInteractorStyle;
 class vtkInteractorStyleGeoMap;
 class vtkLayer;
@@ -119,7 +121,7 @@ public:
 
   // Description:
   // Returns info at specified display coordinates
-  void PickPoint(int displayCoords[2], vtkMapPickResult* result);
+  void PickPoint(int displayCoords[2], vtkGeoMapSelection* result);
 
   // Description:
   // Periodically poll asynchronous layers
@@ -194,6 +196,10 @@ protected:
   // Description:
   // List of layers attached to the map
   std::vector<vtkLayer*> Layers;
+
+  // Description:
+  // Helper class for selection
+  vtkGeoMapFeatureSelector *FeatureSelector;
 
   // Description:
   // Callback method for polling timer

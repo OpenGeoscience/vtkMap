@@ -13,6 +13,8 @@
 =========================================================================*/
 
 #include "vtkMap.h"
+#include "vtkGeoMapFeatureSelector.h"
+#include "vtkGeoMapSelection.h"
 #include "vtkInteractorStyleGeoMap.h"
 #include "vtkLayer.h"
 #include "vtkMapMarkerSet.h"
@@ -81,6 +83,7 @@ vtkMap::vtkMap()
 {
   this->StorageDirectory = NULL;
   this->Renderer = NULL;
+  this->FeatureSelector = vtkGeoMapFeatureSelector::New();
   this->InteractorStyle = vtkInteractorStyleGeoMap::New();
   this->InteractorStyle->SetMap(this);
   this->Picker = vtkPointPicker::New();
@@ -102,6 +105,10 @@ vtkMap::vtkMap()
 //----------------------------------------------------------------------------
 vtkMap::~vtkMap()
 {
+  if (this->FeatureSelector)
+    {
+    this->FeatureSelector->Delete();
+    }
   if (this->InteractorStyle)
     {
     this->InteractorStyle->Delete();
@@ -455,7 +462,6 @@ void vtkMap::Draw()
         }
       }
 
-
     // Initialize graphics
     double x = this->Center[1];
     double y = vtkMercator::lat2y(this->Center[0]);
@@ -484,10 +490,12 @@ double vtkMap::Clip(double n, double minValue, double maxValue)
 }
 
 //----------------------------------------------------------------------------
-void vtkMap::PickPoint(int displayCoords[2], vtkMapPickResult* result)
+void vtkMap::PickPoint(int displayCoords[2], vtkGeoMapSelection* result)
 {
-  this->MapMarkerSet->PickPoint(this->Renderer, this->Picker, displayCoords,
-      result);
+  // this->MapMarkerSet->PickPoint(this->Renderer, this->Picker, displayCoords,
+  //     result);
+  this->FeatureSelector->PickPoint(this->Renderer, displayCoords, result);
+
 }
 
 //----------------------------------------------------------------------------

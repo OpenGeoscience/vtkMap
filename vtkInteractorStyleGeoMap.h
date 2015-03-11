@@ -35,16 +35,9 @@ class VTKMAP_EXPORT vtkInteractorStyleGeoMap
 public:
   enum Commands
     {
-    LeftClickEvent = vtkCommand::UserEvent + 1,
-    RightClickEvent,
-    KeyPressEvent_A,
-    KeyPressEvent_R,
-    KeyPressEvent_Z,
-    KeyPressEvent_S,
-    KeyPressEvent_P,
-    KeyPressEvent_Delete,
-    ZoomCompleteEvent,
-    SelectionCompleteEvent
+    SelectionCompleteEvent = vtkCommand::UserEvent + 1,
+    DisplayCompleteEvent,
+    ZoomCompleteEvent
     };
 
 public:
@@ -59,11 +52,6 @@ public:
   // Constructor / Destructor.
   vtkInteractorStyleGeoMap();
   ~vtkInteractorStyleGeoMap();
-
-  // Description:
-  virtual void OnKeyPress();
-
-  virtual void OnChar();
 
   // Description:
   // Overriding these functions to implement custom

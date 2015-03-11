@@ -71,21 +71,21 @@ void vtkInteractorStyleMap::OnLeftButtonDown()
   int *pos = this->Interactor->GetEventPosition();
 
   // Check if anything was picked
-  vtkNew<vtkMapPickResult> pickResult;
-  this->Map->PickPoint(pos, pickResult.GetPointer());
+  // vtkNew<vtkMapPickResult> pickResult;
+  // this->Map->PickPoint(pos, pickResult.GetPointer());
 
-  switch (pickResult->GetMapFeatureType())
-    {
-    case VTK_MAP_FEATURE_NONE:
-      vtkDebugMacro("StartPan()");
-      this->StartPan();
-      break;
+  // switch (pickResult->GetMapFeatureType())
+  //   {
+  //   case VTK_MAP_FEATURE_NONE:
+  //     vtkDebugMacro("StartPan()");
+  //     this->StartPan();
+  //     break;
 
-    case VTK_MAP_FEATURE_MARKER:
-    case VTK_MAP_FEATURE_CLUSTER:
-      // Todo highlight marker (?)
-      break;
-    }
+  //   case VTK_MAP_FEATURE_MARKER:
+  //   case VTK_MAP_FEATURE_CLUSTER:
+  //     // Todo highlight marker (?)
+  //     break;
+  //   }
 
   this->Superclass::OnLeftButtonDown();
 }
