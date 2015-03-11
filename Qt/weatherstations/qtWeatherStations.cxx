@@ -78,12 +78,12 @@ public:
         this->App->updateMap();
         break;
 
-      case vtkCommand::LeftButtonPressEvent:
-        {
-        int *pos = interactor->GetEventPosition();
-        this->App->pickMarker(pos);
-        }
-        break;
+      // case vtkCommand::LeftButtonPressEvent:
+      //   {
+      //   int *pos = interactor->GetEventPosition();
+      //   this->App->pickMarker(pos);
+      //   }
+      //   break;
 
       default:
         //std::cout << "Mouse event " << vtkCommand::GetStringFromEventId(eventId) << std::endl;
@@ -401,34 +401,36 @@ vtkRenderer *qtWeatherStations::getRenderer() const
 // Handles left-click event
 void qtWeatherStations::pickMarker(int displayCoords[2])
 {
-  std::stringstream ss;
-  vtkNew<vtkMapPickResult> pickResult;
-  this->Map->PickPoint(displayCoords, pickResult.GetPointer());
+  QMessageBox::information(this->MapWidget, "Work In Progress",
+                           "Sorry - picking is currently disabled");
+  // std::stringstream ss;
+  // vtkNew<vtkMapPickResult> pickResult;
+  // this->Map->PickPoint(displayCoords, pickResult.GetPointer());
 
-  switch (pickResult->GetMapFeatureType())
-    {
-    case VTK_MAP_FEATURE_MARKER:
-      {
-      std::map<vtkIdType, StationReport>::iterator stationIter =
-        this->StationMap.find(pickResult->GetMapFeatureId());
-      if (stationIter != this->StationMap.end())
-        {
-        StationReport station = stationIter->second;
-        ss << "Station: " << station.name << "\n"
-           << "Current Temp: " << std::setiosflags(std::ios_base::fixed)
-           << std::setprecision(1) << station.temperature << "F";
-        QMessageBox::information(this->MapWidget, "Marker clicked",
-                                 QString::fromStdString(ss.str()));
-        }
-      }
-      break;
+  // switch (pickResult->GetMapFeatureType())
+  //   {
+  //   case VTK_MAP_FEATURE_MARKER:
+  //     {
+  //     std::map<vtkIdType, StationReport>::iterator stationIter =
+  //       this->StationMap.find(pickResult->GetMapFeatureId());
+  //     if (stationIter != this->StationMap.end())
+  //       {
+  //       StationReport station = stationIter->second;
+  //       ss << "Station: " << station.name << "\n"
+  //          << "Current Temp: " << std::setiosflags(std::ios_base::fixed)
+  //          << std::setprecision(1) << station.temperature << "F";
+  //       QMessageBox::information(this->MapWidget, "Marker clicked",
+  //                                QString::fromStdString(ss.str()));
+  //       }
+  //     }
+  //     break;
 
-    case VTK_MAP_FEATURE_CLUSTER:
-      ss << "Cluster of " << pickResult->GetNumberOfMarkers() << " stations.";
-      QMessageBox::information(this->MapWidget, "Cluster clicked",
-                               QString::fromStdString(ss.str()));
-      break;
-    }
+  //   case VTK_MAP_FEATURE_CLUSTER:
+  //     ss << "Cluster of " << pickResult->GetNumberOfMarkers() << " stations.";
+  //     QMessageBox::information(this->MapWidget, "Cluster clicked",
+  //                              QString::fromStdString(ss.str()));
+  //     break;
+  //   }
 }
 
 // ------------------------------------------------------------

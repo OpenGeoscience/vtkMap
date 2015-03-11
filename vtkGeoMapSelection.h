@@ -36,6 +36,7 @@ class VTKMAP_EXPORT vtkGeoMapSelection : public vtkObject
   virtual void PrintSelf(ostream &os, vtkIndent indent);
   vtkTypeMacro(vtkGeoMapSelection, vtkObject);
 
+  bool IsEmpty();
   void Clear();
   void AddFeature(vtkFeature *feature);
   void AddFeature(vtkFeature *feature, vtkIdList *ids);

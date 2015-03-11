@@ -70,27 +70,15 @@ void vtkInteractorStyleGeoMap::OnLeftButtonDown()
 {
   if (this->RubberBandMode == vtkInteractorStyleGeoMap::DisabledMode)
     {
-    // Default map interaction == select feature otherwise start pan
+    // Default map interaction == select feature & start pan
     int *pos = this->Interactor->GetEventPosition();
 
     // Check if anything was picked
-    // vtkNew<vtkMapPickResult> pickResult;
     vtkNew<vtkGeoMapSelection> pickResult;
     this->Map->PickPoint(pos, pickResult.GetPointer());
     this->InvokeEvent(SelectionCompleteEvent, pickResult.GetPointer());
-    // switch (pickResult->GetMapFeatureType())
-    //   {
-    //   case VTK_MAP_FEATURE_NONE:
-    //     vtkDebugMacro("StartPan()");
-    //     this->StartPan();
-    //     break;
-
-    //   case VTK_MAP_FEATURE_MARKER:
-    //   case VTK_MAP_FEATURE_CLUSTER:
-    //     this->InvokeEvent(SelectionCompleteEvent);
-    //     break;
-    //   }
-    // return;
+    vtkDebugMacro("StartPan()");
+    this->StartPan();
     }
 
   // fall back to built-in rubberband drawing if no renderer was given

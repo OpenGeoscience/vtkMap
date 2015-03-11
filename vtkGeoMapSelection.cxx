@@ -71,6 +71,12 @@ GetSelectedCellIds(vtkPolydataFeature *feature) const
 }
 
 //-----------------------------------------------------------------------------
+bool vtkGeoMapSelection::IsEmpty()
+{
+  return this->SelectedFeatures->GetNumberOfItems() == 0;
+}
+
+//-----------------------------------------------------------------------------
 void vtkGeoMapSelection::Clear()
 {
   std::map<vtkFeature*, vtkIdList *>::iterator iter =
