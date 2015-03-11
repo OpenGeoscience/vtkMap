@@ -25,10 +25,12 @@
 #include <vtkExtractSelectedFrustum.h>
 #include <vtkIdList.h>
 #include <vtkIdTypeArray.h>
+#include <vtkMatrix4x4.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
+#include <vtkPlanes.h>
 #include <vtkPolyData.h>
-#include <vtkProp3D.h>
+#include <vtkProp.h>
 #include <vtkProp3DCollection.h>
 #include <vtkUnstructuredGrid.h>
 
@@ -41,11 +43,8 @@ vtkStandardNewMacro(vtkGeoMapFeatureSelector);
 class vtkGeoMapFeatureSelector::vtkGeoMapFeatureSelectorInternal
 {
 public:
-  // Map feature id to vtkFeature instance
-  std::map<std::string, vtkFeature*> FeatureIdMap;
-
-  // Map vtkProp3D to feature id
-  std::map<vtkProp3D*, std::string> FeaturePickMap;
+  // Map vtkProp to vtkFeature
+  std::map<vtkProp*, vtkFeature*> FeaturePickMap;
 
 };
 
@@ -66,6 +65,26 @@ vtkGeoMapFeatureSelector::~vtkGeoMapFeatureSelector()
 void vtkGeoMapFeatureSelector::PrintSelf(ostream &os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
+}
+
+//----------------------------------------------------------------------------
+void vtkGeoMapFeatureSelector::AddFeature(vtkFeature *feature)
+{
+  vtkProp *prop = feature->PickProp();
+  if (prop)
+    {
+    this->Internal->FeaturePickMap[prop] = feature;
+    }
+}
+
+//----------------------------------------------------------------------------
+void vtkGeoMapFeatureSelector::RemoveFeature(vtkFeature *feature)
+{
+  vtkProp *prop = feature->PickProp();
+  if (prop)
+    {
+    this->Internal->FeaturePickMap.erase(prop);
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -97,14 +116,15 @@ PickPoint(vtkRenderer *renderer, int displayCoords[2],
     vtkProp3D *prop = props->GetNextProp3D();
     for (; prop; prop = props->GetNextProp3D())
       {
-      // If not in the feature map, skip it
-      if (this->Internal->FeaturePickMap.count(prop) < 1)
+      // Find corresponding map feature
+      std::map<vtkProp*, vtkFeature*>::iterator findIter =
+        this->Internal->FeaturePickMap.find(prop);
+      if (findIter == this->Internal->FeaturePickMap.end())
         {
+        vtkWarningMacro("vtkProp is *not* in the feature-pick dictionary");
         continue;
         }
-
-      std::string featureId = this->Internal->FeaturePickMap[prop];
-      vtkFeature *feature = this->Internal->FeatureIdMap[featureId];
+      vtkFeature *feature = findIter->second;
 
       // For polydata features, find specific cells
       vtkPolydataFeature *polydataFeature =
@@ -130,28 +150,45 @@ PickPoint(vtkRenderer *renderer, int displayCoords[2],
 
 // ------------------------------------------------------------
 void vtkGeoMapFeatureSelector::
-PickPolyDataCells(vtkProp3D *prop, vtkPlanes *frustum, vtkIdList *idList)
+PickPolyDataCells(vtkProp *prop, vtkPlanes *frustum, vtkIdList *idList)
 {
   idList->Reset();
   vtkActor *actor = vtkActor::SafeDownCast(prop);
   if (!actor)
     {
-    vtkWarningMacro("vtkProp3D is *not* a vtkActor");
+    vtkWarningMacro("vtkProp is *not* a vtkActor");
     return;
     }
 
-  // Find all cell ids for given actor
-  std::string featureId = this->Internal->FeaturePickMap[prop];
-  vtkFeature *feature = this->Internal->FeatureIdMap[featureId];
-
   // Get the actor's polydata
   vtkObject *object = actor->GetMapper()->GetInput();
-  //std::cout << "Input " << object->GetClassName() << std::endl;
   vtkPolyData *polyData = vtkPolyData::SafeDownCast(object);
   if (!polyData)
     {
     vtkWarningMacro("Picked vtkActor is *not* displaying vtkPolyData");
     return;
+    }
+  // std::cout << "Number of PolyData cells: " << polyData->GetNumberOfCells()
+  //           << std::endl;
+
+  // Check actor for tranform
+  if (!actor->GetIsIdentity())
+    {
+    // If there is a transform, apply it's inverse to the frustum
+    vtkMatrix4x4 *actorMatrix = actor->GetMatrix();
+    vtkNew<vtkMatrix4x4> frustumMatrix;
+    vtkMatrix4x4::Invert(actorMatrix, frustumMatrix.GetPointer());
+
+    vtkPoints *points = frustum->GetPoints();
+    double fromPoint[] = {0.0, 0.0, 0.0, 1.0};
+    double toPoint[] = {0.0, 0.0, 0.0, 1.0};
+
+    for (vtkIdType i=0; i<points->GetNumberOfPoints(); i++)
+      {
+      points->GetPoint(i, fromPoint);
+      frustumMatrix->MultiplyPoint(fromPoint, toPoint);
+      points->SetPoint(i, toPoint);
+      }
     }
 
   // Find all picked cells for this polydata
@@ -161,9 +198,8 @@ PickPolyDataCells(vtkProp3D *prop, vtkPlanes *frustum, vtkIdList *idList)
   extractor->SetFrustum(frustum);
   extractor->Update();
   vtkDataObject *output = extractor->GetOutput();
-  //std::cout << "Output " << output->GetClassName() << std::endl;
   vtkUnstructuredGrid *ugrid = vtkUnstructuredGrid::SafeDownCast(output);
-  //std::cout << "#cells: " << ugrid->GetNumberOfCells() << std::endl;
+  //std::cout << "Number of UGrid cells: " << ugrid->GetNumberOfCells() << std::endl;
 
   // Make sure that the extractor "worked"
   if (ugrid->GetNumberOfCells() < 1)

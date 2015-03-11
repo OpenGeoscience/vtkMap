@@ -114,3 +114,9 @@ void vtkRasterFeature::CleanUp()
   this->Layer->GetRenderer()->RemoveActor(this->Actor);
   this->SetLayer(0);
 }
+
+//----------------------------------------------------------------------------
+vtkProp *vtkRasterFeature::PickProp()
+{
+  return this->Actor;
+}

@@ -54,6 +54,10 @@ public:
   // Override
   virtual void Update();
 
+  // Description:
+  // Override
+  virtual vtkProp *PickProp();
+
 protected:
   vtkPolydataFeature();
   ~vtkPolydataFeature();

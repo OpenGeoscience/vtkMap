@@ -88,6 +88,9 @@ void vtkFeatureLayer::AddFeature(vtkFeature* feature)
 
   feature->Init();
 
+  // Notify the map
+  this->Map->FeatureAdded(feature);
+
   this->Modified();
 }
 
@@ -110,6 +113,9 @@ void vtkFeatureLayer::RemoveFeature(vtkFeature* feature)
   //now resize the array to not hold the empty feature
   this->Impl->Features.erase( std::remove(this->Impl->Features.begin(),
                               this->Impl->Features.end(), feature ));
+
+  // Notify the map
+  this->Map->FeatureRemoved(feature);
 }
 
 //----------------------------------------------------------------------------

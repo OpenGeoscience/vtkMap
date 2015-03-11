@@ -25,6 +25,7 @@
 
 class vtkActor;
 class vtkCallbackCommand;
+class vtkFeature;
 class vtkGeoMapFeatureSelector;
 class vtkGeoMapSelection;
 class vtkInteractorStyle;
@@ -118,6 +119,16 @@ public:
   // Description:
   // Update the renderer with relevant map content
   void Draw();
+
+  // Description:
+  // Update internal logic when feature is added.
+  // This method should only be called by vtkFeatureLayer
+  void FeatureAdded(vtkFeature *feature);
+
+  // Description:
+  // Update internal logic when feature is removed.
+  // This method should only be called by vtkFeatureLayer
+  void FeatureRemoved(vtkFeature *feature);
 
   // Description:
   // Returns info at specified display coordinates

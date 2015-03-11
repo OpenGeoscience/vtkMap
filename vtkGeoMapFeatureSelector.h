@@ -24,10 +24,11 @@
 #include <vtkObject.h>
 #include "vtkmap_export.h"
 
+class vtkFeature;
 class vtkGeoMapSelection;
 class vtkIdList;
 class vtkPlanes;
-class vtkProp3D;
+class vtkProp;
 class vtkRenderer;
 
 class VTKMAP_NO_EXPORT vtkGeoMapFeatureSelector : public vtkObject
@@ -37,8 +38,8 @@ class VTKMAP_NO_EXPORT vtkGeoMapFeatureSelector : public vtkObject
   virtual void PrintSelf(ostream &os, vtkIndent indent);
   vtkTypeMacro(vtkGeoMapFeatureSelector, vtkObject);
 
-  void AddFeature(vtkFeature *feature, vtkProp3D *prop);
-  void RemoveFeature(vtkFeature *feature, vtkProp3D *prop);
+  void AddFeature(vtkFeature *feature);
+  void RemoveFeature(vtkFeature *feature);
   void PickPoint(vtkRenderer *renderer, int displayCoords[2],
                  vtkGeoMapSelection *selection);
 
@@ -46,7 +47,7 @@ class VTKMAP_NO_EXPORT vtkGeoMapFeatureSelector : public vtkObject
   vtkGeoMapFeatureSelector();
   ~vtkGeoMapFeatureSelector();
 
-  void PickPolyDataCells(vtkProp3D *prop, vtkPlanes *frustum,
+  void PickPolyDataCells(vtkProp *prop, vtkPlanes *frustum,
                          vtkIdList *idList);
 
  private:

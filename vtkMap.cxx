@@ -361,6 +361,8 @@ void vtkMap::RemoveLayer(vtkLayer* layer)
 
   this->Layers.erase(std::remove(this->Layers.begin(),
                                  this->Layers.end(), layer));
+
+  // Todo remove all layer's feature from selector
 }
 
 //----------------------------------------------------------------------------
@@ -479,6 +481,18 @@ void vtkMap::Draw()
 vtkMap::AsyncState vtkMap::GetAsyncState()
 {
   return this->CurrentAsyncState;
+}
+
+//----------------------------------------------------------------------------
+void vtkMap::FeatureAdded(vtkFeature *feature)
+{
+  this->FeatureSelector->AddFeature(feature);
+}
+
+//----------------------------------------------------------------------------
+void vtkMap::FeatureRemoved(vtkFeature *feature)
+{
+  this->FeatureSelector->RemoveFeature(feature);
 }
 
 //----------------------------------------------------------------------------
