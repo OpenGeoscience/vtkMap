@@ -25,6 +25,7 @@
 #include <vtkActor2D.h>
 #include <vtkCallbackCommand.h>
 #include <vtkCamera.h>
+#include <vtkCollection.h>
 #include <vtkImageInPlaceFilter.h>
 #include <vtkMath.h>
 #include <vtkMatrix4x4.h>
@@ -359,10 +360,24 @@ void vtkMap::RemoveLayer(vtkLayer* layer)
     return;
     }
 
+  // Remove any features from feature selector
+  vtkFeatureLayer *featureLayer = vtkFeatureLayer::SafeDownCast(layer);
+  if (featureLayer)
+    {
+    vtkCollection *features = featureLayer->GetFeatures();
+    for (int i=0; i<features->GetNumberOfItems(); i++)
+      {
+      vtkObject *item = features->GetItemAsObject(i);
+      vtkFeature *feature = vtkFeature::SafeDownCast(item);
+      if (feature)
+        {
+        this->FeatureSelector->RemoveFeature(feature);
+        }
+      }
+    }
+
   this->Layers.erase(std::remove(this->Layers.begin(),
                                  this->Layers.end(), layer));
-
-  // Todo remove all layer's feature from selector
 }
 
 //----------------------------------------------------------------------------

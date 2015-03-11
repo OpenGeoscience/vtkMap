@@ -15,8 +15,10 @@
 #include "vtkFeatureLayer.h"
 #include "vtkFeature.h"
 
+#include <vtkCollection.h>
 #include <vtkObjectFactory.h>
 #include <vtkSetGet.h>
+#include <vtkSmartPointer.h>
 
 #include <algorithm>
 #include <iterator>
@@ -29,6 +31,7 @@ class vtkFeatureLayer::vtkInternal
 {
 public:
   std::vector<vtkFeature*> Features;
+  vtkSmartPointer<vtkCollection> FeatureCollection;
 };
 
 //----------------------------------------------------------------------------
@@ -116,6 +119,21 @@ void vtkFeatureLayer::RemoveFeature(vtkFeature* feature)
 
   // Notify the map
   this->Map->FeatureRemoved(feature);
+}
+
+//----------------------------------------------------------------------------
+vtkCollection *vtkFeatureLayer::GetFeatures()
+{
+  // The internal feature collection could be cached, but for,
+  // we'll rebuild it every time.
+  this->Impl->FeatureCollection->RemoveAllItems();
+  std::vector<vtkFeature*>::iterator iter = this->Impl->Features.begin();
+  for (; iter != this->Impl->Features.end(); iter++)
+    {
+    vtkFeature *feature = *iter;
+    this->Impl->FeatureCollection->AddItem(feature);
+    }
+  return this->Impl->FeatureCollection;
 }
 
 //----------------------------------------------------------------------------

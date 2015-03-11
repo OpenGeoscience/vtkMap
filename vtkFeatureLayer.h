@@ -21,6 +21,7 @@
 #include "vtkLayer.h"
 #include "vtkmap_export.h"
 
+class vtkCollection;
 class vtkFeature;
 
 class VTKMAP_EXPORT vtkFeatureLayer : public vtkLayer
@@ -38,6 +39,10 @@ public:
   // Description:
   // Remove a feature from the layer
   void RemoveFeature(vtkFeature* feature);
+
+  // Description:
+  // Return all features contained here
+  vtkCollection *GetFeatures();
 
   // Description:
   // Update features and prepare them for rendering
