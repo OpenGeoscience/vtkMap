@@ -25,7 +25,7 @@
 
 class vtkMap;
 
-class VTKMAP_EXPORT vtkInteractorStyleMap : public vtkInteractorStyle
+class VTKMAP_DEPRECATED vtkInteractorStyleMap : public vtkInteractorStyle
 {
 public:
   static vtkInteractorStyleMap *New();

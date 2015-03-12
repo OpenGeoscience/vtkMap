@@ -23,10 +23,7 @@
 #include <set>
 
 class vtkActor;
-class vtkMapClusteredMarkerSet;
-class vtkMapPickResult;
 class vtkMapper;
-class vtkPicker;
 class vtkPolyDataMapper;
 class vtkPolyData;
 class vtkRenderer;
@@ -72,8 +69,8 @@ public:
 
   // Description:
   // Returns id of marker at specified display coordinates
-  void PickPoint(vtkRenderer *renderer, vtkPicker *picker,
-           int displayCoords[2], vtkMapPickResult *result);
+  /* void PickPoint(vtkRenderer *renderer, vtkPicker *picker, */
+  /*          int displayCoords[2], vtkMapPickResult *result); */
 
  protected:
   vtkMapMarkerSet();

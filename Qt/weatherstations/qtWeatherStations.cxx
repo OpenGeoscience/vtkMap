@@ -17,13 +17,12 @@
 #include "ui_qtWeatherStations.h"
 #include "vtkMap.h"
 #include "vtkMapMarkerSet.h"
-#include "vtkMapPickResult.h"
+//#include "vtkMapPickResult.h"
 #include "vtkOsmLayer.h"
 #include <QVTKWidget.h>
 #include <vtkCallbackCommand.h>
 #include <vtkInteractorStyleImage.h>
 #include <vtkNew.h>
-#include <vtkPicker.h>
 #include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
@@ -133,7 +132,6 @@ qtWeatherStations::qtWeatherStations(QWidget *parent)
 
   vtkRenderWindowInteractor *intr = this->MapWidget->GetInteractor();
   intr->SetInteractorStyle(this->Map->GetInteractorStyle());
-  intr->SetPicker(this->Map->GetPicker());
   intr->Initialize();
 
   // Pass *all* callbacks to MapCallback instance

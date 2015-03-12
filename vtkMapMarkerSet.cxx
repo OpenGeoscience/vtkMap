@@ -13,7 +13,6 @@
 =========================================================================*/
 
 #include "vtkMapMarkerSet.h"
-#include "vtkMapPickResult.h"
 #include "vtkMercator.h"
 #include "vtkTeardropSource.h"
 
@@ -26,7 +25,6 @@
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
 #include <vtkPointData.h>
-#include <vtkPointPicker.h>
 #include <vtkPoints.h>
 #include <vtkPolyData.h>
 #include <vtkPolyDataMapper.h>
@@ -426,62 +424,62 @@ void vtkMapMarkerSet::Update(int zoomLevel)
 }
 
 //----------------------------------------------------------------------------
-void vtkMapMarkerSet::
-PickPoint(vtkRenderer *renderer, vtkPicker *picker, int displayCoords[2],
-    vtkMapPickResult *result)
-{
-  result->SetDisplayCoordinates(displayCoords);
-  result->SetMapLayer(0);
-  // TODO Need general display <--> gcs coords
-  result->SetMapFeatureType(VTK_MAP_FEATURE_NONE);
-  result->SetNumberOfMarkers(0);
-  result->SetMapFeatureId(-1);
+// void vtkMapMarkerSet::
+// PickPoint(vtkRenderer *renderer, vtkPicker *picker, int displayCoords[2],
+//     vtkMapPickResult *result)
+// {
+//   result->SetDisplayCoordinates(displayCoords);
+//   result->SetMapLayer(0);
+//   // TODO Need general display <--> gcs coords
+//   result->SetMapFeatureType(VTK_MAP_FEATURE_NONE);
+//   result->SetNumberOfMarkers(0);
+//   result->SetMapFeatureId(-1);
 
-  vtkPointPicker *pointPicker = vtkPointPicker::SafeDownCast(picker);
-  if (pointPicker &&
-      (pointPicker->Pick(displayCoords[0], displayCoords[1], 0.0, renderer)))
-    {
-    // std::cout << "Using tolerance " << pointPicker->GetTolerance() << std::endl;
-    // vtkPoints *pickPoints = pointPicker->GetPickedPositions();
-    // std::cout << "Picked " << pickPoints->GetNumberOfPoints() << " points "
-    //           << std::endl;
+//   vtkPointPicker *pointPicker = vtkPointPicker::SafeDownCast(picker);
+//   if (pointPicker &&
+//       (pointPicker->Pick(displayCoords[0], displayCoords[1], 0.0, renderer)))
+//     {
+//     // std::cout << "Using tolerance " << pointPicker->GetTolerance() << std::endl;
+//     // vtkPoints *pickPoints = pointPicker->GetPickedPositions();
+//     // std::cout << "Picked " << pickPoints->GetNumberOfPoints() << " points "
+//     //           << std::endl;
 
-    vtkIdType pointId = pointPicker->GetPointId();
-    if (pointId > 0)
-      {
-      vtkDataArray *dataArray =
-        pointPicker->GetDataSet()->GetPointData()->GetArray("InputPointIds");
-      vtkIdTypeArray *glyphIdArray = vtkIdTypeArray::SafeDownCast(dataArray);
-      if (glyphIdArray)
-        {
-        int glyphId = glyphIdArray->GetValue(pointId);
-        // std::cout << "Point id " << pointId
-        //           << " - Data " << glyphId << std::endl;
+//     vtkIdType pointId = pointPicker->GetPointId();
+//     if (pointId > 0)
+//       {
+//       vtkDataArray *dataArray =
+//         pointPicker->GetDataSet()->GetPointData()->GetArray("InputPointIds");
+//       vtkIdTypeArray *glyphIdArray = vtkIdTypeArray::SafeDownCast(dataArray);
+//       if (glyphIdArray)
+//         {
+//         int glyphId = glyphIdArray->GetValue(pointId);
+//         // std::cout << "Point id " << pointId
+//         //           << " - Data " << glyphId << std::endl;
 
-        ClusteringNode *node = this->Internals->CurrentNodes[glyphId];
-        // std::cout << "Marker id " << marker->MarkerId
-        //           << ", Count " << marker->NumberOfMarkers
-        //           << ", at " << marker->Latitude << ", " << marker->Longitude
-        //           << std::endl;
-        result->SetNumberOfMarkers(node->NumberOfMarkers);
-        if (node->NumberOfMarkers == 1)
-          {
-          result->SetMapFeatureType(VTK_MAP_FEATURE_MARKER);
-          result->SetMapFeatureId(node->MarkerId);
-          }
-        else if (node->NumberOfMarkers > 1)
-          {
-          result->SetMapFeatureType(VTK_MAP_FEATURE_CLUSTER);
-          }
+//         ClusteringNode *node = this->Internals->CurrentNodes[glyphId];
+//         // std::cout << "Marker id " << marker->MarkerId
+//         //           << ", Count " << marker->NumberOfMarkers
+//         //           << ", at " << marker->Latitude << ", " << marker->Longitude
+//         //           << std::endl;
+//         result->SetNumberOfMarkers(node->NumberOfMarkers);
+//         if (node->NumberOfMarkers == 1)
+//           {
+//           result->SetMapFeatureType(VTK_MAP_FEATURE_MARKER);
+//           result->SetMapFeatureId(node->MarkerId);
+//           }
+//         else if (node->NumberOfMarkers > 1)
+//           {
+//           result->SetMapFeatureType(VTK_MAP_FEATURE_CLUSTER);
+//           }
 
-        result->SetLatitude(vtkMercator::y2lat(node->gcsCoords[1]));
-        result->SetLongitude(node->gcsCoords[0]);
-        //result->Print(std::cout);
-        }
-      }
-    }
+//         result->SetLatitude(vtkMercator::y2lat(node->gcsCoords[1]));
+//         result->SetLongitude(node->gcsCoords[0]);
+//         //result->Print(std::cout);
+//         }
+//       }
+//     }
 
-}
+// }
 
 //----------------------------------------------------------------------------
 void vtkMapMarkerSet::InitializeRenderingPipeline()

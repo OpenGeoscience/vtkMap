@@ -29,7 +29,7 @@
 #define VTK_MAP_FEATURE_CLUSTER 2
 
 //----------------------------------------------------------------------------
-class VTKMAP_EXPORT vtkMapPickResult : public vtkObject
+class VTKMAP_DEPRECATED vtkMapPickResult : public vtkObject
 {
  public:
   static vtkMapPickResult *New();

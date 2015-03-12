@@ -23,7 +23,6 @@
 
 #include "vtkmap_export.h"
 
-class vtkActor;
 class vtkCallbackCommand;
 class vtkFeature;
 class vtkGeoMapFeatureSelector;
@@ -32,9 +31,6 @@ class vtkInteractorStyle;
 class vtkInteractorStyleGeoMap;
 class vtkLayer;
 class vtkMapMarkerSet;
-class vtkMapPickResult;
-class vtkPicker;
-class vtkPoints;
 class vtkRenderer;
 
 #include <map>
@@ -75,11 +71,6 @@ public:
   // Description:
   // Get the map marker layer
   vtkGetMacro(MapMarkerSet, vtkMapMarkerSet*);
-
-  // Description:
-  // Get/Set the picker used for picking map markers
-  vtkGetMacro(Picker, vtkPicker*)
-  vtkSetMacro(Picker, vtkPicker*)
 
   // Description:
   // Get/Set the detailing level
@@ -178,10 +169,6 @@ protected:
   // Description:
   // The interactor style used by the map
   vtkInteractorStyleGeoMap* InteractorStyle;
-
-  // Description:
-  // The picker used for picking map markers
-  vtkPicker* Picker;
 
   // Description:
   // Set Zoom level, which determines the level of detailing

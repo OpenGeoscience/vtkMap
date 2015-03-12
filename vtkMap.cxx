@@ -22,17 +22,11 @@
 #include "vtkMercator.h"
 
 // VTK Includes
-#include <vtkActor2D.h>
 #include <vtkCallbackCommand.h>
 #include <vtkCamera.h>
 #include <vtkCollection.h>
-#include <vtkImageInPlaceFilter.h>
 #include <vtkMath.h>
-#include <vtkMatrix4x4.h>
 #include <vtkObjectFactory.h>
-#include <vtkPlaneSource.h>
-#include <vtkPointPicker.h>
-#include <vtkPoints.h>
 #include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
@@ -87,7 +81,6 @@ vtkMap::vtkMap()
   this->FeatureSelector = vtkGeoMapFeatureSelector::New();
   this->InteractorStyle = vtkInteractorStyleGeoMap::New();
   this->InteractorStyle->SetMap(this);
-  this->Picker = vtkPointPicker::New();
   this->Zoom = 1;
   this->Center[0] = this->Center[1] = 0.0;
   this->MapMarkerSet = vtkMapMarkerSet::New();
@@ -117,10 +110,6 @@ vtkMap::~vtkMap()
   if (this->MapMarkerSet)
     {
     this->MapMarkerSet->Delete();
-    }
-  if (this->Picker)
-    {
-    this->Picker->Delete();
     }
   if (this->PollingCallbackCommand)
     {

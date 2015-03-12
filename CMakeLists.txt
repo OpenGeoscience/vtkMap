@@ -62,9 +62,7 @@ set (SOURCES
     vtkGeoMapFeatureSelector.cxx
     vtkGeoMapSelection.cxx
     vtkInteractorStyleGeoMap.cxx
-    vtkInteractorStyleMap.cxx
     vtkMapMarkerSet.cxx
-    vtkMapPickResult.cxx
     vtkMapTile.cxx
     vtkMap.cxx
     vtkMultiThreadedOsmLayer.cxx
@@ -84,9 +82,7 @@ set (HEADERS
     vtkGDALRasterReprojection.h
     vtkGeoMapFeatureSelector.h
     vtkGeoMapSelection.h
-    vtkInteractorStyleMap.h
     vtkMapMarkerSet.h
-    vtkMapPickResult.h
     vtkMapTile.h
     vtkMapTileSpecInternal.h
     vtkMap.h

@@ -25,8 +25,6 @@
 #include "vtkFeature.h"
 #include "vtkmap_export.h"
 
-#include <string>
-
 class VTKMAP_EXPORT vtkPolydataFeature : public vtkFeature
 {
 public:
