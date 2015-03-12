@@ -42,6 +42,8 @@ class VTKMAP_NO_EXPORT vtkGeoMapFeatureSelector : public vtkObject
   void RemoveFeature(vtkFeature *feature);
   void PickPoint(vtkRenderer *renderer, int displayCoords[2],
                  vtkGeoMapSelection *selection);
+  void PickArea(vtkRenderer *renderer, int displayCoords[4],
+                vtkGeoMapSelection *selection);
 
  protected:
   vtkGeoMapFeatureSelector();

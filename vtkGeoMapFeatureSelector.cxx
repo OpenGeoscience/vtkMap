@@ -92,18 +92,32 @@ void vtkGeoMapFeatureSelector::
 PickPoint(vtkRenderer *renderer, int displayCoords[2],
           vtkGeoMapSelection *selection)
 {
-  // Clear internal selection
+  // Expand area pickers frustum size to increase reliability
+  const double offset = 4.0;
+
+  int boundCoords[4];
+  boundCoords[0] = displayCoords[0] - offset;
+  boundCoords[1] = displayCoords[1] - offset;
+  boundCoords[2] = displayCoords[0] + offset;
+  boundCoords[3] = displayCoords[1] + offset;
+  this->PickArea(renderer, boundCoords, selection);
+}
+
+//-----------------------------------------------------------------------------
+void vtkGeoMapFeatureSelector::
+PickArea(vtkRenderer *renderer, int displayCoords[4],
+         vtkGeoMapSelection *selection)
+{
+  // Clear selection
   selection->Clear();
 
   vtkNew<vtkAreaPicker> areaPicker;
-  //int result = areaPicker->Pick(pos[0], pos[1], 0.0, this->Renderer);
-  // Expand area pickers frustum size to increase reliability
-  const double offset = 4.0;
-  int result =
-    areaPicker->AreaPick(displayCoords[0]-offset, displayCoords[1]-offset,
-                         displayCoords[0]+offset, displayCoords[1]+offset,
-                         renderer);
+  int result = areaPicker->AreaPick(
+    displayCoords[0], displayCoords[1],
+    displayCoords[2], displayCoords[3],
+    renderer);
   //std::cout << "Pick result " << result << std::endl;
+
   if (result)
     {
     vtkNew<vtkIdList> idList;

@@ -37,6 +37,8 @@
 #include <vtkRenderWindowInteractor.h>
 #include <vtkUnsignedCharArray.h>
 
+#include <algorithm>  // std::min, std::max
+
 vtkStandardNewMacro(vtkInteractorStyleGeoMap);
 
 //-----------------------------------------------------------------------------
@@ -192,45 +194,58 @@ void vtkInteractorStyleGeoMap::OnLeftButtonUp()
   vtkDebugMacro("RubberBand complete with points:"
                 << " " << this->StartPosition[0] << ", " << this->EndPosition[0]
                 << "  " << this->StartPosition[1] << ", " << this->EndPosition[1]);
-  int area = abs((this->EndPosition[0] - this->StartPosition[0]) *
-                 (this->EndPosition[1] - this->StartPosition[1]));
 
-  // Ignore small rubberband; probably unintentional
-  if (area > 25)
+  // Display-only mode
+  if (this->RubberBandMode == vtkInteractorStyleGeoMap::DisplayOnlyMode)
     {
-    // Compute latitude-longitude coordinates (elevation 0.0)
-    double displayCoords[2];
-    double latLonCoords[3];
-    displayCoords[0] = this->StartPosition[0];
-    displayCoords[1] = this->StartPosition[1];
-    this->Map->ComputeLatLngCoords(displayCoords, 0.0, latLonCoords);
-    this->RubberBandLatLonCoords[0] = latLonCoords[0];
-    this->RubberBandLatLonCoords[1] = latLonCoords[1];
+    this->InvokeEvent(vtkInteractorStyleGeoMap::DisplayCompleteEvent,
+                      this->RubberBandLatLonCoords);
+    }
 
-    displayCoords[0] = this->EndPosition[0];
-    displayCoords[1] = this->EndPosition[1];
-    this->Map->ComputeLatLngCoords(displayCoords, 0.0, latLonCoords);
-    this->RubberBandLatLonCoords[2] = latLonCoords[0];
-    this->RubberBandLatLonCoords[3] = latLonCoords[1];
+  // Selection mode
+  else if (this->RubberBandMode == vtkInteractorStyleGeoMap::SelectionMode)
+    {
+    vtkNew<vtkGeoMapSelection> pickResult;
+    int boundCoords[4];
+    boundCoords[0] = std::min(this->StartPosition[0], this->EndPosition[0]);
+    boundCoords[1] = std::min(this->StartPosition[1], this->EndPosition[1]);
+    boundCoords[2] = std::max(this->StartPosition[0], this->EndPosition[0]);
+    boundCoords[3] = std::max(this->StartPosition[1], this->EndPosition[1]);
+    this->Map->PickArea(boundCoords, pickResult.GetPointer());
+    this->InvokeEvent(SelectionCompleteEvent, pickResult.GetPointer());
+    }
 
-    // For display-only mode, just invoke the event
-    if (this->RubberBandMode == vtkInteractorStyleGeoMap::DisplayOnlyMode)
+  // Zoom mode
+  else if (this->RubberBandMode == vtkInteractorStyleGeoMap::ZoomMode)
+    {
+    // Ignore small rubberband; probably unintentional
+    int area = abs((this->EndPosition[0] - this->StartPosition[0]) *
+                   (this->EndPosition[1] - this->StartPosition[1]));
+    if (area > 25)
       {
-      this->InvokeEvent(vtkInteractorStyleGeoMap::DisplayCompleteEvent,
-                        this->RubberBandLatLonCoords);
-      }
+      // Compute latitude-longitude coordinates (elevation 0.0)
+      double displayCoords[2];
+      double latLonCoords[3];
+      displayCoords[0] = this->StartPosition[0];
+      displayCoords[1] = this->StartPosition[1];
+      this->Map->ComputeLatLngCoords(displayCoords, 0.0, latLonCoords);
+      this->RubberBandLatLonCoords[0] = latLonCoords[0];
+      this->RubberBandLatLonCoords[1] = latLonCoords[1];
 
-    // For zoom mode, change visible bounds and send event
-    else if (this->RubberBandMode == vtkInteractorStyleGeoMap::ZoomMode)
-      {
+      displayCoords[0] = this->EndPosition[0];
+      displayCoords[1] = this->EndPosition[1];
+      this->Map->ComputeLatLngCoords(displayCoords, 0.0, latLonCoords);
+      this->RubberBandLatLonCoords[2] = latLonCoords[0];
+      this->RubberBandLatLonCoords[3] = latLonCoords[1];
+
+      // Change visible bounds and send event
       this->Map->SetVisibleBounds(this->RubberBandLatLonCoords);
       this->InvokeEvent(vtkInteractorStyleGeoMap::ZoomCompleteEvent,
                         this->RubberBandLatLonCoords);
-      }
+      }  // if (area)
+    }  // else if (zoom mode)
 
-    }  // if (area)
-
-  this->GetInteractor()->Render();
+  this->Map->Draw();
   this->Interaction = NONE;
 }
 

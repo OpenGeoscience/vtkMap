@@ -539,10 +539,14 @@ void vtkMap::ComputeLatLngCoords(double displayCoords[2], double elevation,
 //----------------------------------------------------------------------------
 void vtkMap::PickPoint(int displayCoords[2], vtkGeoMapSelection* result)
 {
-  // this->MapMarkerSet->PickPoint(this->Renderer, this->Picker, displayCoords,
-  //     result);
   this->FeatureSelector->PickPoint(this->Renderer, displayCoords, result);
 
+}
+
+//----------------------------------------------------------------------------
+void vtkMap::PickArea(int displayCoords[4], vtkGeoMapSelection* result)
+{
+  this->FeatureSelector->PickArea(this->Renderer, displayCoords, result);
 }
 
 //----------------------------------------------------------------------------

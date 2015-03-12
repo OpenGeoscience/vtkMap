@@ -131,8 +131,13 @@ public:
   void FeatureRemoved(vtkFeature *feature);
 
   // Description:
-  // Returns info at specified display coordinates
+  // Returns map features at specified display coordinates
   void PickPoint(int displayCoords[2], vtkGeoMapSelection* result);
+
+  // Description:
+  // Returns map features at specified area (bounding box
+  // in display coordinates)
+  void PickArea(int displayCoords[4], vtkGeoMapSelection *selection);
 
   // Description:
   // Periodically poll asynchronous layers

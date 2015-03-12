@@ -101,7 +101,7 @@ int main()
   vtkInteractorStyle *style = map->GetInteractorStyle();
   vtkInteractorStyleGeoMap *mapStyle =
     vtkInteractorStyleGeoMap::SafeDownCast(style);
-  //mapStyle->SetRubberBandModeToDisplayOnly();
+  mapStyle->SetRubberBandModeToSelection();
   intr->SetInteractorStyle(style);
 
   intr->Initialize();
