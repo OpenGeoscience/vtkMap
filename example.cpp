@@ -140,8 +140,9 @@ int main()
     35.911373, -79.072205,  // KRS
     32.301393, -90.871495   // ERDC
   };
-  vtkMapMarkerSet *markerSet = map->GetMapMarkerSet();
+  vtkNew<vtkMapMarkerSet> markerSet;
   markerSet->ClusteringOn();
+  featureLayer->AddFeature(markerSet.GetPointer());
   unsigned numMarkers = sizeof(latlonCoords) / sizeof(double) / 2;
   for (unsigned i=0; i<numMarkers; ++i)
     {

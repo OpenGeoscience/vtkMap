@@ -30,7 +30,6 @@ class vtkGeoMapSelection;
 class vtkInteractorStyle;
 class vtkInteractorStyleGeoMap;
 class vtkLayer;
-class vtkMapMarkerSet;
 class vtkRenderer;
 
 #include <map>
@@ -67,10 +66,6 @@ public:
   // Note these are asymmetric on purpose
   vtkSetMacro(InteractorStyle, vtkInteractorStyleGeoMap*)
   vtkInteractorStyle *GetInteractorStyle();
-
-  // Description:
-  // Get the map marker layer
-  vtkGetMacro(MapMarkerSet, vtkMapMarkerSet*);
 
   // Description:
   // Get/Set the detailing level
@@ -181,10 +176,6 @@ protected:
   // Description:
   // Directory for caching map files
   char* StorageDirectory;
-
-  // Description:
-  // The map marker manager
-  vtkMapMarkerSet *MapMarkerSet;
 
 protected:
   bool Initialized;

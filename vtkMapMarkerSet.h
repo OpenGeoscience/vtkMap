@@ -18,7 +18,7 @@
 #ifndef __vtkMapMarkerSet_h
 #define __vtkMapMarkerSet_h
 
-#include <vtkObject.h>
+#include "vtkPolydataFeature.h"
 #include "vtkmap_export.h"
 #include <set>
 
@@ -28,16 +28,12 @@ class vtkPolyDataMapper;
 class vtkPolyData;
 class vtkRenderer;
 
-class VTKMAP_EXPORT vtkMapMarkerSet : public vtkObject
+class VTKMAP_EXPORT vtkMapMarkerSet : public vtkPolydataFeature
 {
 public:
   static vtkMapMarkerSet *New();
   virtual void PrintSelf(ostream &os, vtkIndent indent);
-  vtkTypeMacro(vtkMapMarkerSet, vtkObject);
-
-  // Description:
-  // Set the renderer in which map markers will be added
-  vtkSetMacro(Renderer, vtkRenderer *);
+  vtkTypeMacro(vtkMapMarkerSet, vtkPolydataFeature);
 
   // Description:
   // Set/get whether to apply hierarchical clustering to map markers.
@@ -60,23 +56,21 @@ public:
   vtkIdType AddMarker(double latitude, double longitude);
 
   // Description:
-  // Removes all map markers
-  void RemoveMarkers();
+  // Override
+  virtual void Init();
 
   // Description:
   // Update the marker geometry to draw the map
-  void Update(int zoomLevel);
+  //void Update(int zoomLevel);
+  virtual void Update();
 
   // Description:
-  // Returns id of marker at specified display coordinates
-  /* void PickPoint(vtkRenderer *renderer, vtkPicker *picker, */
-  /*          int displayCoords[2], vtkMapPickResult *result); */
+  // Override
+  virtual void Cleanup();
 
  protected:
   vtkMapMarkerSet();
   ~vtkMapMarkerSet();
-
-  void InitializeRenderingPipeline();
 
   // Description:
   // Indicates that internal logic & pipeline have been initialized
@@ -91,12 +85,8 @@ public:
   double MaxClusterScaleFactor;
 
   // Description:
-  // The renderer used to draw maps
-  vtkRenderer* Renderer;
-
+  // Geometry representation; gets updated each zoom-level change
   vtkPolyData *PolyData;
-  vtkPolyDataMapper *Mapper;
-  vtkActor *Actor;
 
   class ClusteringNode;
   ClusteringNode *FindClosestNode(ClusteringNode *node, int zoomLevel,

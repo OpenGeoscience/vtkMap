@@ -17,7 +17,6 @@
 #include "vtkGeoMapSelection.h"
 #include "vtkInteractorStyleGeoMap.h"
 #include "vtkLayer.h"
-#include "vtkMapMarkerSet.h"
 #include "vtkMapTile.h"
 #include "vtkMercator.h"
 
@@ -83,7 +82,6 @@ vtkMap::vtkMap()
   this->InteractorStyle->SetMap(this);
   this->Zoom = 1;
   this->Center[0] = this->Center[1] = 0.0;
-  this->MapMarkerSet = vtkMapMarkerSet::New();
   this->Initialized = false;
   this->BaseLayer = NULL;
   this->PollingCallbackCommand = NULL;
@@ -106,10 +104,6 @@ vtkMap::~vtkMap()
   if (this->InteractorStyle)
     {
     this->InteractorStyle->Delete();
-    }
-  if (this->MapMarkerSet)
-    {
-    this->MapMarkerSet->Delete();
     }
   if (this->PollingCallbackCommand)
     {
@@ -406,8 +400,6 @@ void vtkMap::Update()
     {
     this->Layers[i]->Update();
     }
-
-  this->MapMarkerSet->Update(this->Zoom);
 }
 
 //----------------------------------------------------------------------------
@@ -416,7 +408,6 @@ void vtkMap::Draw()
   if (!this->Initialized && this->Renderer)
     {
     this->Initialized = true;
-    this->MapMarkerSet->SetRenderer(this->Renderer);
 
     // Make sure storage directory specified
     if (!this->StorageDirectory ||

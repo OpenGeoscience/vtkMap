@@ -78,10 +78,7 @@ public:
 vtkMapMarkerSet::vtkMapMarkerSet()
 {
   this->Initialized = false;
-  this->Renderer = NULL;
   this->PolyData = vtkPolyData::New();
-  this->Mapper = NULL;
-  this->Actor = NULL;
   this->Clustering = false;
   this->MaxClusterScaleFactor = 2.0;
 
@@ -114,14 +111,6 @@ vtkMapMarkerSet::~vtkMapMarkerSet()
   if (this->PolyData)
     {
     this->PolyData->Delete();
-    }
-  if (this->Mapper)
-    {
-    this->Mapper->Delete();
-    }
-  if (this->Actor)
-    {
-    this->Actor->Delete();
     }
   delete this->Internals;
 }
@@ -306,40 +295,92 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
 }
 
 //----------------------------------------------------------------------------
-void vtkMapMarkerSet::RemoveMarkers()
+void vtkMapMarkerSet::Init()
 {
-  // Explicitly delete node instances in the table
-  std::vector<std::set<ClusteringNode*> >::iterator tableIter =
-    this->Internals->NodeTable.begin();
-  for (; tableIter != this->Internals->NodeTable.end(); tableIter++)
+  this->Superclass::Init();
+
+  // Add "Color" data array to polydata
+  const char *colorName = "Color";
+  vtkNew<vtkUnsignedCharArray> colors;
+  colors->SetName(colorName);
+  colors->SetNumberOfComponents(3);  // for RGB
+  this->PolyData->GetPointData()->AddArray(colors.GetPointer());
+
+  // Add "MarkerType" array to polydata - to select glyph
+  const char *typeName = "MarkerType";
+  vtkNew<vtkUnsignedCharArray> types;
+  types->SetName(typeName);
+  types->SetNumberOfComponents(1);
+  this->PolyData->GetPointData()->AddArray(types.GetPointer());
+
+  // Add "MarkerScale" to scale cluster glyph size
+  const char *scaleName = "MarkerScale";
+  vtkNew<vtkDoubleArray> scales;
+  scales->SetName(scaleName);
+  scales->SetNumberOfComponents(1);
+  this->PolyData->GetPointData()->AddArray(scales.GetPointer());
+
+  // Use DistanceToCamera filter to scale markers to constant screen size
+  vtkNew<vtkDistanceToCamera> dFilter;
+  dFilter->SetScreenSize(50.0);
+  dFilter->SetRenderer(this->Layer->GetRenderer());
+  dFilter->SetInputData(this->PolyData);
+  if (this->Clustering)
     {
-    std::set<ClusteringNode*> nodeSet = *tableIter;
-    std::set<ClusteringNode*>::iterator nodeIter = nodeSet.begin();
-    for (; nodeIter != nodeSet.end(); nodeIter++)
-      {
-      delete *nodeIter;
-      }
-    nodeSet.clear();
-    tableIter->operator=(nodeSet);
+    dFilter->ScalingOn();
+    dFilter->SetInputArrayToProcess(
+      0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "MarkerScale");
     }
 
-  this->Internals->CurrentNodes.clear();
-  this->Internals->NumberOfMarkers = 0;
-  this->Internals->NumberOfNodes = 0;
-  this->Internals->MarkersChanged = true;
+  // Use teardrop shape for individual markers
+  vtkNew<vtkTeardropSource> markerGlyphSource;
+  // Rotate to point downward (parallel to y axis)
+  vtkNew<vtkTransformFilter> rotateMarker;
+  rotateMarker->SetInputConnection(markerGlyphSource->GetOutputPort());
+  vtkNew<vtkTransform> transform;
+  transform->RotateZ(90.0);
+  rotateMarker->SetTransform(transform.GetPointer());
+
+  // Use sphere for cluster markers
+  vtkNew<vtkSphereSource> clusterGlyphSource;
+  clusterGlyphSource->SetPhiResolution(20);
+  clusterGlyphSource->SetThetaResolution(20);
+  clusterGlyphSource->SetRadius(0.25);
+
+  // Setup glyph
+  vtkNew<vtkGlyph3D> glyph;
+  glyph->SetSourceConnection(0, rotateMarker->GetOutputPort());
+  glyph->SetSourceConnection(1, clusterGlyphSource->GetOutputPort());
+  glyph->SetInputConnection(dFilter->GetOutputPort());
+  glyph->SetIndexModeToVector();
+  glyph->ScalingOn();
+  glyph->SetScaleFactor(1.0);
+  glyph->SetScaleModeToScaleByScalar();
+  glyph->SetColorModeToColorByScalar();
+  // Just gotta know this:
+  glyph->SetInputArrayToProcess(
+    0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "DistanceToCamera");
+  glyph->SetInputArrayToProcess(
+    1, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "MarkerType");
+  glyph->SetInputArrayToProcess(
+    3, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "Color");
+  glyph->GeneratePointIdsOn();
+
+  // Setup mapper and actor
+  this->GetMapper()->SetInputConnection(glyph->GetOutputPort());
+  this->Initialized = true;
 }
 
 //----------------------------------------------------------------------------
-void vtkMapMarkerSet::Update(int zoomLevel)
+void vtkMapMarkerSet::Update()
 {
-  // Make sure everything is initialized
-  if (!this->Initialized && this->Renderer)
+  if (!this->Initialized)
     {
-    this->InitializeRenderingPipeline();
-    this->Initialized = true;
+    vtkErrorMacro("vtkMapMarkerSet has NOT been initialized");
     }
 
   // Clip zoom level to size of cluster table
+  int zoomLevel = this->Layer->GetMap()->GetZoom();
   if (zoomLevel >= NumberOfClusterLevels)
     {
     zoomLevel = NumberOfClusterLevels - 1;
@@ -424,140 +465,27 @@ void vtkMapMarkerSet::Update(int zoomLevel)
 }
 
 //----------------------------------------------------------------------------
-// void vtkMapMarkerSet::
-// PickPoint(vtkRenderer *renderer, vtkPicker *picker, int displayCoords[2],
-//     vtkMapPickResult *result)
-// {
-//   result->SetDisplayCoordinates(displayCoords);
-//   result->SetMapLayer(0);
-//   // TODO Need general display <--> gcs coords
-//   result->SetMapFeatureType(VTK_MAP_FEATURE_NONE);
-//   result->SetNumberOfMarkers(0);
-//   result->SetMapFeatureId(-1);
-
-//   vtkPointPicker *pointPicker = vtkPointPicker::SafeDownCast(picker);
-//   if (pointPicker &&
-//       (pointPicker->Pick(displayCoords[0], displayCoords[1], 0.0, renderer)))
-//     {
-//     // std::cout << "Using tolerance " << pointPicker->GetTolerance() << std::endl;
-//     // vtkPoints *pickPoints = pointPicker->GetPickedPositions();
-//     // std::cout << "Picked " << pickPoints->GetNumberOfPoints() << " points "
-//     //           << std::endl;
-
-//     vtkIdType pointId = pointPicker->GetPointId();
-//     if (pointId > 0)
-//       {
-//       vtkDataArray *dataArray =
-//         pointPicker->GetDataSet()->GetPointData()->GetArray("InputPointIds");
-//       vtkIdTypeArray *glyphIdArray = vtkIdTypeArray::SafeDownCast(dataArray);
-//       if (glyphIdArray)
-//         {
-//         int glyphId = glyphIdArray->GetValue(pointId);
-//         // std::cout << "Point id " << pointId
-//         //           << " - Data " << glyphId << std::endl;
-
-//         ClusteringNode *node = this->Internals->CurrentNodes[glyphId];
-//         // std::cout << "Marker id " << marker->MarkerId
-//         //           << ", Count " << marker->NumberOfMarkers
-//         //           << ", at " << marker->Latitude << ", " << marker->Longitude
-//         //           << std::endl;
-//         result->SetNumberOfMarkers(node->NumberOfMarkers);
-//         if (node->NumberOfMarkers == 1)
-//           {
-//           result->SetMapFeatureType(VTK_MAP_FEATURE_MARKER);
-//           result->SetMapFeatureId(node->MarkerId);
-//           }
-//         else if (node->NumberOfMarkers > 1)
-//           {
-//           result->SetMapFeatureType(VTK_MAP_FEATURE_CLUSTER);
-//           }
-
-//         result->SetLatitude(vtkMercator::y2lat(node->gcsCoords[1]));
-//         result->SetLongitude(node->gcsCoords[0]);
-//         //result->Print(std::cout);
-//         }
-//       }
-//     }
-
-// }
-
-//----------------------------------------------------------------------------
-void vtkMapMarkerSet::InitializeRenderingPipeline()
+void vtkMapMarkerSet::Cleanup()
 {
-
-  // Add "Color" data array to polydata
-  const char *colorName = "Color";
-  vtkNew<vtkUnsignedCharArray> colors;
-  colors->SetName(colorName);
-  colors->SetNumberOfComponents(3);  // for RGB
-  this->PolyData->GetPointData()->AddArray(colors.GetPointer());
-
-  // Add "MarkerType" array to polydata - to select glyph
-  const char *typeName = "MarkerType";
-  vtkNew<vtkUnsignedCharArray> types;
-  types->SetName(typeName);
-  types->SetNumberOfComponents(1);
-  this->PolyData->GetPointData()->AddArray(types.GetPointer());
-
-  // Add "MarkerScale" to scale cluster glyph size
-  const char *scaleName = "MarkerScale";
-  vtkNew<vtkDoubleArray> scales;
-  scales->SetName(scaleName);
-  scales->SetNumberOfComponents(1);
-  this->PolyData->GetPointData()->AddArray(scales.GetPointer());
-
-  // Use DistanceToCamera filter to scale markers to constant screen size
-  vtkNew<vtkDistanceToCamera> dFilter;
-  dFilter->SetScreenSize(50.0);
-  dFilter->SetRenderer(this->Renderer);
-  dFilter->SetInputData(this->PolyData);
-  if (this->Clustering)
+  // Explicitly delete node instances in the table
+  std::vector<std::set<ClusteringNode*> >::iterator tableIter =
+    this->Internals->NodeTable.begin();
+  for (; tableIter != this->Internals->NodeTable.end(); tableIter++)
     {
-    dFilter->ScalingOn();
-    dFilter->SetInputArrayToProcess(
-      0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "MarkerScale");
+    std::set<ClusteringNode*> nodeSet = *tableIter;
+    std::set<ClusteringNode*>::iterator nodeIter = nodeSet.begin();
+    for (; nodeIter != nodeSet.end(); nodeIter++)
+      {
+      delete *nodeIter;
+      }
+    nodeSet.clear();
+    tableIter->operator=(nodeSet);
     }
 
-  // Use teardrop shape for individual markers
-  vtkNew<vtkTeardropSource> markerGlyphSource;
-  // Rotate to point downward (parallel to y axis)
-  vtkNew<vtkTransformFilter> rotateMarker;
-  rotateMarker->SetInputConnection(markerGlyphSource->GetOutputPort());
-  vtkNew<vtkTransform> transform;
-  transform->RotateZ(90.0);
-  rotateMarker->SetTransform(transform.GetPointer());
-
-  // Use sphere for cluster markers
-  vtkNew<vtkSphereSource> clusterGlyphSource;
-  clusterGlyphSource->SetPhiResolution(20);
-  clusterGlyphSource->SetThetaResolution(20);
-  clusterGlyphSource->SetRadius(0.25);
-
-  // Setup glyph
-  vtkNew<vtkGlyph3D> glyph;
-  glyph->SetSourceConnection(0, rotateMarker->GetOutputPort());
-  glyph->SetSourceConnection(1, clusterGlyphSource->GetOutputPort());
-  glyph->SetInputConnection(dFilter->GetOutputPort());
-  glyph->SetIndexModeToVector();
-  glyph->ScalingOn();
-  glyph->SetScaleFactor(1.0);
-  glyph->SetScaleModeToScaleByScalar();
-  glyph->SetColorModeToColorByScalar();
-  // Just gotta know this:
-  glyph->SetInputArrayToProcess(
-    0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "DistanceToCamera");
-  glyph->SetInputArrayToProcess(
-    1, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "MarkerType");
-  glyph->SetInputArrayToProcess(
-    3, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "Color");
-  glyph->GeneratePointIdsOn();
-
-  // Setup mapper and actor
-  this->Mapper = vtkPolyDataMapper::New();
-  this->Mapper->SetInputConnection(glyph->GetOutputPort());
-  this->Actor = vtkActor::New();
-  this->Actor->SetMapper(this->Mapper);
-  this->Renderer->AddActor(this->Actor);
+  this->Internals->CurrentNodes.clear();
+  this->Internals->NumberOfMarkers = 0;
+  this->Internals->NumberOfNodes = 0;
+  this->Internals->MarkersChanged = true;
 }
 
 //----------------------------------------------------------------------------
