@@ -78,6 +78,7 @@ void vtkInteractorStyleGeoMap::OnLeftButtonDown()
     this->Map->PickPoint(pos, pickResult.GetPointer());
     this->InvokeEvent(SelectionCompleteEvent, pickResult.GetPointer());
     vtkDebugMacro("StartPan()");
+    this->Interaction = PANNING;
     this->StartPan();
     }
 
@@ -85,11 +86,6 @@ void vtkInteractorStyleGeoMap::OnLeftButtonDown()
   if (!this->Map->GetRenderer())
     {
     this->Superclass::OnLeftButtonDown();
-    return;
-    }
-
-  if (this->Interaction != NONE)
-    {
     return;
     }
 
@@ -182,7 +178,6 @@ void vtkInteractorStyleGeoMap::OnLeftButtonUp()
     vtkDebugMacro("EndPan()");
     this->Interactor->GetRenderWindow()->SetCurrentCursor(VTK_CURSOR_DEFAULT);
     this->EndPan();
-    return;
     }
 
   if (!this->RubberBandActor)
@@ -191,46 +186,49 @@ void vtkInteractorStyleGeoMap::OnLeftButtonUp()
     return;
     }
 
-  // if (this->Interaction != SELECTING)
-  //   {
-  //   return;
-  //   }
-
   this->RubberBandActor->VisibilityOff();
 
-  int area = (this->EndPosition[0] - this->StartPosition[0]) *
-             (this->EndPosition[1] - this->StartPosition[1]);
-
-
   // Get corner points of interaction
-  vtkDebugMacro("RubberBandComplete with points:"
+  vtkDebugMacro("RubberBand complete with points:"
                 << " " << this->StartPosition[0] << ", " << this->EndPosition[0]
                 << "  " << this->StartPosition[1] << ", " << this->EndPosition[1]);
+  int area = abs((this->EndPosition[0] - this->StartPosition[0]) *
+                 (this->EndPosition[1] - this->StartPosition[1]));
 
+  // Ignore small rubberband; probably unintentional
+  if (area > 25)
+    {
+    // Compute latitude-longitude coordinates (elevation 0.0)
+    double displayCoords[2];
+    double latLonCoords[3];
+    displayCoords[0] = this->StartPosition[0];
+    displayCoords[1] = this->StartPosition[1];
+    this->Map->ComputeLatLngCoords(displayCoords, 0.0, latLonCoords);
+    this->RubberBandLatLonCoords[0] = latLonCoords[0];
+    this->RubberBandLatLonCoords[1] = latLonCoords[1];
 
-  // just a left click?
-  if (this->RubberBandMode == DisabledMode ||
-      this->RubberBandMode == DisplayOnlyMode ||
-      area == 0)
-    {
-    //this->InvokeEvent(LeftClickEvent);
-    }
-  // don't zoom or select for small rubberband; probably unintentional
-  else if (abs(area) > 25)
-    {
-    // ZoomMode and NOT selection instead because of Ctrl modifier
-    if (this->RubberBandMode == ZoomMode &&
-        !(this->RubberBandSelectionWithCtrlKey &&
-          this->Interactor->GetControlKey()))
+    displayCoords[0] = this->EndPosition[0];
+    displayCoords[1] = this->EndPosition[1];
+    this->Map->ComputeLatLngCoords(displayCoords, 0.0, latLonCoords);
+    this->RubberBandLatLonCoords[2] = latLonCoords[0];
+    this->RubberBandLatLonCoords[3] = latLonCoords[1];
+
+    // For display-only mode, just invoke the event
+    if (this->RubberBandMode == vtkInteractorStyleGeoMap::DisplayOnlyMode)
       {
-      this->Zoom();
-      this->InvokeEvent(vtkCommand::EndInteractionEvent);
+      this->InvokeEvent(vtkInteractorStyleGeoMap::DisplayCompleteEvent,
+                        this->RubberBandLatLonCoords);
       }
-    else
+
+    // For zoom mode, change visible bounds and send event
+    else if (this->RubberBandMode == vtkInteractorStyleGeoMap::ZoomMode)
       {
-      this->InvokeEvent(SelectionCompleteEvent);
+      this->Map->SetVisibleBounds(this->RubberBandLatLonCoords);
+      this->InvokeEvent(vtkInteractorStyleGeoMap::ZoomCompleteEvent,
+                        this->RubberBandLatLonCoords);
       }
-    }
+
+    }  // if (area)
 
   this->GetInteractor()->Render();
   this->Interaction = NONE;

@@ -519,6 +519,24 @@ double vtkMap::Clip(double n, double minValue, double maxValue)
 }
 
 //----------------------------------------------------------------------------
+void vtkMap::ComputeLatLngCoords(double displayCoords[2], double elevation,
+                                 double latLngCoords[3])
+{
+  // Compute GCS coordinates
+  double worldCoords[3] = {0.0, 0.0, 0.0};
+  this->ComputeWorldCoords(displayCoords, elevation, worldCoords);
+
+  // Convert to lat-lon
+  double latitude = vtkMercator::y2lat(worldCoords[1]);
+  double longitude = worldCoords[0];
+
+  // Set output
+  latLngCoords[0] = latitude;
+  latLngCoords[1] = longitude;
+  latLngCoords[3] = elevation;
+}
+
+//----------------------------------------------------------------------------
 void vtkMap::PickPoint(int displayCoords[2], vtkGeoMapSelection* result)
 {
   // this->MapMarkerSet->PickPoint(this->Renderer, this->Picker, displayCoords,
@@ -564,6 +582,17 @@ void vtkMap::ComputeWorldCoords(double displayCoords[2], double z,
 }
 
 //----------------------------------------------------------------------------
+void vtkMap::ComputeDisplayCoords(double latLngCoords[2], double elevation,
+                                  double displayCoords[3])
+{
+  double x = latLngCoords[1];
+  double y = vtkMercator::lat2y(latLngCoords[0]);
+  this->Renderer->SetWorldPoint(x, y, elevation, 1.0);
+  this->Renderer->WorldToDisplay();
+  this->Renderer->GetDisplayPoint(displayCoords);
+}
+
+//----------------------------------------------------------------------------
 void vtkMap::PollingCallback()
 {
   AsyncState result;
@@ -587,74 +616,4 @@ void vtkMap::PollingCallback()
     {
     this->Draw();
     }
-}
-
-//----------------------------------------------------------------------------
-vtkPoints* vtkMap::gcsToDisplay(vtkPoints* points, std::string srcProjection)
-{
-  if (!srcProjection.empty())
-   {
-   vtkErrorMacro("Does not handle projections other than latlon");
-   }
-  int noOfPoints = static_cast<int>(points->GetNumberOfPoints());
-  double inPoint[3];
-  double outPoint[3];
-  vtkPoints* newPoints = vtkPoints::New(VTK_DOUBLE);
-  newPoints->SetNumberOfPoints(noOfPoints);
-  double latitude, longitude;
-  double x, y;
-  for (int i = 0; i < noOfPoints; ++i)
-    {
-    points->GetPoint(i, inPoint);
-    latitude = inPoint[0];
-    longitude = inPoint[1];
-    x = longitude;
-    y = vtkMercator::lat2y(latitude);
-
-    inPoint[0] = vtkMercator::lat2y(inPoint[0]);
-    //this->Renderer->SetWorldPoint(inPoint[1], inPoint[0], inPoint[2], 1.0);
-    this->Renderer->SetWorldPoint(x, y, inPoint[2], 1.0);
-    this->Renderer->WorldToDisplay();
-    this->Renderer->GetDisplayPoint(outPoint);
-    newPoints->SetPoint(i, outPoint);
-    }
-
-  return newPoints;
-}
-
-//----------------------------------------------------------------------------
-vtkPoints* vtkMap::displayToGcs(vtkPoints* points)
-{
-  double inPoint[3];
-  double outPoint[3];
-  int noOfPoints = static_cast<int>(points->GetNumberOfPoints());
-  vtkPoints* newPoints = vtkPoints::New(VTK_DOUBLE);
-  newPoints->SetNumberOfPoints(noOfPoints);
-  double wCoords[4];
-  for (int i = 0; i < noOfPoints; ++i)
-    {
-    points->GetPoint(i, inPoint);
-    this->Renderer->SetDisplayPoint(inPoint[0], inPoint[1], inPoint[2]);
-    this->Renderer->DisplayToWorld();
-    this->Renderer->GetWorldPoint(wCoords);
-
-    if (wCoords[3] != 0.0)
-      {
-      wCoords[0] /= wCoords[3];
-      wCoords[1] /= wCoords[3];
-      wCoords[2] /= wCoords[3];
-      wCoords[3] = 1.0;
-      }
-
-    double latitude = vtkMercator::y2lat(wCoords[1]);
-    double longitude = wCoords[0];
-
-    outPoint[0] = latitude;
-    outPoint[1] = longitude;
-    outPoint[2] = 0.0;
-
-    newPoints->SetPoint(i, outPoint);
-    }
-
-  return newPoints;
 }

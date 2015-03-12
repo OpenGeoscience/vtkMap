@@ -118,6 +118,8 @@ private:
 
   vtkActor2D* RubberBandActor;
   vtkPoints*  RubberBandPoints;
+
+  double RubberBandLatLonCoords[4];
 };
 
 #endif // __vtkInteractorStyleGeoMap_h

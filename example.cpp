@@ -26,15 +26,41 @@ class PickCallback : public vtkCommand
 public:
   static PickCallback *New()
     { return new PickCallback; }
-  virtual void Execute(vtkObject *caller, unsigned long vtkNotUsed(event),
-                       void* data)
+  virtual void Execute(vtkObject *caller, unsigned long event, void* data)
     {
-      vtkObject *object = reinterpret_cast<vtkObject*>(data);
-      std::cout << "Selection object: " << object->GetClassName() << std::endl;
-      vtkGeoMapSelection *selection = vtkGeoMapSelection::SafeDownCast(object);
-      vtkCollection *collection = selection->GetSelectedFeatures();
-      std::cout << "Number of features: " << collection->GetNumberOfItems()
-                << std::endl;
+      switch (event)
+        {
+        case vtkInteractorStyleGeoMap::DisplayCompleteEvent:
+          {
+          double *latLonCoords = static_cast<double*>(data);
+          std::cout << "Selected coordinates: \n"
+                    << "  " << latLonCoords[0] << ", " << latLonCoords[1]
+                    << "\n  " << latLonCoords[2] << ", " << latLonCoords[3]
+                    << std::endl;
+          }
+          break;
+
+        case vtkInteractorStyleGeoMap::SelectionCompleteEvent:
+          {
+          vtkObject *object = static_cast<vtkObject*>(data);
+          std::cout << "Selection object: " << object->GetClassName() << std::endl;
+          vtkGeoMapSelection *selection = vtkGeoMapSelection::SafeDownCast(object);
+          vtkCollection *collection = selection->GetSelectedFeatures();
+          std::cout << "Number of features: " << collection->GetNumberOfItems()
+                    << std::endl;
+          }
+          break;
+
+        case vtkInteractorStyleGeoMap::ZoomCompleteEvent:
+          {
+          double *latLonCoords = static_cast<double*>(data);
+          std::cout << "Zoom coordinates: \n"
+                    << "  " << latLonCoords[0] << ", " << latLonCoords[1]
+                    << "\n  " << latLonCoords[2] << ", " << latLonCoords[3]
+                    << std::endl;
+          }
+          break;
+        }  // switch
     }
 
   void SetMap(vtkMap *map)
@@ -128,7 +154,11 @@ int main()
   // Set callbacks
   vtkNew<PickCallback> pickCallback;
   pickCallback->SetMap(map.GetPointer());
+  style->AddObserver(vtkInteractorStyleGeoMap::DisplayCompleteEvent,
+                    pickCallback.GetPointer());
   style->AddObserver(vtkInteractorStyleGeoMap::SelectionCompleteEvent,
+                    pickCallback.GetPointer());
+  style->AddObserver(vtkInteractorStyleGeoMap::ZoomCompleteEvent,
                     pickCallback.GetPointer());
 
   intr->Start();

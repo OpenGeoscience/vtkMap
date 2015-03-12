@@ -143,19 +143,11 @@ public:
   enum AsyncState GetAsyncState();
 
   // Description:
-  // Transform from map coordiantes to display coordinates
-  // gcsToDisplay(points, "EPSG:3882")
-  // This method assumes plate carree projection if the source projection is
-  // empty. In case of plate carree projection, the point is supposed to be in
-  // [latitude, longitude, elevation] format.
-  vtkPoints* gcsToDisplay(vtkPoints* points, std::string srcProjection="");
-
-  // Description:
-  // Transform from display coordinates to map coordinates
-  // If the map projection is EPSG 4326 or EPSG 3857, then returned
-  // points will have the following format: [latitude, longitude, elevation]
-  vtkPoints* displayToGcs(vtkPoints* points);
-
+  // Compute lat-lon coordinates for given display coordinates
+  // and elevation. The latLngCoords[] is updated with
+  // [latitude, longitude, elevation].
+  void ComputeLatLngCoords(double displayCoords[2], double elevation,
+                           double latLngCoords[3]);
 protected:
   vtkMap();
   ~vtkMap();
@@ -167,6 +159,12 @@ protected:
   // Computes display-to-world point at specified z coord
   void ComputeWorldCoords(double displayCoords[2], double z,
                           double worldCoords[3]);
+
+  // Description:
+  // Compute display coordinates for given lat/lon/elevation.
+  // For internal debug/test use
+  void ComputeDisplayCoords(double lanLngCoords[2], double elevation,
+                            double displayCoords[3]);
 
   // Description:
   // The renderer used to draw the maps
