@@ -30,7 +30,7 @@ class VTKMAP_EXPORT vtkPolydataFeature : public vtkFeature
 public:
   static vtkPolydataFeature* New();
   virtual void PrintSelf(ostream &os, vtkIndent indent);
-  vtkTypeMacro(vtkPolydataFeature, vtkObject);
+  vtkTypeMacro(vtkPolydataFeature, vtkFeature);
 
   // Description
   // Get actor for the polydata

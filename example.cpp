@@ -9,6 +9,7 @@
 
 #include <vtkCollection.h>
 #include <vtkCommand.h>
+#include <vtkIdList.h>
 #include <vtkInteractorStyle.h>
 #include <vtkPolyData.h>
 #include <vtkPolyDataMapper.h>
@@ -43,11 +44,27 @@ public:
         case vtkInteractorStyleGeoMap::SelectionCompleteEvent:
           {
           vtkObject *object = static_cast<vtkObject*>(data);
-          std::cout << "Selection object: " << object->GetClassName() << std::endl;
           vtkGeoMapSelection *selection = vtkGeoMapSelection::SafeDownCast(object);
           vtkCollection *collection = selection->GetSelectedFeatures();
           std::cout << "Number of features: " << collection->GetNumberOfItems()
                     << std::endl;
+          vtkNew<vtkIdList> idList;
+          for (int i=0; i<collection->GetNumberOfItems(); i++)
+            {
+            vtkObject *object = collection->GetItemAsObject(i);
+            std::cout << "  " << object->GetClassName() << "\n";
+            vtkFeature *feature = vtkFeature::SafeDownCast(object);
+            selection->GetComponentIds(feature, idList.GetPointer());
+            if (idList->GetNumberOfIds() > 0)
+              {
+              std::cout << "    Component ids: ";
+              for (int j=0; j<idList->GetNumberOfIds(); j++)
+                {
+                std::cout << " " << idList->GetId(j);
+                }
+              std::cout << std::endl;
+              }
+            }
           }
           break;
 

@@ -26,11 +26,10 @@
 class vtkFeature;
 class vtkIdList;
 class vtkMap;
-class vtkPolydataFeature;
+class vtkFeature;
 
 class VTKMAP_EXPORT vtkGeoMapSelection : public vtkObject
 {
-  friend class vtkMap;
  public:
   static vtkGeoMapSelection* New();
   virtual void PrintSelf(ostream &os, vtkIndent indent);
@@ -46,9 +45,9 @@ class VTKMAP_EXPORT vtkGeoMapSelection : public vtkObject
   vtkGetObjectMacro(SelectedFeatures, vtkCollection);
 
   // Description:
-  // Returns the set of currently-selected cell ids for
-  // a specified polydata map feature
-  vtkIdList *GetSelectedCellIds(vtkPolydataFeature *feature) const;
+  // Returns the selected component (ids) for a specified feature.
+  // Note that only some features contain components
+  void GetComponentIds(vtkFeature *feature, vtkIdList *idList) const;
 
  protected:
   vtkGeoMapSelection();

@@ -20,6 +20,7 @@
 #include <vtkDataArray.h>
 #include <vtkDistanceToCamera.h>
 #include <vtkDoubleArray.h>
+#include <vtkIdList.h>
 #include <vtkIdTypeArray.h>
 #include <vtkGlyph3D.h>
 #include <vtkNew.h>
@@ -486,6 +487,49 @@ void vtkMapMarkerSet::Cleanup()
   this->Internals->NumberOfMarkers = 0;
   this->Internals->NumberOfNodes = 0;
   this->Internals->MarkersChanged = true;
+}
+
+//----------------------------------------------------------------------------
+void vtkMapMarkerSet::
+GetMarkerIds(vtkIdList *cellIds, vtkIdList *markerIds)
+{
+  // Get the *rendered* polydata (not this->PolyData, which is marker points)
+  vtkObject *object = this->Actor->GetMapper()->GetInput();
+  vtkPolyData *polyData = vtkPolyData::SafeDownCast(object);
+
+  // Get its data array with marker ids
+  vtkDataArray *dataArray =
+    polyData->GetPointData()->GetArray("InputPointIds");
+  vtkIdTypeArray *markerIdArray = vtkIdTypeArray::SafeDownCast(dataArray);
+
+  // Use std::set to only add each marker id once
+  std::set<vtkIdType> markerIdSet;
+
+  // Traverse all cells
+  vtkNew<vtkIdList> pointIds;
+  for (int i=0; i<cellIds->GetNumberOfIds(); i++)
+    {
+    vtkIdType cellId = cellIds->GetId(i);
+
+    // Get points from cell
+    polyData->GetCellPoints(cellId, pointIds.GetPointer());
+
+    // Only need 1 point, since they are all in same marker
+    vtkIdType pointId = pointIds->GetId(0);
+
+    // Look up marker id
+    vtkIdType markerId = markerIdArray->GetValue(pointId);
+    if (markerIdSet.count(markerId) > 0)
+      {
+      continue;
+      }
+    markerIdSet.insert(markerId);
+
+    // Todo get clustering info?
+
+    markerIds->InsertNextId(markerId);
+    }  // for (i)
+
 }
 
 //----------------------------------------------------------------------------

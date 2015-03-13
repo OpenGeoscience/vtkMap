@@ -14,7 +14,7 @@
 =========================================================================*/
 
 #include "vtkGeoMapSelection.h"
-#include "vtkPolydataFeature.h"
+#include "vtkFeature.h"
 
 #include <vtkCollection.h>
 #include <vtkIdList.h>
@@ -29,8 +29,8 @@ vtkStandardNewMacro(vtkGeoMapSelection);
 class vtkGeoMapSelection::vtkGeoMapSelectionInternal
 {
 public:
-  // Store list of selected cell ids for polydata features
-  std::map<vtkFeature*, vtkIdList *> PolyDataCellIdMap;
+  // Store list of selected component ids for individual features
+  std::map<vtkFeature*, vtkIdList *> ComponentIdMap;
 };
 
 //-----------------------------------------------------------------------------
@@ -56,18 +56,16 @@ void vtkGeoMapSelection::PrintSelf(ostream &os, vtkIndent indent)
 }
 
 //-----------------------------------------------------------------------------
-vtkIdList *vtkGeoMapSelection::
-GetSelectedCellIds(vtkPolydataFeature *feature) const
+void vtkGeoMapSelection::
+GetComponentIds(vtkFeature *feature, vtkIdList *idList) const
 {
-  vtkSmartPointer<vtkIdList> returnList = vtkSmartPointer<vtkIdList>::New();
+  idList->Reset();
   std::map<vtkFeature*, vtkIdList *>::iterator iter =
-    this->Internal->PolyDataCellIdMap.find(feature);
-  if (iter != this->Internal->PolyDataCellIdMap.end())
+    this->Internal->ComponentIdMap.find(feature);
+  if (iter != this->Internal->ComponentIdMap.end())
     {
-    vtkIdList *featureList = iter->second;
-    returnList->DeepCopy(featureList);
+    idList->DeepCopy(iter->second);
     }
-  return returnList;
 }
 
 //-----------------------------------------------------------------------------
@@ -80,13 +78,13 @@ bool vtkGeoMapSelection::IsEmpty()
 void vtkGeoMapSelection::Clear()
 {
   std::map<vtkFeature*, vtkIdList *>::iterator iter =
-    this->Internal->PolyDataCellIdMap.begin();
-  for (; iter != this->Internal->PolyDataCellIdMap.end(); iter++)
+    this->Internal->ComponentIdMap.begin();
+  for (; iter != this->Internal->ComponentIdMap.end(); iter++)
     {
     vtkIdList *idList = iter->second;
     idList->Delete();
     }
-  this->Internal->PolyDataCellIdMap.clear();
+  this->Internal->ComponentIdMap.clear();
   this->SelectedFeatures->RemoveAllItems();
 }
 
@@ -102,5 +100,5 @@ void vtkGeoMapSelection::AddFeature(vtkFeature *feature, vtkIdList *ids)
   this->SelectedFeatures->AddItem(feature);
   vtkIdList *idsCopy = vtkIdList::New();
   idsCopy->DeepCopy(ids);
-  this->Internal->PolyDataCellIdMap[feature] = idsCopy;
+  this->Internal->ComponentIdMap[feature] = idsCopy;
 }

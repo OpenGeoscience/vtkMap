@@ -16,6 +16,7 @@
 #include "vtkGeoMapFeatureSelector.h"
 #include "vtkFeature.h"
 #include "vtkGeoMapSelection.h"
+#include "vtkMapMarkerSet.h"
 #include "vtkPolydataFeature.h"
 
 #include <vtkAbstractArray.h>
@@ -120,7 +121,8 @@ PickArea(vtkRenderer *renderer, int displayCoords[4],
 
   if (result)
     {
-    vtkNew<vtkIdList> idList;
+    vtkNew<vtkIdList> cellIdList;
+    vtkNew<vtkIdList> markerIdList;
 
     // Process each object detected by the area picker
     vtkProp3DCollection *props = areaPicker->GetProp3Ds();
@@ -139,18 +141,32 @@ PickArea(vtkRenderer *renderer, int displayCoords[4],
         continue;
         }
       vtkFeature *feature = findIter->second;
+      cellIdList->Reset();
+      markerIdList->Reset();
 
-      // For polydata features, find specific cells
+      // Handling depends on feature type
+      vtkMapMarkerSet *markerFeature = vtkMapMarkerSet::SafeDownCast(feature);
       vtkPolydataFeature *polydataFeature =
         vtkPolydataFeature::SafeDownCast(feature);
-      if (polydataFeature)
+      if (markerFeature)
         {
-        idList->Reset();
+        // Process markers first, since they are also polydata features
         this->PickPolyDataCells(
-          prop, areaPicker->GetFrustum(), idList.GetPointer());
-        if (idList->GetNumberOfIds())
+          prop, areaPicker->GetFrustum(), cellIdList.GetPointer());
+
+        // Get list of marker ids for given cell ids
+        markerFeature->GetMarkerIds(cellIdList.GetPointer(),
+                                    markerIdList.GetPointer());
+        selection->AddFeature(feature, markerIdList.GetPointer());
+        }
+      else if (polydataFeature)
+        {
+        // Get cell ids
+        this->PickPolyDataCells(
+          prop, areaPicker->GetFrustum(), cellIdList.GetPointer());
+        if (cellIdList->GetNumberOfIds())
           {
-          selection->AddFeature(feature, idList.GetPointer());
+          selection->AddFeature(feature, cellIdList.GetPointer());
           }
         }
       else
@@ -185,7 +201,7 @@ PickPolyDataCells(vtkProp *prop, vtkPlanes *frustum, vtkIdList *idList)
   // std::cout << "Number of PolyData cells: " << polyData->GetNumberOfCells()
   //           << std::endl;
 
-  // Check actor for tranform
+  // Check actor for transform
   if (!actor->GetIsIdentity())
     {
     // If there is a transform, apply it's inverse to the frustum

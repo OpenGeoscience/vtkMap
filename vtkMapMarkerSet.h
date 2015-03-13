@@ -23,6 +23,7 @@
 #include <set>
 
 class vtkActor;
+class vtkIdList;
 class vtkMapper;
 class vtkPolyDataMapper;
 class vtkPolyData;
@@ -67,6 +68,10 @@ public:
   // Description:
   // Override
   virtual void Cleanup();
+
+  // Description:
+  // Return list of marker ids for set of polydata cell ids
+  void GetMarkerIds(vtkIdList *cellIds, vtkIdList *markerIds);
 
  protected:
   vtkMapMarkerSet();
