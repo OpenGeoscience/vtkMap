@@ -190,27 +190,44 @@ void vtkInteractorStyleGeoMap::OnLeftButtonUp()
 
   this->RubberBandActor->VisibilityOff();
 
-  // Get corner points of interaction
+  // Get corner points of interaction, sorted by min/max
+  int boundCoords[4];
+  boundCoords[0] = std::min(this->StartPosition[0], this->EndPosition[0]);
+  boundCoords[1] = std::min(this->StartPosition[1], this->EndPosition[1]);
+  boundCoords[2] = std::max(this->StartPosition[0], this->EndPosition[0]);
+  boundCoords[3] = std::max(this->StartPosition[1], this->EndPosition[1]);
   vtkDebugMacro("RubberBand complete with points:"
-                << " " << this->StartPosition[0] << ", " << this->EndPosition[0]
-                << "  " << this->StartPosition[1] << ", " << this->EndPosition[1]);
+                << " " << boundCoords[0] << ", " << boundCoords[1]
+                << "  " << boundCoords[2] << ", " << boundCoords[3]);
+
+  // Compute lat-lon coordinates
+  double latLonCoords[4];
+  double displayCoords[2];
+  double computedCoords[3];
+  displayCoords[0] = boundCoords[0];
+  displayCoords[1] = boundCoords[1];
+  this->Map->ComputeLatLngCoords(displayCoords, 0.0, computedCoords);
+  latLonCoords[0] = computedCoords[0];
+  latLonCoords[1] = computedCoords[1];
+
+  displayCoords[0] = boundCoords[2];
+  displayCoords[1] = boundCoords[3];
+  this->Map->ComputeLatLngCoords(displayCoords, 0.0, computedCoords);
+  latLonCoords[2] = computedCoords[0];
+  latLonCoords[3] = computedCoords[1];
 
   // Display-only mode
   if (this->RubberBandMode == vtkInteractorStyleGeoMap::DisplayOnlyMode)
     {
     this->InvokeEvent(vtkInteractorStyleGeoMap::DisplayCompleteEvent,
-                      this->RubberBandLatLonCoords);
+                      latLonCoords);
     }
 
   // Selection mode
   else if (this->RubberBandMode == vtkInteractorStyleGeoMap::SelectionMode)
     {
     vtkNew<vtkGeoMapSelection> pickResult;
-    int boundCoords[4];
-    boundCoords[0] = std::min(this->StartPosition[0], this->EndPosition[0]);
-    boundCoords[1] = std::min(this->StartPosition[1], this->EndPosition[1]);
-    boundCoords[2] = std::max(this->StartPosition[0], this->EndPosition[0]);
-    boundCoords[3] = std::max(this->StartPosition[1], this->EndPosition[1]);
+    pickResult->SetLatLngBounds(latLonCoords);
     this->Map->PickArea(boundCoords, pickResult.GetPointer());
     this->InvokeEvent(SelectionCompleteEvent, pickResult.GetPointer());
     }
@@ -219,29 +236,14 @@ void vtkInteractorStyleGeoMap::OnLeftButtonUp()
   else if (this->RubberBandMode == vtkInteractorStyleGeoMap::ZoomMode)
     {
     // Ignore small rubberband; probably unintentional
-    int area = abs((this->EndPosition[0] - this->StartPosition[0]) *
-                   (this->EndPosition[1] - this->StartPosition[1]));
+    int area = (boundCoords[2] - boundCoords[0]) *
+      (boundCoords[3] - boundCoords[1]);
     if (area > 25)
       {
-      // Compute latitude-longitude coordinates (elevation 0.0)
-      double displayCoords[2];
-      double latLonCoords[3];
-      displayCoords[0] = this->StartPosition[0];
-      displayCoords[1] = this->StartPosition[1];
-      this->Map->ComputeLatLngCoords(displayCoords, 0.0, latLonCoords);
-      this->RubberBandLatLonCoords[0] = latLonCoords[0];
-      this->RubberBandLatLonCoords[1] = latLonCoords[1];
-
-      displayCoords[0] = this->EndPosition[0];
-      displayCoords[1] = this->EndPosition[1];
-      this->Map->ComputeLatLngCoords(displayCoords, 0.0, latLonCoords);
-      this->RubberBandLatLonCoords[2] = latLonCoords[0];
-      this->RubberBandLatLonCoords[3] = latLonCoords[1];
-
       // Change visible bounds and send event
-      this->Map->SetVisibleBounds(this->RubberBandLatLonCoords);
+      this->Map->SetVisibleBounds(latLonCoords);
       this->InvokeEvent(vtkInteractorStyleGeoMap::ZoomCompleteEvent,
-                        this->RubberBandLatLonCoords);
+                        latLonCoords);
       }  // if (area)
     }  // else if (zoom mode)
 

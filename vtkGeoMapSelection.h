@@ -40,6 +40,9 @@ class VTKMAP_EXPORT vtkGeoMapSelection : public vtkObject
   void AddFeature(vtkFeature *feature);
   void AddFeature(vtkFeature *feature, vtkIdList *ids);
 
+  vtkSetVector4Macro(LatLngBounds, double);
+  vtkGetVector4Macro(LatLngBounds, double);
+
   // Description:
   // Returns the set of currently-selected map features
   vtkGetObjectMacro(SelectedFeatures, vtkCollection);
@@ -49,10 +52,12 @@ class VTKMAP_EXPORT vtkGeoMapSelection : public vtkObject
   // Note that only some features contain components
   void GetComponentIds(vtkFeature *feature, vtkIdList *idList) const;
 
+
  protected:
   vtkGeoMapSelection();
   ~vtkGeoMapSelection();
 
+  double LatLngBounds[4];
   vtkCollection *SelectedFeatures;
 
  private:

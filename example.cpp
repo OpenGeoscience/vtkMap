@@ -45,6 +45,13 @@ public:
           {
           vtkObject *object = static_cast<vtkObject*>(data);
           vtkGeoMapSelection *selection = vtkGeoMapSelection::SafeDownCast(object);
+
+          double *latLonCoords = selection->GetLatLngBounds();
+          std::cout << "Selected coordinates: \n"
+                    << "  " << latLonCoords[0] << ", " << latLonCoords[1]
+                    << "\n  " << latLonCoords[2] << ", " << latLonCoords[3]
+                    << std::endl;
+
           vtkCollection *collection = selection->GetSelectedFeatures();
           std::cout << "Number of features: " << collection->GetNumberOfItems()
                     << std::endl;
