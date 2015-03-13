@@ -38,8 +38,10 @@ class VTKMAP_NO_EXPORT vtkGeoMapFeatureSelector : public vtkObject
   virtual void PrintSelf(ostream &os, vtkIndent indent);
   vtkTypeMacro(vtkGeoMapFeatureSelector, vtkObject);
 
+  // As features get added/removed, they are passed on to this class
   void AddFeature(vtkFeature *feature);
   void RemoveFeature(vtkFeature *feature);
+
   void PickPoint(vtkRenderer *renderer, int displayCoords[2],
                  vtkGeoMapSelection *selection);
   void PickArea(vtkRenderer *renderer, int displayCoords[4],

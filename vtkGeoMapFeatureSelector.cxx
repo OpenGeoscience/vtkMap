@@ -21,7 +21,6 @@
 
 #include <vtkAbstractArray.h>
 #include <vtkActor.h>
-#include <vtkAreaPicker.h>
 #include <vtkCellData.h>
 #include <vtkExtractSelectedFrustum.h>
 #include <vtkIdList.h>
@@ -33,6 +32,7 @@
 #include <vtkPolyData.h>
 #include <vtkProp.h>
 #include <vtkProp3DCollection.h>
+#include <vtkRenderedAreaPicker.h>
 #include <vtkUnstructuredGrid.h>
 
 #include <map>
@@ -112,7 +112,8 @@ PickArea(vtkRenderer *renderer, int displayCoords[4],
   // Clear selection
   selection->Clear();
 
-  vtkNew<vtkAreaPicker> areaPicker;
+  // Use rendered-area picker to minimize hits on marker features
+  vtkNew<vtkRenderedAreaPicker> areaPicker;
   int result = areaPicker->AreaPick(
     displayCoords[0], displayCoords[1],
     displayCoords[2], displayCoords[3],
@@ -154,17 +155,20 @@ PickArea(vtkRenderer *renderer, int displayCoords[4],
         this->PickPolyDataCells(
           prop, areaPicker->GetFrustum(), cellIdList.GetPointer());
 
-        // Get list of marker ids for given cell ids
-        markerFeature->GetMarkerIds(cellIdList.GetPointer(),
-                                    markerIdList.GetPointer());
-        selection->AddFeature(feature, markerIdList.GetPointer());
+        if (cellIdList->GetNumberOfIds() > 0)
+          {
+          // Get list of marker ids for given cell ids
+          markerFeature->GetMarkerIds(cellIdList.GetPointer(),
+                                      markerIdList.GetPointer());
+          selection->AddFeature(feature, markerIdList.GetPointer());
+          }
         }
       else if (polydataFeature)
         {
         // Get cell ids
         this->PickPolyDataCells(
           prop, areaPicker->GetFrustum(), cellIdList.GetPointer());
-        if (cellIdList->GetNumberOfIds())
+        if (cellIdList->GetNumberOfIds() > 0)
           {
           selection->AddFeature(feature, cellIdList.GetPointer());
           }
@@ -202,23 +206,31 @@ PickPolyDataCells(vtkProp *prop, vtkPlanes *frustum, vtkIdList *idList)
   //           << std::endl;
 
   // Check actor for transform
+  vtkPoints *originalPoints = NULL;
   if (!actor->GetIsIdentity())
     {
+    // Save original frustum geometry
+    originalPoints = vtkPoints::New();
+    originalPoints->DeepCopy(frustum->GetPoints());
+
     // If there is a transform, apply it's inverse to the frustum
     vtkMatrix4x4 *actorMatrix = actor->GetMatrix();
     vtkNew<vtkMatrix4x4> frustumMatrix;
     vtkMatrix4x4::Invert(actorMatrix, frustumMatrix.GetPointer());
 
-    vtkPoints *points = frustum->GetPoints();
+    // Create new set of frustum points
+    vtkNew<vtkPoints> adjustedPoints;
+    adjustedPoints->SetNumberOfPoints(originalPoints->GetNumberOfPoints());
     double fromPoint[] = {0.0, 0.0, 0.0, 1.0};
     double toPoint[] = {0.0, 0.0, 0.0, 1.0};
 
-    for (vtkIdType i=0; i<points->GetNumberOfPoints(); i++)
+    for (vtkIdType i=0; i<originalPoints->GetNumberOfPoints(); i++)
       {
-      points->GetPoint(i, fromPoint);
+      originalPoints->GetPoint(i, fromPoint);
       frustumMatrix->MultiplyPoint(fromPoint, toPoint);
-      points->SetPoint(i, toPoint);
+      adjustedPoints->SetPoint(i, toPoint);
       }
+    frustum->SetPoints(adjustedPoints.GetPointer());
     }
 
   // Find all picked cells for this polydata
@@ -230,6 +242,13 @@ PickPolyDataCells(vtkProp *prop, vtkPlanes *frustum, vtkIdList *idList)
   vtkDataObject *output = extractor->GetOutput();
   vtkUnstructuredGrid *ugrid = vtkUnstructuredGrid::SafeDownCast(output);
   //std::cout << "Number of UGrid cells: " << ugrid->GetNumberOfCells() << std::endl;
+
+  // Restore frustum to its original geometry
+  if (originalPoints)
+    {
+    frustum->SetPoints(originalPoints);
+    originalPoints->Delete();
+    }
 
   // Make sure that the extractor "worked"
   if (ugrid->GetNumberOfCells() < 1)
