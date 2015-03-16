@@ -298,6 +298,74 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
 }
 
 //----------------------------------------------------------------------------
+void vtkMapMarkerSet::
+GetClusterChildren(vtkIdType clusterId, vtkIdList *childMarkerIds,
+                   vtkIdList *childClusterIds)
+{
+  childMarkerIds->Reset();
+  childClusterIds->Reset();
+  if ((clusterId < 0) || (clusterId >= this->Internals->NodeTable.size()))
+    {
+    return;
+    }
+
+  ClusteringNode *node = this->Internals->AllNodes[clusterId];
+  std::set<ClusteringNode*>::iterator childIter = node->Children.begin();
+  for (; childIter != node->Children.end(); childIter++)
+    {
+    ClusteringNode *child = *childIter;
+    vtkIdType childId = child->MarkerId;
+    if (child->NumberOfMarkers == 1)
+      {
+      childMarkerIds->InsertNextId(childId);
+      }
+    else
+      {
+      childClusterIds->InsertNextId(childId);
+      }  // else
+    }  // for (childIter)
+}
+
+//----------------------------------------------------------------------------
+void vtkMapMarkerSet::
+GetAllMarkerIds(vtkIdType clusterId, vtkIdList *markerIds)
+{
+  markerIds->Reset();
+  // Check if input id is marker
+  if (this->Internals->AllNodes[clusterId]->NumberOfMarkers == 1)
+    {
+    markerIds->InsertNextId(clusterId);
+    return;
+    }
+
+  this->GetMarkerIdsRecursive(clusterId, markerIds);
+}
+
+//----------------------------------------------------------------------------
+void vtkMapMarkerSet::
+GetMarkerIdsRecursive(vtkIdType clusterId, vtkIdList *markerIds)
+{
+  // Get children markers & clusters
+  vtkNew<vtkIdList> childMarkerIds;
+  vtkNew<vtkIdList> childClusterIds;
+  this->GetClusterChildren(clusterId, childMarkerIds.GetPointer(),
+                           childClusterIds.GetPointer());
+
+  // Copy marker ids
+  for (int i=0; i<childMarkerIds->GetNumberOfIds(); i++)
+    {
+    markerIds->InsertNextId(childMarkerIds->GetId(i));
+    }
+
+  // Traverse cluster ids
+  for (int j=0; j<childClusterIds->GetNumberOfIds(); j++)
+    {
+    vtkIdType childId = childClusterIds->GetId(j);
+    this->GetMarkerIdsRecursive(childId, markerIds);
+    }
+}
+
+//----------------------------------------------------------------------------
 void vtkMapMarkerSet::Init()
 {
   // Set up rendering pipeline

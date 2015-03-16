@@ -57,6 +57,16 @@ public:
   vtkIdType AddMarker(double latitude, double longitude);
 
   // Description:
+  // Return descendent ids for given cluster id.
+  // This is inteneded for traversing selected clusters.
+  void GetClusterChildren(vtkIdType clusterId, vtkIdList *childMarkerIds,
+                          vtkIdList *childClusterIds);
+
+  // Description:
+  // Return all marker ids descending from given cluster id
+  void GetAllMarkerIds(vtkIdType clusterId, vtkIdList *markerIds);
+
+  // Description:
   // Override
   virtual void Init();
 
@@ -71,6 +81,7 @@ public:
 
   // Description:
   // Return list of marker ids for set of polydata cell ids
+  // This is intended for internal use
   void GetMarkerIds(vtkIdList *cellIds, vtkIdList *markerIds,
                     vtkIdList *clusterIds);
 
@@ -99,6 +110,8 @@ public:
                                   double distanceThreshold);
   void MergeNodes(ClusteringNode *node, ClusteringNode *mergingNode,
                   std::set<ClusteringNode*>& parentsToMerge, int level);
+
+  void GetMarkerIdsRecursive(vtkIdType clusterId, vtkIdList *markerIds);
 
  private:
   class MapMarkerSetInternals;

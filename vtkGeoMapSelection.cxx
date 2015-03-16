@@ -127,14 +127,23 @@ bool vtkGeoMapSelection::IsEmpty()
 //-----------------------------------------------------------------------------
 void vtkGeoMapSelection::Clear()
 {
-  std::map<vtkFeature*, vtkIdList *>::iterator iter =
-    this->Internal->ComponentIdMap.begin();
+  std::map<vtkFeature*, vtkIdList *>::iterator iter;
+  iter = this->Internal->ComponentIdMap.begin();
   for (; iter != this->Internal->ComponentIdMap.end(); iter++)
     {
     vtkIdList *idList = iter->second;
     idList->Delete();
     }
   this->Internal->ComponentIdMap.clear();
+
+  iter = this->Internal->ClusterIdMap.begin();
+  for (; iter != this->Internal->ClusterIdMap.end(); iter++)
+    {
+    vtkIdList *idList = iter->second;
+    idList->Delete();
+    }
+  this->Internal->ClusterIdMap.clear();
+
   this->SelectedFeatures->RemoveAllItems();
 }
 
