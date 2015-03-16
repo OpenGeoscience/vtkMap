@@ -40,6 +40,8 @@
 #include <vector>
 
 const int NumberOfClusterLevels = 20;
+#define MARKER_TYPE 0
+#define CLUSTER_TYPE 1
 
 //----------------------------------------------------------------------------
 // Internal class for cluster tree nodes
@@ -47,7 +49,7 @@ const int NumberOfClusterLevels = 20;
 class vtkMapMarkerSet::ClusteringNode
 {
 public:
-  int NodeId;  // for dev use
+  int NodeId;
   int Level;  // for dev
   double gcsCoords[2];
   ClusteringNode *Parent;
@@ -298,7 +300,7 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
 //----------------------------------------------------------------------------
 void vtkMapMarkerSet::Init()
 {
-  this->Superclass::Init();
+  // Set up rendering pipeline
 
   // Add "Color" data array to polydata
   const char *colorName = "Color";
@@ -369,6 +371,8 @@ void vtkMapMarkerSet::Init()
 
   // Setup mapper and actor
   this->GetMapper()->SetInputConnection(glyph->GetOutputPort());
+  this->Superclass::Init();
+
   this->Initialized = true;
 }
 
@@ -408,8 +412,6 @@ void vtkMapMarkerSet::Update()
 
   // Copy marker info into polydata
   vtkNew<vtkPoints> points;
-  unsigned char markerType;  // 0 == point marker, 1 == cluster marker
-  markerType = 0;
 
   // Get pointers to data arrays
   vtkDataArray *array;
@@ -443,15 +445,13 @@ void vtkMapMarkerSet::Update()
     this->Internals->CurrentNodes.push_back(node);
     if (node->NumberOfMarkers == 1)  // point marker
       {
-      markerType = 0;
-      types->InsertNextValue(markerType);
+      types->InsertNextValue(MARKER_TYPE);
       colors->InsertNextTupleValue(kwBlue);
       scales->InsertNextValue(1.0);
       }
     else  // cluster marker
       {
-      markerType = 1;
-      types->InsertNextValue(markerType);
+      types->InsertNextValue(CLUSTER_TYPE);
       colors->InsertNextTupleValue(kwGreen);
       double x = static_cast<double>(node->NumberOfMarkers);
       double scale = k*x*x / (x*x + b);
@@ -491,19 +491,24 @@ void vtkMapMarkerSet::Cleanup()
 
 //----------------------------------------------------------------------------
 void vtkMapMarkerSet::
-GetMarkerIds(vtkIdList *cellIds, vtkIdList *markerIds)
+GetMarkerIds(vtkIdList *cellIds, vtkIdList *markerIds, vtkIdList *clusterIds)
 {
   // Get the *rendered* polydata (not this->PolyData, which is marker points)
   vtkObject *object = this->Actor->GetMapper()->GetInput();
   vtkPolyData *polyData = vtkPolyData::SafeDownCast(object);
 
-  // Get its data array with marker ids
+  // Get its data array with input point ids
   vtkDataArray *dataArray =
     polyData->GetPointData()->GetArray("InputPointIds");
-  vtkIdTypeArray *markerIdArray = vtkIdTypeArray::SafeDownCast(dataArray);
+  vtkIdTypeArray *inputPointIdArray = vtkIdTypeArray::SafeDownCast(dataArray);
+
+  // Get data array with marker type info
+  // Note that this time we *do* use the source polydata
+  vtkDataArray *array = this->PolyData->GetPointData()->GetArray("MarkerType");
+  vtkUnsignedCharArray *markerTypes = vtkUnsignedCharArray::SafeDownCast(array);
 
   // Use std::set to only add each marker id once
-  std::set<vtkIdType> markerIdSet;
+  std::set<vtkIdType> idSet;
 
   // Traverse all cells
   vtkNew<vtkIdList> pointIds;
@@ -517,17 +522,26 @@ GetMarkerIds(vtkIdList *cellIds, vtkIdList *markerIds)
     // Only need 1 point, since they are all in same marker
     vtkIdType pointId = pointIds->GetId(0);
 
-    // Look up marker id
-    vtkIdType markerId = markerIdArray->GetValue(pointId);
-    if (markerIdSet.count(markerId) > 0)
+    // Look up input point id
+    vtkIdType inputPointId = inputPointIdArray->GetValue(pointId);
+    if (idSet.count(inputPointId) > 0)
       {
+      // Already have processed this marker
       continue;
       }
-    markerIdSet.insert(markerId);
 
-    // Todo get clustering info?
+    // Get info from the clustering node
+    ClusteringNode *node = this->Internals->CurrentNodes[inputPointId];
+    if (node->NumberOfMarkers == 1)
+      {
+      markerIds->InsertNextId(node->MarkerId);
+      }
+    else
+      {
+      clusterIds->InsertNextId(node->NodeId);
+      }
 
-    markerIds->InsertNextId(markerId);
+    idSet.insert(inputPointId);
     }  // for (i)
 
 }
@@ -642,3 +656,6 @@ MergeNodes(ClusteringNode *node, ClusteringNode *mergingNode,
   this->Internals->AllNodes[mergingNode->NodeId] = NULL;
   delete mergingNode;
 }
+
+#undef MARKER_TYPE
+#undef CLUSTER_TYPE

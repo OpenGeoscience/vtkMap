@@ -55,24 +55,49 @@ public:
           vtkCollection *collection = selection->GetSelectedFeatures();
           std::cout << "Number of features: " << collection->GetNumberOfItems()
                     << std::endl;
-          vtkNew<vtkIdList> idList;
+          vtkNew<vtkIdList> cellIdList;
+          vtkNew<vtkIdList> markerIdList;
+          vtkNew<vtkIdList> clusterIdList;
           for (int i=0; i<collection->GetNumberOfItems(); i++)
             {
             vtkObject *object = collection->GetItemAsObject(i);
             std::cout << "  " << object->GetClassName() << "\n";
             vtkFeature *feature = vtkFeature::SafeDownCast(object);
-            selection->GetComponentIds(feature, idList.GetPointer());
-            if (idList->GetNumberOfIds() > 0)
+
+            // Retrieve polydata cells (if relevant)
+            if (selection->GetPolyDataCellIds(feature, cellIdList.GetPointer()))
               {
-              std::cout << "    Component ids: ";
-              for (int j=0; j<idList->GetNumberOfIds(); j++)
+              if (cellIdList->GetNumberOfIds() > 0)
                 {
-                std::cout << " " << idList->GetId(j);
+                std::cout << "    Cell ids: ";
+                for (int j=0; j<cellIdList->GetNumberOfIds(); j++)
+                  {
+                  std::cout << " " << cellIdList->GetId(j);
+                  }
+                std::cout << std::endl;
                 }
-              std::cout << std::endl;
               }
-            }
-          }
+
+            // Retrieve marker ids (if relevant)
+            if (selection->GetMapMarkerIds(feature, markerIdList.GetPointer(),
+                                           clusterIdList.GetPointer()))
+              {
+                std::cout << "    Marker ids: ";
+                for (int j=0; j<markerIdList->GetNumberOfIds(); j++)
+                  {
+                  std::cout << " " << markerIdList->GetId(j);
+                  }
+                std::cout << std::endl;
+
+                std::cout << "    Cluster ids: ";
+                for (int j=0; j<clusterIdList->GetNumberOfIds(); j++)
+                  {
+                  std::cout << " " << clusterIdList->GetId(j);
+                  }
+                std::cout << std::endl;
+              }
+            }  // for (i)
+          }  // case
           break;
 
         case vtkInteractorStyleGeoMap::ZoomCompleteEvent:

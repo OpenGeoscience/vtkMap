@@ -15,6 +15,8 @@
 
 #include "vtkGeoMapSelection.h"
 #include "vtkFeature.h"
+#include "vtkMapMarkerSet.h"
+#include "vtkPolydataFeature.h"
 
 #include <vtkCollection.h>
 #include <vtkIdList.h>
@@ -30,7 +32,12 @@ class vtkGeoMapSelection::vtkGeoMapSelectionInternal
 {
 public:
   // Store list of selected component ids for individual features
+  // For vtkPolydataFeature, ids are polydata cell ids
+  // For vtkMapMarkerFeature, ids are clustering-node ids
   std::map<vtkFeature*, vtkIdList *> ComponentIdMap;
+
+  // Second std:: map for cluster components in map marker sets
+  std::map<vtkFeature*, vtkIdList*> ClusterIdMap;
 };
 
 //-----------------------------------------------------------------------------
@@ -56,16 +63,59 @@ void vtkGeoMapSelection::PrintSelf(ostream &os, vtkIndent indent)
 }
 
 //-----------------------------------------------------------------------------
-void vtkGeoMapSelection::
-GetComponentIds(vtkFeature *feature, vtkIdList *idList) const
+bool vtkGeoMapSelection::
+GetPolyDataCellIds(vtkFeature *feature, vtkIdList *idList) const
 {
   idList->Reset();
+  // Only defined for vtkPolydataFeature types that are *not* markers
+  vtkPolydataFeature *polyFeature = vtkPolydataFeature::SafeDownCast(feature);
+  vtkMapMarkerSet *markerFeature = vtkMapMarkerSet::SafeDownCast(feature);
+  if (markerFeature || !polyFeature)
+    {
+    return false;
+    }
+
+  // Copy the list of cell ids
   std::map<vtkFeature*, vtkIdList *>::iterator iter =
     this->Internal->ComponentIdMap.find(feature);
   if (iter != this->Internal->ComponentIdMap.end())
     {
     idList->DeepCopy(iter->second);
     }
+  return true;
+}
+
+//-----------------------------------------------------------------------------
+bool vtkGeoMapSelection::
+GetMapMarkerIds(vtkFeature *feature, vtkIdList *markerIdList,
+             vtkIdList *clusterIdList) const
+{
+  markerIdList->Reset();
+  clusterIdList->Reset();
+
+  vtkMapMarkerSet *markerFeature = vtkMapMarkerSet::SafeDownCast(feature);
+  if (!markerFeature)
+    {
+    return false;
+    }
+
+  std::map<vtkFeature*, vtkIdList *>::iterator iter;
+
+  // Traverse ids and get info from marker feature
+  iter = this->Internal->ComponentIdMap.find(feature);
+  if (iter != this->Internal->ComponentIdMap.end())
+    {
+    markerIdList->DeepCopy(iter->second);
+    }
+
+  // Repeat for clusters
+  iter = this->Internal->ClusterIdMap.find(feature);
+  if (iter != this->Internal->ComponentIdMap.end())
+    {
+    clusterIdList->DeepCopy(iter->second);
+    }
+
+  return true;
 }
 
 //-----------------------------------------------------------------------------
@@ -91,14 +141,32 @@ void vtkGeoMapSelection::Clear()
 //-----------------------------------------------------------------------------
 void vtkGeoMapSelection::AddFeature(vtkFeature *feature)
 {
+  // For features with no components
   this->SelectedFeatures->AddItem(feature);
 }
 
 //-----------------------------------------------------------------------------
-void vtkGeoMapSelection::AddFeature(vtkFeature *feature, vtkIdList *ids)
+void vtkGeoMapSelection::AddFeature(vtkFeature *feature, vtkIdList *cellIds)
 {
+  // For polydata features (which have cells)
   this->SelectedFeatures->AddItem(feature);
   vtkIdList *idsCopy = vtkIdList::New();
-  idsCopy->DeepCopy(ids);
+  idsCopy->DeepCopy(cellIds);
   this->Internal->ComponentIdMap[feature] = idsCopy;
+}
+
+//-----------------------------------------------------------------------------
+void vtkGeoMapSelection::
+AddFeature(vtkFeature *feature, vtkIdList *markerIds, vtkIdList *clusterIds)
+{
+  // For map marker features, which have markers & clusters
+  this->SelectedFeatures->AddItem(feature);
+
+  vtkIdList *markerIdsCopy = vtkIdList::New();
+  markerIdsCopy->DeepCopy(markerIds);
+  this->Internal->ComponentIdMap[feature] = markerIdsCopy;
+
+  vtkIdList *clusterIdsCopy = vtkIdList::New();
+  clusterIdsCopy->DeepCopy(clusterIds);
+  this->Internal->ClusterIdMap[feature] = clusterIdsCopy;
 }

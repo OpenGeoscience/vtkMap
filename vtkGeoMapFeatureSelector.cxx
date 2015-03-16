@@ -124,6 +124,7 @@ PickArea(vtkRenderer *renderer, int displayCoords[4],
     {
     vtkNew<vtkIdList> cellIdList;
     vtkNew<vtkIdList> markerIdList;
+    vtkNew<vtkIdList> clusterIdList;
 
     // Process each object detected by the area picker
     vtkProp3DCollection *props = areaPicker->GetProp3Ds();
@@ -144,6 +145,7 @@ PickArea(vtkRenderer *renderer, int displayCoords[4],
       vtkFeature *feature = findIter->second;
       cellIdList->Reset();
       markerIdList->Reset();
+      clusterIdList->Reset();
 
       // Handling depends on feature type
       vtkMapMarkerSet *markerFeature = vtkMapMarkerSet::SafeDownCast(feature);
@@ -159,8 +161,10 @@ PickArea(vtkRenderer *renderer, int displayCoords[4],
           {
           // Get list of marker ids for given cell ids
           markerFeature->GetMarkerIds(cellIdList.GetPointer(),
-                                      markerIdList.GetPointer());
-          selection->AddFeature(feature, markerIdList.GetPointer());
+                                      markerIdList.GetPointer(),
+                                      clusterIdList.GetPointer());
+          selection->AddFeature(feature, markerIdList.GetPointer(),
+                                clusterIdList.GetPointer());
           }
         }
       else if (polydataFeature)

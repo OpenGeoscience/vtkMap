@@ -71,7 +71,8 @@ public:
 
   // Description:
   // Return list of marker ids for set of polydata cell ids
-  void GetMarkerIds(vtkIdList *cellIds, vtkIdList *markerIds);
+  void GetMarkerIds(vtkIdList *cellIds, vtkIdList *markerIds,
+                    vtkIdList *clusterIds);
 
  protected:
   vtkMapMarkerSet();

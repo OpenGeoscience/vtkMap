@@ -38,7 +38,9 @@ class VTKMAP_EXPORT vtkGeoMapSelection : public vtkObject
   bool IsEmpty();
   void Clear();
   void AddFeature(vtkFeature *feature);
-  void AddFeature(vtkFeature *feature, vtkIdList *ids);
+  void AddFeature(vtkFeature *feature, vtkIdList *cellIds);
+  void AddFeature(vtkFeature *feature, vtkIdList *markerIds,
+                  vtkIdList *clusterIds);
 
   vtkSetVector4Macro(LatLngBounds, double);
   vtkGetVector4Macro(LatLngBounds, double);
@@ -48,10 +50,16 @@ class VTKMAP_EXPORT vtkGeoMapSelection : public vtkObject
   vtkGetObjectMacro(SelectedFeatures, vtkCollection);
 
   // Description:
-  // Returns the selected component (ids) for a specified feature.
-  // Note that only some features contain components
-  void GetComponentIds(vtkFeature *feature, vtkIdList *idList) const;
+  // Retrieves the selected cell ids for a polydata feature.
+  // Returns true if input feature is vtkPolydataFeature (only)
+  bool GetPolyDataCellIds(vtkFeature *feature, vtkIdList *idList) const;
 
+  // Description:
+  // Returns the selected marker ids and cluster ids for marker set
+  // Note that cluster ids are internally generated.
+  // Returns true if input feature is vtkMapMarkerSet
+  bool GetMapMarkerIds(vtkFeature *feature, vtkIdList *markerIdList,
+                       vtkIdList *clusterIdList) const;
 
  protected:
   vtkGeoMapSelection();
