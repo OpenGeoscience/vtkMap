@@ -25,6 +25,7 @@
 #include <vtk_jsoncpp.h>
 #include <map>
 class vtkMap;
+class vtkMapMarkerSet;
 class vtkRenderer;
 class QVTKWidget;
 class MapCallback;
@@ -54,6 +55,7 @@ class qtWeatherStations : public QMainWindow
   virtual void resizeEvent(QResizeEvent *event);
 
   vtkMap *Map;               /// Map instance
+  vtkMapMarkerSet *MapMarkers;  // Map markers
   vtkRenderer *Renderer;     /// vtk renderer
   QVTKWidget *MapWidget;     /// Map widget
   Ui_qtWeatherStations *UI;  /// Qt Designer form
