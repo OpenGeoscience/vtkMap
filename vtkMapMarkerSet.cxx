@@ -304,7 +304,7 @@ GetClusterChildren(vtkIdType clusterId, vtkIdList *childMarkerIds,
 {
   childMarkerIds->Reset();
   childClusterIds->Reset();
-  if ((clusterId < 0) || (clusterId >= this->Internals->NodeTable.size()))
+  if ((clusterId < 0) || (clusterId >= this->Internals->AllNodes.size()))
     {
     return;
     }
@@ -314,14 +314,13 @@ GetClusterChildren(vtkIdType clusterId, vtkIdList *childMarkerIds,
   for (; childIter != node->Children.end(); childIter++)
     {
     ClusteringNode *child = *childIter;
-    vtkIdType childId = child->MarkerId;
     if (child->NumberOfMarkers == 1)
       {
-      childMarkerIds->InsertNextId(childId);
+      childMarkerIds->InsertNextId(child->MarkerId);
       }
     else
       {
-      childClusterIds->InsertNextId(childId);
+      childClusterIds->InsertNextId(child->NodeId);
       }  // else
     }  // for (childIter)
 }

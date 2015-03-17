@@ -80,6 +80,7 @@ void vtkInteractorStyleGeoMap::OnLeftButtonDown()
     this->Map->PickPoint(pos, pickResult.GetPointer());
     this->InvokeEvent(SelectionCompleteEvent, pickResult.GetPointer());
     vtkDebugMacro("StartPan()");
+    //std::cout << "Start Pan" << std::endl;
     this->Interaction = PANNING;
     this->StartPan();
     }
@@ -174,12 +175,14 @@ void vtkInteractorStyleGeoMap::OnLeftButtonDown()
 //-----------------------------------------------------------------------------
 void vtkInteractorStyleGeoMap::OnLeftButtonUp()
 {
+  vtkDebugMacro("EndPan()");
+  //std::cout << "End Pan" << std::endl;
+  this->EndPan();
+  this->Interaction = NONE;
+
   if (this->RubberBandMode == vtkInteractorStyleGeoMap::DisabledMode)
     {
-    // Default map interaction == end panning
-    vtkDebugMacro("EndPan()");
     this->Interactor->GetRenderWindow()->SetCurrentCursor(VTK_CURSOR_DEFAULT);
-    this->EndPan();
     }
 
   if (!this->RubberBandActor)
@@ -249,6 +252,7 @@ void vtkInteractorStyleGeoMap::OnLeftButtonUp()
 
   this->Map->Draw();
   this->Interaction = NONE;
+  this->Superclass::OnLeftButtonUp();
 }
 
 //--------------------------------------------------------------------------

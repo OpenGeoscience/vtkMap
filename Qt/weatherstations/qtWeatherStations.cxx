@@ -69,31 +69,7 @@ public:
           {
           vtkObject *object = static_cast<vtkObject*>(data);
           vtkGeoMapSelection *selection = vtkGeoMapSelection::SafeDownCast(object);
-          vtkCollection *collection = selection->GetSelectedFeatures();
-          std::cout << "Selected collection size: "
-                    << collection->GetNumberOfItems() << std::endl;
-          if (collection->GetNumberOfItems() < 1)
-            {
-            return;
-            }
-
-          // Display "first" thing selected
-          vtkObject *firstObject = collection->GetItemAsObject(0);
-          vtkMapMarkerSet *markerSet = vtkMapMarkerSet::SafeDownCast(firstObject);
-          if (!markerSet)
-            {
-            std::cout << "First selected item type " << object->GetClassName()
-                      << ", which was not expected." << std::endl;
-            }
-
-          vtkNew<vtkIdList> markerIds;
-          vtkNew<vtkIdList> clusterIds;
-          selection->GetMapMarkerIds(markerSet, markerIds.GetPointer(),
-                                     clusterIds.GetPointer());
-          std::cout << "Selection marker count: " << markerIds->GetNumberOfIds()
-                    << ", cluster count " << clusterIds->GetNumberOfIds()
-                    << std::endl;
-
+          this->App->displaySelectionInfo(selection);
           }
           break;
 
@@ -155,6 +131,7 @@ qtWeatherStations::qtWeatherStations(QWidget *parent)
   vtkInteractorStyle *style = this->Map->GetInteractorStyle();
   intr->SetInteractorStyle(style);
   intr->Initialize();
+  //intr->Start();
 
   // Watch for selection callback from map
   this->InteractorCallback = new MapCallback(this);
@@ -420,39 +397,66 @@ vtkRenderer *qtWeatherStations::getRenderer() const
 }
 
 // ------------------------------------------------------------
-// Handles left-click event
-void qtWeatherStations::pickMarker(int displayCoords[2])
+void qtWeatherStations::
+displaySelectionInfo(vtkGeoMapSelection *selection) const
 {
-  QMessageBox::information(this->MapWidget, "Work In Progress",
-                           "Sorry - picking is currently disabled");
-  // std::stringstream ss;
-  // vtkNew<vtkMapPickResult> pickResult;
-  // this->Map->PickPoint(displayCoords, pickResult.GetPointer());
+  vtkCollection *collection = selection->GetSelectedFeatures();
+  std::cout << "Selected collection size: "
+            << collection->GetNumberOfItems() << std::endl;
+  if (collection->GetNumberOfItems() < 1)
+    {
+    return;
+    }
 
-  // switch (pickResult->GetMapFeatureType())
-  //   {
-  //   case VTK_MAP_FEATURE_MARKER:
-  //     {
-  //     std::map<vtkIdType, StationReport>::iterator stationIter =
-  //       this->StationMap.find(pickResult->GetMapFeatureId());
-  //     if (stationIter != this->StationMap.end())
-  //       {
-  //       StationReport station = stationIter->second;
-  //       ss << "Station: " << station.name << "\n"
-  //          << "Current Temp: " << std::setiosflags(std::ios_base::fixed)
-  //          << std::setprecision(1) << station.temperature << "F";
-  //       QMessageBox::information(this->MapWidget, "Marker clicked",
-  //                                QString::fromStdString(ss.str()));
-  //       }
-  //     }
-  //     break;
+  // Display "first" thing selected
+  vtkObject *firstObject = collection->GetItemAsObject(0);
+  vtkMapMarkerSet *markerSet = vtkMapMarkerSet::SafeDownCast(firstObject);
+  if (!markerSet)
+    {
+    std::cout << "First selected item type " << firstObject->GetClassName()
+              << ", which was not expected." << std::endl;
+    return;
+    }
 
-  //   case VTK_MAP_FEATURE_CLUSTER:
-  //     ss << "Cluster of " << pickResult->GetNumberOfMarkers() << " stations.";
-  //     QMessageBox::information(this->MapWidget, "Cluster clicked",
-  //                              QString::fromStdString(ss.str()));
-  //     break;
-  //   }
+  std::stringstream ss;
+  vtkNew<vtkIdList> markerIds;
+  vtkNew<vtkIdList> clusterIds;
+  selection->GetMapMarkerIds(markerSet, markerIds.GetPointer(),
+                             clusterIds.GetPointer());
+  std::cout << "Selection marker count: " << markerIds->GetNumberOfIds()
+            << ", cluster count " << clusterIds->GetNumberOfIds()
+            << std::endl;
+
+  // Single marker case
+  if (markerIds->GetNumberOfIds() == 1)
+    {
+    vtkIdType markerId = markerIds->GetId(0);
+    std::map<vtkIdType, StationReport>::const_iterator stationIter =
+      this->StationMap.find(markerId);
+    if (stationIter != this->StationMap.end())
+      {
+      StationReport station = stationIter->second;
+      ss.str("");
+      ss << "Station: " << station.name << "\n"
+         << "Current Temp: " << std::setiosflags(std::ios_base::fixed)
+         << std::setprecision(1) << station.temperature << "F";
+      QMessageBox::information(this->MapWidget, "Marker clicked",
+                               QString::fromStdString(ss.str()));
+      }  // if (station)
+    }  // if (1 marker)
+
+  // Single cluster case
+  if (clusterIds->GetNumberOfIds() == 1)
+    {
+    vtkIdType clusterId = clusterIds->GetId(0);
+    vtkNew<vtkIdList> allMarkerIds;
+    this->MapMarkers->GetAllMarkerIds(clusterId, allMarkerIds.GetPointer());
+    ss.str("");
+    ss << "Cluster of " << allMarkerIds->GetNumberOfIds() << " stations.";
+    QMessageBox::information(this->MapWidget, "Cluster clicked",
+                             QString::fromStdString(ss.str()));
+    }
+
 }
 
 // ------------------------------------------------------------
