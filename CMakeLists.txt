@@ -82,6 +82,7 @@ set (HEADERS
     vtkGDALRasterReprojection.h
     vtkGeoMapFeatureSelector.h
     vtkGeoMapSelection.h
+    vtkInteractorStyleGeoMap.h
     vtkMapMarkerSet.h
     vtkMapTile.h
     vtkMapTileSpecInternal.h

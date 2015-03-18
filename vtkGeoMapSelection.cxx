@@ -70,10 +70,6 @@ GetPolyDataCellIds(vtkFeature *feature, vtkIdList *idList) const
   // Only defined for vtkPolydataFeature types that are *not* markers
   vtkPolydataFeature *polyFeature = vtkPolydataFeature::SafeDownCast(feature);
   vtkMapMarkerSet *markerFeature = vtkMapMarkerSet::SafeDownCast(feature);
-  if (markerFeature || !polyFeature)
-    {
-    return false;
-    }
 
   // Copy the list of cell ids
   std::map<vtkFeature*, vtkIdList *>::iterator iter =

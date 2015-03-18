@@ -167,7 +167,7 @@ PickArea(vtkRenderer *renderer, int displayCoords[4],
                                 clusterIdList.GetPointer());
           }
         }
-      else if (polydataFeature)
+      else
         {
         // Get cell ids
         this->PickPolyDataCells(
@@ -176,10 +176,10 @@ PickArea(vtkRenderer *renderer, int displayCoords[4],
           {
           selection->AddFeature(feature, cellIdList.GetPointer());
           }
-        }
-      else
-        {
-        selection->AddFeature(feature);
+        else
+          {
+          selection->AddFeature(feature);
+          }
         }
 
       }  // while (props)
