@@ -53,6 +53,9 @@ public:
   vtkInteractorStyleGeoMap();
   ~vtkInteractorStyleGeoMap();
 
+  vtkSetVector4Macro(OverlayColor, double);
+  vtkSetVector4Macro(EdgeColor, double);
+
   // Description:
   // Overriding these functions to implement custom
   // interactions.
@@ -92,6 +95,7 @@ public:
     {this->SetRubberBandMode(DisabledMode);}
 
   // Description:
+  // For potential/future use cases:
   // Enable rubberband selection (while in zoom mode) via Ctrl-key modifier
   vtkSetMacro(RubberBandSelectionWithCtrlKey, int);
   vtkGetMacro(RubberBandSelectionWithCtrlKey, int);
@@ -105,6 +109,9 @@ public:
 protected:
   void Pan();
   void Zoom();
+
+  double OverlayColor[4];
+  double EdgeColor[4];
 
 private:
 // Not implemented.

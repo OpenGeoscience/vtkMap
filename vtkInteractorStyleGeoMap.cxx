@@ -26,6 +26,7 @@
 #include <vtkCellArray.h>
 #include <vtkCellData.h>
 #include <vtkCommand.h>
+#include <vtkDoubleArray.h>
 #include <vtkMath.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
@@ -35,9 +36,8 @@
 #include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
-#include <vtkUnsignedCharArray.h>
 
-#include <algorithm>  // std::min, std::max
+#include <algorithm>  // std::copy, std::max, std::min
 
 vtkStandardNewMacro(vtkInteractorStyleGeoMap);
 
@@ -50,6 +50,13 @@ vtkInteractorStyleGeoMap::vtkInteractorStyleGeoMap() :
   this->RubberBandSelectionWithCtrlKey = 0;
   this->RubberBandActor = 0;
   this->RubberBandPoints = 0;
+
+  // Default rubber band colors (RGBA)
+  double violet[] = {1.0, 0.6, 1.0, 0.2};
+  std::copy(violet, violet+4, this->OverlayColor);
+
+  double magenta[] = {1.0, 0.0, 1.0, 1.0};
+  std::copy(magenta, magenta+4, this->EdgeColor);
 }
 
 //-----------------------------------------------------------------------------
@@ -104,7 +111,7 @@ void vtkInteractorStyleGeoMap::OnLeftButtonDown()
     vtkCellArray* CA = vtkCellArray::New();
     vtkCellArray* CA2 = vtkCellArray::New();
     vtkPolyDataMapper2D* PDM = vtkPolyDataMapper2D::New();
-    vtkUnsignedCharArray* UCA = vtkUnsignedCharArray::New();
+    vtkDoubleArray* colorArray = vtkDoubleArray::New();
 
     this->RubberBandPoints->SetNumberOfPoints(4);
 
@@ -112,19 +119,17 @@ void vtkInteractorStyleGeoMap::OnLeftButtonDown()
     CA2->InsertNextCell(5, ids);
     CA->InsertNextCell(4, ids);
 
-    UCA->SetNumberOfComponents(4);
-    UCA->SetName("Colors");
+    colorArray->SetNumberOfComponents(4);
+    colorArray->SetName("Colors");
+    colorArray->InsertNextTupleValue(this->EdgeColor);
+    colorArray->InsertNextTupleValue(this->OverlayColor);
 
-    unsigned char color[]     = { 200, 230, 250,  50 };
-    unsigned char edgeColor[] = {  60, 173, 255, 255 };
-    UCA->InsertNextTupleValue(edgeColor);
-    UCA->InsertNextTupleValue(color);
-
-    PD->GetCellData()->SetScalars(UCA);
+    PD->GetCellData()->SetScalars(colorArray);
     PD->SetPoints(this->RubberBandPoints);
     PD->SetPolys(CA);
     PD->SetLines(CA2);
     PDM->SetInputData(PD);
+    PDM->SetColorModeToDirectScalars();
 
     this->RubberBandActor->SetMapper(PDM);
 
@@ -132,7 +137,7 @@ void vtkInteractorStyleGeoMap::OnLeftButtonDown()
 
     CA->FastDelete();
     CA2->FastDelete();
-    UCA->FastDelete();
+    colorArray->FastDelete();
     PD->FastDelete();
     PDM->FastDelete();
     this->RubberBandPoints->FastDelete();
