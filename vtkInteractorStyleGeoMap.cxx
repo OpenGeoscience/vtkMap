@@ -83,9 +83,21 @@ void vtkInteractorStyleGeoMap::OnLeftButtonDown()
     int *pos = this->Interactor->GetEventPosition();
 
     // Check if anything was picked
-    vtkNew<vtkGeoMapSelection> pickResult;
-    this->Map->PickPoint(pos, pickResult.GetPointer());
-    this->InvokeEvent(SelectionCompleteEvent, pickResult.GetPointer());
+    vtkNew<vtkGeoMapSelection> selection;
+    this->Map->PickPoint(pos, selection.GetPointer());
+
+    // Compute lat-lon coordinates
+    double latLngBounds[4];
+    double displayCoords[2];
+    displayCoords[0] = pos[0];
+    displayCoords[1] = pos[1];
+    double computedCoords[3];
+    this->Map->ComputeLatLngCoords(displayCoords, 0.0, computedCoords);
+    latLngBounds[0] = latLngBounds[2] = computedCoords[0];
+    latLngBounds[1] = latLngBounds[3] = computedCoords[1];
+    selection->SetLatLngBounds(latLngBounds);
+
+    this->InvokeEvent(SelectionCompleteEvent, selection.GetPointer());
     vtkDebugMacro("StartPan()");
     //std::cout << "Start Pan" << std::endl;
     this->Interaction = PANNING;
