@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkInteractorStyleMap.cxx
+  Module:    vtkMap
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.

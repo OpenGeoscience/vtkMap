@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkInteractorStyleMap.cxx
+  Module:    vtkMap
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -16,7 +16,6 @@
 #include "vtkInteractorStyleGeoMap.h"
 #include "vtkGeoMapSelection.h"
 #include "vtkMap.h"
-//#include "vtkMapPickResult.h"
 
 //#include "vtkVgRendererUtils.h"
 
