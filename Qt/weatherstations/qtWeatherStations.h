@@ -24,7 +24,9 @@
 #include <vtkType.h>
 #include <vtk_jsoncpp.h>
 #include <map>
+class vtkGeoMapSelection;
 class vtkMap;
+class vtkMapMarkerSet;
 class vtkRenderer;
 class QVTKWidget;
 class MapCallback;
@@ -43,7 +45,7 @@ class qtWeatherStations : public QMainWindow
   void drawMap();
   void updateMap();
   vtkRenderer *getRenderer() const;
-  void pickMarker(int displayCoords[2]);
+  void displaySelectionInfo(vtkGeoMapSelection *selection) const;
  public slots:
 
  protected:
@@ -54,6 +56,7 @@ class qtWeatherStations : public QMainWindow
   virtual void resizeEvent(QResizeEvent *event);
 
   vtkMap *Map;               /// Map instance
+  vtkMapMarkerSet *MapMarkers;  // Map markers
   vtkRenderer *Renderer;     /// vtk renderer
   QVTKWidget *MapWidget;     /// Map widget
   Ui_qtWeatherStations *UI;  /// Qt Designer form

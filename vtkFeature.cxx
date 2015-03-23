@@ -54,3 +54,9 @@ bool vtkFeature::IsVisible()
   // Visible only if both layer and feature visibility flags are set
   return this->Layer->GetVisibility() && this->Visibility;
 }
+
+//----------------------------------------------------------------------------
+vtkProp *vtkFeature::PickProp()
+{
+  return NULL;
+}

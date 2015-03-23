@@ -1,81 +1,115 @@
 #include "vtkMap.h"
 #include "vtkFeatureLayer.h"
+#include "vtkGeoMapSelection.h"
+#include "vtkInteractorStyleGeoMap.h"
 #include "vtkMapMarkerSet.h"
-#include "vtkMapPickResult.h"
 #include "vtkMercator.h"
 #include "vtkOsmLayer.h"
 #include "vtkPolydataFeature.h"
 
-#include <vtkActor.h>
-#include <vtkCallbackCommand.h>
-#include <vtkCamera.h>
+#include <vtkCollection.h>
 #include <vtkCommand.h>
-#include <vtkDistanceToCamera.h>
-#include <vtkGlyph3D.h>
-#include <vtkIdTypeArray.h>
+#include <vtkIdList.h>
 #include <vtkInteractorStyle.h>
-#include <vtkTransform.h>
-#include <vtkTransformCoordinateSystems.h>
-#include <vtkPointSet.h>
-#include <vtkPlaneSource.h>
-#include <vtkPlane.h>
-#include <vtkPoints.h>
-#include <vtkPointData.h>
 #include <vtkPolyData.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkProperty.h>
-#include <vtkPointPicker.h>
-#include <vtkMatrix4x4.h>
 #include <vtkNew.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderer.h>
 #include <vtkRenderWindowInteractor.h>
-#include <vtkRendererCollection.h>
 #include <vtkRegularPolygonSource.h>
 
 #include <iostream>
-
-using namespace std;
 
 class PickCallback : public vtkCommand
 {
 public:
   static PickCallback *New()
     { return new PickCallback; }
-  virtual void Execute(vtkObject *caller, unsigned long, void*)
+  virtual void Execute(vtkObject *caller, unsigned long event, void* data)
     {
-      vtkRenderWindowInteractor *interactor =
-        vtkRenderWindowInteractor::SafeDownCast(caller);
-      int *pos = interactor->GetEventPosition();
-      //std::cout << "Event position: " << pos[0] << ", " << pos[1] << std::endl;
-      //std::cout << interactor->GetPicker()->GetClassName() << std::endl;
-
-      vtkNew<vtkMapPickResult> pickResult;
-
-      this->Map->PickPoint(pos, pickResult.GetPointer());
-      switch (pickResult->GetMapFeatureType())
+      switch (event)
         {
-        case VTK_MAP_FEATURE_NONE:
-          break;
-
-        case VTK_MAP_FEATURE_MARKER:
-          std::cout << "Picked marker " << pickResult->GetMapFeatureId()
+        case vtkInteractorStyleGeoMap::DisplayCompleteEvent:
+          {
+          double *latLonCoords = static_cast<double*>(data);
+          std::cout << "Selected coordinates: \n"
+                    << "  " << latLonCoords[0] << ", " << latLonCoords[1]
+                    << "\n  " << latLonCoords[2] << ", " << latLonCoords[3]
                     << std::endl;
+          }
           break;
 
-        case VTK_MAP_FEATURE_CLUSTER:
-          std::cout << "Picked cluster containing "
-                    << pickResult->GetNumberOfMarkers() << " markers"
+        case vtkInteractorStyleGeoMap::SelectionCompleteEvent:
+          {
+          vtkObject *object = static_cast<vtkObject*>(data);
+          vtkGeoMapSelection *selection = vtkGeoMapSelection::SafeDownCast(object);
+
+          double *latLonCoords = selection->GetLatLngBounds();
+          std::cout << "Selected coordinates: \n"
+                    << "  " << latLonCoords[0] << ", " << latLonCoords[1]
+                    << "\n  " << latLonCoords[2] << ", " << latLonCoords[3]
                     << std::endl;
-        break;
 
-        default:
-          //vtkWarningMacro("Unrecognized map feature type "
-          //                << pickResult->GetMapFeatureType());
-          std::cerr << "Unrecognized map feature type "
-                    << pickResult->GetMapFeatureType() << std::endl;
+          vtkCollection *collection = selection->GetSelectedFeatures();
+          std::cout << "Number of features: " << collection->GetNumberOfItems()
+                    << std::endl;
+          vtkNew<vtkIdList> cellIdList;
+          vtkNew<vtkIdList> markerIdList;
+          vtkNew<vtkIdList> clusterIdList;
+          for (int i=0; i<collection->GetNumberOfItems(); i++)
+            {
+            vtkObject *object = collection->GetItemAsObject(i);
+            std::cout << "  " << object->GetClassName() << "\n";
+            vtkFeature *feature = vtkFeature::SafeDownCast(object);
+
+            // Retrieve polydata cells (if relevant)
+            if (selection->GetPolyDataCellIds(feature, cellIdList.GetPointer()))
+              {
+              if (cellIdList->GetNumberOfIds() > 0)
+                {
+                std::cout << "    Cell ids: ";
+                for (int j=0; j<cellIdList->GetNumberOfIds(); j++)
+                  {
+                  std::cout << " " << cellIdList->GetId(j);
+                  }
+                std::cout << std::endl;
+                }
+              }
+
+            // Retrieve marker ids (if relevant)
+            if (selection->GetMapMarkerIds(feature, markerIdList.GetPointer(),
+                                           clusterIdList.GetPointer()))
+              {
+                std::cout << "    Marker ids: ";
+                for (int j=0; j<markerIdList->GetNumberOfIds(); j++)
+                  {
+                  std::cout << " " << markerIdList->GetId(j);
+                  }
+                std::cout << std::endl;
+
+                std::cout << "    Cluster ids: ";
+                for (int j=0; j<clusterIdList->GetNumberOfIds(); j++)
+                  {
+                  std::cout << " " << clusterIdList->GetId(j);
+                  }
+                std::cout << std::endl;
+              }
+            }  // for (i)
+          }  // case
           break;
-        }
+
+        case vtkInteractorStyleGeoMap::ZoomCompleteEvent:
+          {
+          double *latLonCoords = static_cast<double*>(data);
+          std::cout << "Zoom coordinates: \n"
+                    << "  " << latLonCoords[0] << ", " << latLonCoords[1]
+                    << "\n  " << latLonCoords[2] << ", " << latLonCoords[3]
+                    << std::endl;
+          }
+          break;
+        }  // switch
     }
 
   void SetMap(vtkMap *map)
@@ -113,8 +147,11 @@ int main()
 
   vtkNew<vtkRenderWindowInteractor> intr;
   intr->SetRenderWindow(wind.GetPointer());
-  intr->SetInteractorStyle(map->GetInteractorStyle());
-  intr->SetPicker(map->GetPicker());
+  vtkInteractorStyle *style = map->GetInteractorStyle();
+  vtkInteractorStyleGeoMap *mapStyle =
+    vtkInteractorStyleGeoMap::SafeDownCast(style);
+  //mapStyle->SetRubberBandModeToSelection();
+  intr->SetInteractorStyle(style);
 
   intr->Initialize();
   map->Draw();
@@ -152,8 +189,9 @@ int main()
     35.911373, -79.072205,  // KRS
     32.301393, -90.871495   // ERDC
   };
-  vtkMapMarkerSet *markerSet = map->GetMapMarkerSet();
+  vtkNew<vtkMapMarkerSet> markerSet;
   markerSet->ClusteringOn();
+  featureLayer->AddFeature(markerSet.GetPointer());
   unsigned numMarkers = sizeof(latlonCoords) / sizeof(double) / 2;
   for (unsigned i=0; i<numMarkers; ++i)
     {
@@ -166,7 +204,12 @@ int main()
   // Set callbacks
   vtkNew<PickCallback> pickCallback;
   pickCallback->SetMap(map.GetPointer());
-  intr->AddObserver(vtkCommand::LeftButtonPressEvent, pickCallback.GetPointer());
+  style->AddObserver(vtkInteractorStyleGeoMap::DisplayCompleteEvent,
+                    pickCallback.GetPointer());
+  style->AddObserver(vtkInteractorStyleGeoMap::SelectionCompleteEvent,
+                    pickCallback.GetPointer());
+  style->AddObserver(vtkInteractorStyleGeoMap::ZoomCompleteEvent,
+                    pickCallback.GetPointer());
 
   intr->Start();
 

@@ -18,29 +18,23 @@
 #ifndef __vtkMapMarkerSet_h
 #define __vtkMapMarkerSet_h
 
-#include <vtkObject.h>
+#include "vtkPolydataFeature.h"
 #include "vtkmap_export.h"
 #include <set>
 
 class vtkActor;
-class vtkMapClusteredMarkerSet;
-class vtkMapPickResult;
+class vtkIdList;
 class vtkMapper;
-class vtkPicker;
 class vtkPolyDataMapper;
 class vtkPolyData;
 class vtkRenderer;
 
-class VTKMAP_EXPORT vtkMapMarkerSet : public vtkObject
+class VTKMAP_EXPORT vtkMapMarkerSet : public vtkPolydataFeature
 {
 public:
   static vtkMapMarkerSet *New();
   virtual void PrintSelf(ostream &os, vtkIndent indent);
-  vtkTypeMacro(vtkMapMarkerSet, vtkObject);
-
-  // Description:
-  // Set the renderer in which map markers will be added
-  vtkSetMacro(Renderer, vtkRenderer *);
+  vtkTypeMacro(vtkMapMarkerSet, vtkPolydataFeature);
 
   // Description:
   // Set/get whether to apply hierarchical clustering to map markers.
@@ -63,23 +57,37 @@ public:
   vtkIdType AddMarker(double latitude, double longitude);
 
   // Description:
-  // Removes all map markers
-  void RemoveMarkers();
+  // Return descendent ids for given cluster id.
+  // This is inteneded for traversing selected clusters.
+  void GetClusterChildren(vtkIdType clusterId, vtkIdList *childMarkerIds,
+                          vtkIdList *childClusterIds);
+
+  // Description:
+  // Return all marker ids descending from given cluster id
+  void GetAllMarkerIds(vtkIdType clusterId, vtkIdList *markerIds);
+
+  // Description:
+  // Override
+  virtual void Init();
 
   // Description:
   // Update the marker geometry to draw the map
-  void Update(int zoomLevel);
+  //void Update(int zoomLevel);
+  virtual void Update();
 
   // Description:
-  // Returns id of marker at specified display coordinates
-  void PickPoint(vtkRenderer *renderer, vtkPicker *picker,
-           int displayCoords[2], vtkMapPickResult *result);
+  // Override
+  virtual void Cleanup();
+
+  // Description:
+  // Return list of marker ids for set of polydata cell ids
+  // This is intended for internal use
+  void GetMarkerIds(vtkIdList *cellIds, vtkIdList *markerIds,
+                    vtkIdList *clusterIds);
 
  protected:
   vtkMapMarkerSet();
   ~vtkMapMarkerSet();
-
-  void InitializeRenderingPipeline();
 
   // Description:
   // Indicates that internal logic & pipeline have been initialized
@@ -94,18 +102,16 @@ public:
   double MaxClusterScaleFactor;
 
   // Description:
-  // The renderer used to draw maps
-  vtkRenderer* Renderer;
-
+  // Geometry representation; gets updated each zoom-level change
   vtkPolyData *PolyData;
-  vtkPolyDataMapper *Mapper;
-  vtkActor *Actor;
 
   class ClusteringNode;
   ClusteringNode *FindClosestNode(ClusteringNode *node, int zoomLevel,
                                   double distanceThreshold);
   void MergeNodes(ClusteringNode *node, ClusteringNode *mergingNode,
                   std::set<ClusteringNode*>& parentsToMerge, int level);
+
+  void GetMarkerIdsRecursive(vtkIdType clusterId, vtkIdList *markerIds);
 
  private:
   class MapMarkerSetInternals;

@@ -20,7 +20,6 @@
 #include <vtkInteractorStyle.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
-#include <vtkPicker.h>
 #include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
@@ -57,9 +56,13 @@ int main(int, char*[])
   vtkNew<vtkRenderWindowInteractor> interactor;
   interactor->SetRenderWindow(renderWindow.GetPointer());
   interactor->SetInteractorStyle(map->GetInteractorStyle());
-  //interactor->SetPicker(map->GetPicker());  // not used
   interactor->Initialize();
   map->Draw();
+
+  // Add feature layer for markers
+  vtkNew<vtkFeatureLayer> featureLayer;
+  featureLayer->SetName("markers");
+  map->AddLayer(featureLayer.GetPointer());
 
   //std::cout << "Test" << std::endl;
   double latlonCoords[][2] = {
@@ -69,8 +72,9 @@ int main(int, char*[])
     42.774239,  -73.700119   // Cohoes
   };
 
-  vtkMapMarkerSet *markerSet = map->GetMapMarkerSet();
+  vtkNew<vtkMapMarkerSet> markerSet;
   markerSet->ClusteringOn();
+  featureLayer->AddFeature(markerSet.GetPointer());
   unsigned numMarkers = sizeof(latlonCoords) / sizeof(double) / 2;
   for (unsigned i=0; i<numMarkers; ++i)
     {

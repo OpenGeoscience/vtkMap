@@ -25,14 +25,12 @@
 #include "vtkFeature.h"
 #include "vtkmap_export.h"
 
-#include <string>
-
 class VTKMAP_EXPORT vtkPolydataFeature : public vtkFeature
 {
 public:
   static vtkPolydataFeature* New();
   virtual void PrintSelf(ostream &os, vtkIndent indent);
-  vtkTypeMacro(vtkPolydataFeature, vtkObject);
+  vtkTypeMacro(vtkPolydataFeature, vtkFeature);
 
   // Description
   // Get actor for the polydata
@@ -53,6 +51,10 @@ public:
   // Description:
   // Override
   virtual void Update();
+
+  // Description:
+  // Override
+  virtual vtkProp *PickProp();
 
 protected:
   vtkPolydataFeature();

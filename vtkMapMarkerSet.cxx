@@ -13,7 +13,6 @@
 =========================================================================*/
 
 #include "vtkMapMarkerSet.h"
-#include "vtkMapPickResult.h"
 #include "vtkMercator.h"
 #include "vtkTeardropSource.h"
 
@@ -21,12 +20,12 @@
 #include <vtkDataArray.h>
 #include <vtkDistanceToCamera.h>
 #include <vtkDoubleArray.h>
+#include <vtkIdList.h>
 #include <vtkIdTypeArray.h>
 #include <vtkGlyph3D.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
 #include <vtkPointData.h>
-#include <vtkPointPicker.h>
 #include <vtkPoints.h>
 #include <vtkPolyData.h>
 #include <vtkPolyDataMapper.h>
@@ -41,6 +40,8 @@
 #include <vector>
 
 const int NumberOfClusterLevels = 20;
+#define MARKER_TYPE 0
+#define CLUSTER_TYPE 1
 
 //----------------------------------------------------------------------------
 // Internal class for cluster tree nodes
@@ -48,7 +49,7 @@ const int NumberOfClusterLevels = 20;
 class vtkMapMarkerSet::ClusteringNode
 {
 public:
-  int NodeId;  // for dev use
+  int NodeId;
   int Level;  // for dev
   double gcsCoords[2];
   ClusteringNode *Parent;
@@ -80,10 +81,7 @@ public:
 vtkMapMarkerSet::vtkMapMarkerSet()
 {
   this->Initialized = false;
-  this->Renderer = NULL;
   this->PolyData = vtkPolyData::New();
-  this->Mapper = NULL;
-  this->Actor = NULL;
   this->Clustering = false;
   this->MaxClusterScaleFactor = 2.0;
 
@@ -116,14 +114,6 @@ vtkMapMarkerSet::~vtkMapMarkerSet()
   if (this->PolyData)
     {
     this->PolyData->Delete();
-    }
-  if (this->Mapper)
-    {
-    this->Mapper->Delete();
-    }
-  if (this->Actor)
-    {
-    this->Actor->Delete();
     }
   delete this->Internals;
 }
@@ -308,184 +298,76 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
 }
 
 //----------------------------------------------------------------------------
-void vtkMapMarkerSet::RemoveMarkers()
+void vtkMapMarkerSet::
+GetClusterChildren(vtkIdType clusterId, vtkIdList *childMarkerIds,
+                   vtkIdList *childClusterIds)
 {
-  // Explicitly delete node instances in the table
-  std::vector<std::set<ClusteringNode*> >::iterator tableIter =
-    this->Internals->NodeTable.begin();
-  for (; tableIter != this->Internals->NodeTable.end(); tableIter++)
-    {
-    std::set<ClusteringNode*> nodeSet = *tableIter;
-    std::set<ClusteringNode*>::iterator nodeIter = nodeSet.begin();
-    for (; nodeIter != nodeSet.end(); nodeIter++)
-      {
-      delete *nodeIter;
-      }
-    nodeSet.clear();
-    tableIter->operator=(nodeSet);
-    }
-
-  this->Internals->CurrentNodes.clear();
-  this->Internals->NumberOfMarkers = 0;
-  this->Internals->NumberOfNodes = 0;
-  this->Internals->MarkersChanged = true;
-}
-
-//----------------------------------------------------------------------------
-void vtkMapMarkerSet::Update(int zoomLevel)
-{
-  // Make sure everything is initialized
-  if (!this->Initialized && this->Renderer)
-    {
-    this->InitializeRenderingPipeline();
-    this->Initialized = true;
-    }
-
-  // Clip zoom level to size of cluster table
-  if (zoomLevel >= NumberOfClusterLevels)
-    {
-    zoomLevel = NumberOfClusterLevels - 1;
-    }
-
-  // If not clustering, only update if markers have changed
-  if (!this->Clustering && !this->Internals->MarkersChanged)
+  childMarkerIds->Reset();
+  childClusterIds->Reset();
+  if ((clusterId < 0) || (clusterId >= this->Internals->AllNodes.size()))
     {
     return;
     }
 
-  // If clustering, only update if either zoom or markers changed
-  if (this->Clustering && !this->Internals->MarkersChanged &&
-      (zoomLevel == this->Internals->ZoomLevel))
+  ClusteringNode *node = this->Internals->AllNodes[clusterId];
+  std::set<ClusteringNode*>::iterator childIter = node->Children.begin();
+  for (; childIter != node->Children.end(); childIter++)
     {
-    return;
-    }
-
-  // In non-clustering mode, markers stored at level 0
-  if (!this->Clustering)
-    {
-    zoomLevel = 0;
-    }
-
-  // Copy marker info into polydata
-  vtkNew<vtkPoints> points;
-  unsigned char markerType;  // 0 == point marker, 1 == cluster marker
-  markerType = 0;
-
-  // Get pointers to data arrays
-  vtkDataArray *array;
-  array = this->PolyData->GetPointData()->GetArray("Color");
-  vtkUnsignedCharArray *colors = vtkUnsignedCharArray::SafeDownCast(array);
-  colors->Reset();
-  array = this->PolyData->GetPointData()->GetArray("MarkerType");
-  vtkUnsignedCharArray *types = vtkUnsignedCharArray::SafeDownCast(array);
-  types->Reset();
-  array = this->PolyData->GetPointData()->GetArray("MarkerScale");
-  vtkDoubleArray *scales = vtkDoubleArray::SafeDownCast(array);
-  scales->Reset();
-
-  unsigned char kwBlue[] = {0, 83, 155};
-  unsigned char kwGreen[] = {0, 169, 179};
-
-  // Coefficients for scaling cluster size, using simple 2nd order model
-  // The equation is y = k*x^2 / (x^2 + b), where k,b are coefficients
-  // Logic hard-codes the min cluster factor to 1, i.e., y(2) = 1.0
-  // Max value is k, which sets the horizontal asymptote.
-  double k = this->MaxClusterScaleFactor;
-  double b = 4.0*k - 4.0;
-
-  this->Internals->CurrentNodes.clear();
-  std::set<ClusteringNode*> nodeSet = this->Internals->NodeTable[zoomLevel];
-  std::set<ClusteringNode*>::const_iterator iter;
-  for (iter = nodeSet.begin(); iter != nodeSet.end(); iter++)
-    {
-    ClusteringNode *node = *iter;
-    points->InsertNextPoint(node->gcsCoords);
-    this->Internals->CurrentNodes.push_back(node);
-    if (node->NumberOfMarkers == 1)  // point marker
+    ClusteringNode *child = *childIter;
+    if (child->NumberOfMarkers == 1)
       {
-      markerType = 0;
-      types->InsertNextValue(markerType);
-      colors->InsertNextTupleValue(kwBlue);
-      scales->InsertNextValue(1.0);
+      childMarkerIds->InsertNextId(child->MarkerId);
       }
-    else  // cluster marker
+    else
       {
-      markerType = 1;
-      types->InsertNextValue(markerType);
-      colors->InsertNextTupleValue(kwGreen);
-      double x = static_cast<double>(node->NumberOfMarkers);
-      double scale = k*x*x / (x*x + b);
-      scales->InsertNextValue(scale);
-      }
-    }
-  this->PolyData->Reset();
-  this->PolyData->SetPoints(points.GetPointer());
-
-  this->Internals->MarkersChanged = false;
-  this->Internals->ZoomLevel = zoomLevel;
+      childClusterIds->InsertNextId(child->NodeId);
+      }  // else
+    }  // for (childIter)
 }
 
 //----------------------------------------------------------------------------
 void vtkMapMarkerSet::
-PickPoint(vtkRenderer *renderer, vtkPicker *picker, int displayCoords[2],
-    vtkMapPickResult *result)
+GetAllMarkerIds(vtkIdType clusterId, vtkIdList *markerIds)
 {
-  result->SetDisplayCoordinates(displayCoords);
-  result->SetMapLayer(0);
-  // TODO Need general display <--> gcs coords
-  result->SetMapFeatureType(VTK_MAP_FEATURE_NONE);
-  result->SetNumberOfMarkers(0);
-  result->SetMapFeatureId(-1);
-
-  vtkPointPicker *pointPicker = vtkPointPicker::SafeDownCast(picker);
-  if (pointPicker &&
-      (pointPicker->Pick(displayCoords[0], displayCoords[1], 0.0, renderer)))
+  markerIds->Reset();
+  // Check if input id is marker
+  if (this->Internals->AllNodes[clusterId]->NumberOfMarkers == 1)
     {
-    // std::cout << "Using tolerance " << pointPicker->GetTolerance() << std::endl;
-    // vtkPoints *pickPoints = pointPicker->GetPickedPositions();
-    // std::cout << "Picked " << pickPoints->GetNumberOfPoints() << " points "
-    //           << std::endl;
-
-    vtkIdType pointId = pointPicker->GetPointId();
-    if (pointId > 0)
-      {
-      vtkDataArray *dataArray =
-        pointPicker->GetDataSet()->GetPointData()->GetArray("InputPointIds");
-      vtkIdTypeArray *glyphIdArray = vtkIdTypeArray::SafeDownCast(dataArray);
-      if (glyphIdArray)
-        {
-        int glyphId = glyphIdArray->GetValue(pointId);
-        // std::cout << "Point id " << pointId
-        //           << " - Data " << glyphId << std::endl;
-
-        ClusteringNode *node = this->Internals->CurrentNodes[glyphId];
-        // std::cout << "Marker id " << marker->MarkerId
-        //           << ", Count " << marker->NumberOfMarkers
-        //           << ", at " << marker->Latitude << ", " << marker->Longitude
-        //           << std::endl;
-        result->SetNumberOfMarkers(node->NumberOfMarkers);
-        if (node->NumberOfMarkers == 1)
-          {
-          result->SetMapFeatureType(VTK_MAP_FEATURE_MARKER);
-          result->SetMapFeatureId(node->MarkerId);
-          }
-        else if (node->NumberOfMarkers > 1)
-          {
-          result->SetMapFeatureType(VTK_MAP_FEATURE_CLUSTER);
-          }
-
-        result->SetLatitude(vtkMercator::y2lat(node->gcsCoords[1]));
-        result->SetLongitude(node->gcsCoords[0]);
-        //result->Print(std::cout);
-        }
-      }
+    markerIds->InsertNextId(clusterId);
+    return;
     }
 
+  this->GetMarkerIdsRecursive(clusterId, markerIds);
 }
 
 //----------------------------------------------------------------------------
-void vtkMapMarkerSet::InitializeRenderingPipeline()
+void vtkMapMarkerSet::
+GetMarkerIdsRecursive(vtkIdType clusterId, vtkIdList *markerIds)
 {
+  // Get children markers & clusters
+  vtkNew<vtkIdList> childMarkerIds;
+  vtkNew<vtkIdList> childClusterIds;
+  this->GetClusterChildren(clusterId, childMarkerIds.GetPointer(),
+                           childClusterIds.GetPointer());
+
+  // Copy marker ids
+  for (int i=0; i<childMarkerIds->GetNumberOfIds(); i++)
+    {
+    markerIds->InsertNextId(childMarkerIds->GetId(i));
+    }
+
+  // Traverse cluster ids
+  for (int j=0; j<childClusterIds->GetNumberOfIds(); j++)
+    {
+    vtkIdType childId = childClusterIds->GetId(j);
+    this->GetMarkerIdsRecursive(childId, markerIds);
+    }
+}
+
+//----------------------------------------------------------------------------
+void vtkMapMarkerSet::Init()
+{
+  // Set up rendering pipeline
 
   // Add "Color" data array to polydata
   const char *colorName = "Color";
@@ -511,7 +393,7 @@ void vtkMapMarkerSet::InitializeRenderingPipeline()
   // Use DistanceToCamera filter to scale markers to constant screen size
   vtkNew<vtkDistanceToCamera> dFilter;
   dFilter->SetScreenSize(50.0);
-  dFilter->SetRenderer(this->Renderer);
+  dFilter->SetRenderer(this->Layer->GetRenderer());
   dFilter->SetInputData(this->PolyData);
   if (this->Clustering)
     {
@@ -555,11 +437,180 @@ void vtkMapMarkerSet::InitializeRenderingPipeline()
   glyph->GeneratePointIdsOn();
 
   // Setup mapper and actor
-  this->Mapper = vtkPolyDataMapper::New();
-  this->Mapper->SetInputConnection(glyph->GetOutputPort());
-  this->Actor = vtkActor::New();
-  this->Actor->SetMapper(this->Mapper);
-  this->Renderer->AddActor(this->Actor);
+  this->GetMapper()->SetInputConnection(glyph->GetOutputPort());
+  this->Superclass::Init();
+
+  this->Initialized = true;
+}
+
+//----------------------------------------------------------------------------
+void vtkMapMarkerSet::Update()
+{
+  if (!this->Initialized)
+    {
+    vtkErrorMacro("vtkMapMarkerSet has NOT been initialized");
+    }
+
+  // Clip zoom level to size of cluster table
+  int zoomLevel = this->Layer->GetMap()->GetZoom();
+  if (zoomLevel >= NumberOfClusterLevels)
+    {
+    zoomLevel = NumberOfClusterLevels - 1;
+    }
+
+  // If not clustering, only update if markers have changed
+  if (!this->Clustering && !this->Internals->MarkersChanged)
+    {
+    return;
+    }
+
+  // If clustering, only update if either zoom or markers changed
+  if (this->Clustering && !this->Internals->MarkersChanged &&
+      (zoomLevel == this->Internals->ZoomLevel))
+    {
+    return;
+    }
+
+  // In non-clustering mode, markers stored at level 0
+  if (!this->Clustering)
+    {
+    zoomLevel = 0;
+    }
+
+  // Copy marker info into polydata
+  vtkNew<vtkPoints> points;
+
+  // Get pointers to data arrays
+  vtkDataArray *array;
+  array = this->PolyData->GetPointData()->GetArray("Color");
+  vtkUnsignedCharArray *colors = vtkUnsignedCharArray::SafeDownCast(array);
+  colors->Reset();
+  array = this->PolyData->GetPointData()->GetArray("MarkerType");
+  vtkUnsignedCharArray *types = vtkUnsignedCharArray::SafeDownCast(array);
+  types->Reset();
+  array = this->PolyData->GetPointData()->GetArray("MarkerScale");
+  vtkDoubleArray *scales = vtkDoubleArray::SafeDownCast(array);
+  scales->Reset();
+
+  unsigned char kwBlue[] = {0, 83, 155};
+  unsigned char kwGreen[] = {0, 169, 179};
+
+  // Coefficients for scaling cluster size, using simple 2nd order model
+  // The equation is y = k*x^2 / (x^2 + b), where k,b are coefficients
+  // Logic hard-codes the min cluster factor to 1, i.e., y(2) = 1.0
+  // Max value is k, which sets the horizontal asymptote.
+  double k = this->MaxClusterScaleFactor;
+  double b = 4.0*k - 4.0;
+
+  this->Internals->CurrentNodes.clear();
+  std::set<ClusteringNode*> nodeSet = this->Internals->NodeTable[zoomLevel];
+  std::set<ClusteringNode*>::const_iterator iter;
+  for (iter = nodeSet.begin(); iter != nodeSet.end(); iter++)
+    {
+    ClusteringNode *node = *iter;
+    points->InsertNextPoint(node->gcsCoords);
+    this->Internals->CurrentNodes.push_back(node);
+    if (node->NumberOfMarkers == 1)  // point marker
+      {
+      types->InsertNextValue(MARKER_TYPE);
+      colors->InsertNextTupleValue(kwBlue);
+      scales->InsertNextValue(1.0);
+      }
+    else  // cluster marker
+      {
+      types->InsertNextValue(CLUSTER_TYPE);
+      colors->InsertNextTupleValue(kwGreen);
+      double x = static_cast<double>(node->NumberOfMarkers);
+      double scale = k*x*x / (x*x + b);
+      scales->InsertNextValue(scale);
+      }
+    }
+  this->PolyData->Reset();
+  this->PolyData->SetPoints(points.GetPointer());
+
+  this->Internals->MarkersChanged = false;
+  this->Internals->ZoomLevel = zoomLevel;
+}
+
+//----------------------------------------------------------------------------
+void vtkMapMarkerSet::Cleanup()
+{
+  // Explicitly delete node instances in the table
+  std::vector<std::set<ClusteringNode*> >::iterator tableIter =
+    this->Internals->NodeTable.begin();
+  for (; tableIter != this->Internals->NodeTable.end(); tableIter++)
+    {
+    std::set<ClusteringNode*> nodeSet = *tableIter;
+    std::set<ClusteringNode*>::iterator nodeIter = nodeSet.begin();
+    for (; nodeIter != nodeSet.end(); nodeIter++)
+      {
+      delete *nodeIter;
+      }
+    nodeSet.clear();
+    tableIter->operator=(nodeSet);
+    }
+
+  this->Internals->CurrentNodes.clear();
+  this->Internals->NumberOfMarkers = 0;
+  this->Internals->NumberOfNodes = 0;
+  this->Internals->MarkersChanged = true;
+}
+
+//----------------------------------------------------------------------------
+void vtkMapMarkerSet::
+GetMarkerIds(vtkIdList *cellIds, vtkIdList *markerIds, vtkIdList *clusterIds)
+{
+  // Get the *rendered* polydata (not this->PolyData, which is marker points)
+  vtkObject *object = this->Actor->GetMapper()->GetInput();
+  vtkPolyData *polyData = vtkPolyData::SafeDownCast(object);
+
+  // Get its data array with input point ids
+  vtkDataArray *dataArray =
+    polyData->GetPointData()->GetArray("InputPointIds");
+  vtkIdTypeArray *inputPointIdArray = vtkIdTypeArray::SafeDownCast(dataArray);
+
+  // Get data array with marker type info
+  // Note that this time we *do* use the source polydata
+  vtkDataArray *array = this->PolyData->GetPointData()->GetArray("MarkerType");
+  vtkUnsignedCharArray *markerTypes = vtkUnsignedCharArray::SafeDownCast(array);
+
+  // Use std::set to only add each marker id once
+  std::set<vtkIdType> idSet;
+
+  // Traverse all cells
+  vtkNew<vtkIdList> pointIds;
+  for (int i=0; i<cellIds->GetNumberOfIds(); i++)
+    {
+    vtkIdType cellId = cellIds->GetId(i);
+
+    // Get points from cell
+    polyData->GetCellPoints(cellId, pointIds.GetPointer());
+
+    // Only need 1 point, since they are all in same marker
+    vtkIdType pointId = pointIds->GetId(0);
+
+    // Look up input point id
+    vtkIdType inputPointId = inputPointIdArray->GetValue(pointId);
+    if (idSet.count(inputPointId) > 0)
+      {
+      // Already have processed this marker
+      continue;
+      }
+
+    // Get info from the clustering node
+    ClusteringNode *node = this->Internals->CurrentNodes[inputPointId];
+    if (node->NumberOfMarkers == 1)
+      {
+      markerIds->InsertNextId(node->MarkerId);
+      }
+    else
+      {
+      clusterIds->InsertNextId(node->NodeId);
+      }
+
+    idSet.insert(inputPointId);
+    }  // for (i)
+
 }
 
 //----------------------------------------------------------------------------
@@ -672,3 +723,6 @@ MergeNodes(ClusteringNode *node, ClusteringNode *mergingNode,
   this->Internals->AllNodes[mergingNode->NodeId] = NULL;
   delete mergingNode;
 }
+
+#undef MARKER_TYPE
+#undef CLUSTER_TYPE

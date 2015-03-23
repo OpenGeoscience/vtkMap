@@ -69,3 +69,9 @@ void vtkPolydataFeature::CleanUp()
   this->Layer->GetRenderer()->RemoveActor(this->Actor);
   this->SetLayer(0);
 }
+
+//----------------------------------------------------------------------------
+vtkProp *vtkPolydataFeature::PickProp()
+{
+  return this->Actor;
+}

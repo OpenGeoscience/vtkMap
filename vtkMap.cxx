@@ -13,24 +13,19 @@
 =========================================================================*/
 
 #include "vtkMap.h"
-
-#include "vtkInteractorStyleMap.h"
+#include "vtkGeoMapFeatureSelector.h"
+#include "vtkGeoMapSelection.h"
+#include "vtkInteractorStyleGeoMap.h"
 #include "vtkLayer.h"
-#include "vtkMapMarkerSet.h"
 #include "vtkMapTile.h"
 #include "vtkMercator.h"
 
 // VTK Includes
-#include <vtkActor2D.h>
 #include <vtkCallbackCommand.h>
 #include <vtkCamera.h>
-#include <vtkImageInPlaceFilter.h>
+#include <vtkCollection.h>
 #include <vtkMath.h>
-#include <vtkMatrix4x4.h>
 #include <vtkObjectFactory.h>
-#include <vtkPlaneSource.h>
-#include <vtkPointPicker.h>
-#include <vtkPoints.h>
 #include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
@@ -82,12 +77,11 @@ vtkMap::vtkMap()
 {
   this->StorageDirectory = NULL;
   this->Renderer = NULL;
-  this->InteractorStyle = vtkInteractorStyleMap::New();
+  this->FeatureSelector = vtkGeoMapFeatureSelector::New();
+  this->InteractorStyle = vtkInteractorStyleGeoMap::New();
   this->InteractorStyle->SetMap(this);
-  this->Picker = vtkPointPicker::New();
   this->Zoom = 1;
   this->Center[0] = this->Center[1] = 0.0;
-  this->MapMarkerSet = vtkMapMarkerSet::New();
   this->Initialized = false;
   this->BaseLayer = NULL;
   this->PollingCallbackCommand = NULL;
@@ -103,17 +97,13 @@ vtkMap::vtkMap()
 //----------------------------------------------------------------------------
 vtkMap::~vtkMap()
 {
+  if (this->FeatureSelector)
+    {
+    this->FeatureSelector->Delete();
+    }
   if (this->InteractorStyle)
     {
     this->InteractorStyle->Delete();
-    }
-  if (this->MapMarkerSet)
-    {
-    this->MapMarkerSet->Delete();
-    }
-  if (this->Picker)
-    {
-    this->Picker->Delete();
     }
   if (this->PollingCallbackCommand)
     {
@@ -353,6 +343,22 @@ void vtkMap::RemoveLayer(vtkLayer* layer)
     return;
     }
 
+  // Remove any features from feature selector
+  vtkFeatureLayer *featureLayer = vtkFeatureLayer::SafeDownCast(layer);
+  if (featureLayer)
+    {
+    vtkCollection *features = featureLayer->GetFeatures();
+    for (int i=0; i<features->GetNumberOfItems(); i++)
+      {
+      vtkObject *item = features->GetItemAsObject(i);
+      vtkFeature *feature = vtkFeature::SafeDownCast(item);
+      if (feature)
+        {
+        this->FeatureSelector->RemoveFeature(feature);
+        }
+      }
+    }
+
   this->Layers.erase(std::remove(this->Layers.begin(),
                                  this->Layers.end(), layer));
 }
@@ -394,8 +400,6 @@ void vtkMap::Update()
     {
     this->Layers[i]->Update();
     }
-
-  this->MapMarkerSet->Update(this->Zoom);
 }
 
 //----------------------------------------------------------------------------
@@ -404,7 +408,6 @@ void vtkMap::Draw()
   if (!this->Initialized && this->Renderer)
     {
     this->Initialized = true;
-    this->MapMarkerSet->SetRenderer(this->Renderer);
 
     // Make sure storage directory specified
     if (!this->StorageDirectory ||
@@ -456,7 +459,6 @@ void vtkMap::Draw()
         }
       }
 
-
     // Initialize graphics
     double x = this->Center[1];
     double y = vtkMercator::lat2y(this->Center[0]);
@@ -477,6 +479,18 @@ vtkMap::AsyncState vtkMap::GetAsyncState()
 }
 
 //----------------------------------------------------------------------------
+void vtkMap::FeatureAdded(vtkFeature *feature)
+{
+  this->FeatureSelector->AddFeature(feature);
+}
+
+//----------------------------------------------------------------------------
+void vtkMap::FeatureRemoved(vtkFeature *feature)
+{
+  this->FeatureSelector->RemoveFeature(feature);
+}
+
+//----------------------------------------------------------------------------
 double vtkMap::Clip(double n, double minValue, double maxValue)
 {
   double max = n > minValue ? n : minValue;
@@ -485,10 +499,34 @@ double vtkMap::Clip(double n, double minValue, double maxValue)
 }
 
 //----------------------------------------------------------------------------
-void vtkMap::PickPoint(int displayCoords[2], vtkMapPickResult* result)
+void vtkMap::ComputeLatLngCoords(double displayCoords[2], double elevation,
+                                 double latLngCoords[3])
 {
-  this->MapMarkerSet->PickPoint(this->Renderer, this->Picker, displayCoords,
-      result);
+  // Compute GCS coordinates
+  double worldCoords[3] = {0.0, 0.0, 0.0};
+  this->ComputeWorldCoords(displayCoords, elevation, worldCoords);
+
+  // Convert to lat-lon
+  double latitude = vtkMercator::y2lat(worldCoords[1]);
+  double longitude = worldCoords[0];
+
+  // Set output
+  latLngCoords[0] = latitude;
+  latLngCoords[1] = longitude;
+  latLngCoords[3] = elevation;
+}
+
+//----------------------------------------------------------------------------
+void vtkMap::PickPoint(int displayCoords[2], vtkGeoMapSelection* result)
+{
+  this->FeatureSelector->PickPoint(this->Renderer, displayCoords, result);
+
+}
+
+//----------------------------------------------------------------------------
+void vtkMap::PickArea(int displayCoords[4], vtkGeoMapSelection* result)
+{
+  this->FeatureSelector->PickArea(this->Renderer, displayCoords, result);
 }
 
 //----------------------------------------------------------------------------
@@ -528,6 +566,17 @@ void vtkMap::ComputeWorldCoords(double displayCoords[2], double z,
 }
 
 //----------------------------------------------------------------------------
+void vtkMap::ComputeDisplayCoords(double latLngCoords[2], double elevation,
+                                  double displayCoords[3])
+{
+  double x = latLngCoords[1];
+  double y = vtkMercator::lat2y(latLngCoords[0]);
+  this->Renderer->SetWorldPoint(x, y, elevation, 1.0);
+  this->Renderer->WorldToDisplay();
+  this->Renderer->GetDisplayPoint(displayCoords);
+}
+
+//----------------------------------------------------------------------------
 void vtkMap::PollingCallback()
 {
   AsyncState result;
@@ -551,74 +600,4 @@ void vtkMap::PollingCallback()
     {
     this->Draw();
     }
-}
-
-//----------------------------------------------------------------------------
-vtkPoints* vtkMap::gcsToDisplay(vtkPoints* points, std::string srcProjection)
-{
-  if (!srcProjection.empty())
-   {
-   vtkErrorMacro("Does not handle projections other than latlon");
-   }
-  int noOfPoints = static_cast<int>(points->GetNumberOfPoints());
-  double inPoint[3];
-  double outPoint[3];
-  vtkPoints* newPoints = vtkPoints::New(VTK_DOUBLE);
-  newPoints->SetNumberOfPoints(noOfPoints);
-  double latitude, longitude;
-  double x, y;
-  for (int i = 0; i < noOfPoints; ++i)
-    {
-    points->GetPoint(i, inPoint);
-    latitude = inPoint[0];
-    longitude = inPoint[1];
-    x = longitude;
-    y = vtkMercator::lat2y(latitude);
-
-    inPoint[0] = vtkMercator::lat2y(inPoint[0]);
-    //this->Renderer->SetWorldPoint(inPoint[1], inPoint[0], inPoint[2], 1.0);
-    this->Renderer->SetWorldPoint(x, y, inPoint[2], 1.0);
-    this->Renderer->WorldToDisplay();
-    this->Renderer->GetDisplayPoint(outPoint);
-    newPoints->SetPoint(i, outPoint);
-    }
-
-  return newPoints;
-}
-
-//----------------------------------------------------------------------------
-vtkPoints* vtkMap::displayToGcs(vtkPoints* points)
-{
-  double inPoint[3];
-  double outPoint[3];
-  int noOfPoints = static_cast<int>(points->GetNumberOfPoints());
-  vtkPoints* newPoints = vtkPoints::New(VTK_DOUBLE);
-  newPoints->SetNumberOfPoints(noOfPoints);
-  double wCoords[4];
-  for (int i = 0; i < noOfPoints; ++i)
-    {
-    points->GetPoint(i, inPoint);
-    this->Renderer->SetDisplayPoint(inPoint[0], inPoint[1], inPoint[2]);
-    this->Renderer->DisplayToWorld();
-    this->Renderer->GetWorldPoint(wCoords);
-
-    if (wCoords[3] != 0.0)
-      {
-      wCoords[0] /= wCoords[3];
-      wCoords[1] /= wCoords[3];
-      wCoords[2] /= wCoords[3];
-      wCoords[3] = 1.0;
-      }
-
-    double latitude = vtkMercator::y2lat(wCoords[1]);
-    double longitude = wCoords[0];
-
-    outPoint[0] = latitude;
-    outPoint[1] = longitude;
-    outPoint[2] = 0.0;
-
-    newPoints->SetPoint(i, outPoint);
-    }
-
-  return newPoints;
 }
