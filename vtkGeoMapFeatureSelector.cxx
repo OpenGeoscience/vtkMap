@@ -17,7 +17,7 @@
 #include "vtkFeature.h"
 #include "vtkGeoMapSelection.h"
 #include "vtkMapMarkerSet.h"
-#include "vtkPolydataFeature.h"
+#include "vtkRasterFeature.h"
 
 #include <vtkAbstractArray.h>
 #include <vtkActor.h>
@@ -148,9 +148,15 @@ PickArea(vtkRenderer *renderer, int displayCoords[4],
       clusterIdList->Reset();
 
       // Handling depends on feature type
+      vtkRasterFeature *rasterFeature =
+        vtkRasterFeature::SafeDownCast(feature);
+      if (rasterFeature)
+        {
+        selection->AddFeature(feature);
+        continue;
+        }
+
       vtkMapMarkerSet *markerFeature = vtkMapMarkerSet::SafeDownCast(feature);
-      vtkPolydataFeature *polydataFeature =
-        vtkPolydataFeature::SafeDownCast(feature);
       if (markerFeature)
         {
         // Process markers first, since they are also polydata features
@@ -169,7 +175,8 @@ PickArea(vtkRenderer *renderer, int displayCoords[4],
         }
       else
         {
-        // Get cell ids
+        // Not a raster feature, not a marker feature
+        // By default, check for cell ids
         this->PickPolyDataCells(
           prop, areaPicker->GetFrustum(), cellIdList.GetPointer());
         if (cellIdList->GetNumberOfIds() > 0)
