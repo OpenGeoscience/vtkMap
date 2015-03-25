@@ -125,17 +125,22 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
   int markerId = this->Internals->NumberOfMarkers++;
   vtkDebugMacro("Adding marker " << markerId);
 
+  // Insert nodes at bottom level
+  int level = this->Internals->NodeTable.size() - 1;
+
   // Instantiate ClusteringNode
   ClusteringNode *node = new ClusteringNode;
   this->Internals->AllNodes.push_back(node);
   node->NodeId = this->Internals->NumberOfNodes++;
-  node->Level = 0;
+  node->Level = level;
   node->gcsCoords[0] = longitude;
   node->gcsCoords[1] = vtkMercator::lat2y(latitude);
   node->NumberOfMarkers = 1;
   node->Parent = 0;
   node->MarkerId = markerId;
-  vtkDebugMacro("Created ClusteringNode id " << node->NodeId);
+  vtkDebugMacro("Inserting ClusteringNode " << node->NodeId
+                << " into level " << level);
+  this->Internals->NodeTable[level].insert(node);
 
   // todo refactor into separate method
   // todo calc initial cluster distance here and divide down
@@ -143,12 +148,6 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
     {
     // Insertion step: Starting at bottom level, populate NodeTable until
     // a clustering partner is found.
-    int level = this->Internals->NodeTable.size() - 1;
-    node->Level = level;
-    vtkDebugMacro("Inserting Node " << node->NodeId
-                  << " into level " << level);
-    this->Internals->NodeTable[level].insert(node);
-
     level--;
     double threshold = this->Internals->ClusterDistance;
     for (; level >= 0; level--)
@@ -474,7 +473,7 @@ void vtkMapMarkerSet::Update()
   // In non-clustering mode, markers stored at level 0
   if (!this->Clustering)
     {
-    zoomLevel = 0;
+    zoomLevel = this->Internals->NodeTable.size() - 1;
     }
 
   // Copy marker info into polydata
