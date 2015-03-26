@@ -199,6 +199,10 @@ int main()
     double lon = latlonCoords[i][1];
     markerSet->AddMarker(lat, lon);
     }
+
+  // Set marker color & opacity
+  markerSet->GetActor()->GetProperty()->SetColor(0.0, 0.5, 0.5);
+  markerSet->GetActor()->GetProperty()->SetOpacity(0.9);
   map->Draw();
 
   // Set callbacks

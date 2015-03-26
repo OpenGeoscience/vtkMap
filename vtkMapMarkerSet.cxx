@@ -23,12 +23,14 @@
 #include <vtkIdList.h>
 #include <vtkIdTypeArray.h>
 #include <vtkGlyph3D.h>
+#include <vtkMath.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
 #include <vtkPointData.h>
 #include <vtkPoints.h>
 #include <vtkPolyData.h>
 #include <vtkPolyDataMapper.h>
+#include <vtkProperty.h>
 #include <vtkRenderer.h>
 #include <vtkSphereSource.h>
 #include <vtkTransform.h>
@@ -491,8 +493,29 @@ void vtkMapMarkerSet::Update()
   vtkDoubleArray *scales = vtkDoubleArray::SafeDownCast(array);
   scales->Reset();
 
-  unsigned char kwBlue[] = {0, 83, 155};
-  unsigned char kwGreen[] = {0, 169, 179};
+  // Copy actor's assigned color to marker & cluster colors
+  double actorRGB[3];
+  this->GetActor()->GetProperty()->GetColor(actorRGB);
+
+  // Convert to HSV and make clusters a bit darkers, markers a bit lighter
+  double actorHSV[3];
+  vtkMath::RGBToHSV(actorRGB, actorHSV);
+
+  double clusterHSV[3];
+  double clusterRGB[3];
+  clusterHSV[0] = actorHSV[0];
+  clusterHSV[1] = actorHSV[1];
+  clusterHSV[2] = 0.5 * actorHSV[2];
+  vtkMath::HSVToRGB(clusterHSV, clusterRGB);
+
+  // Convert RGB colors to unsigned char
+  unsigned char markerGlyphColor[3];
+  unsigned char clusterGlyphColor[3];
+  for (int i=0; i<3; i++)
+    {
+    markerGlyphColor[i] = static_cast<unsigned char>(actorRGB[i] * 255.0);
+    clusterGlyphColor[i] = static_cast<unsigned char>(clusterRGB[i] * 255.0);
+    }
 
   // Coefficients for scaling cluster size, using simple 2nd order model
   // The equation is y = k*x^2 / (x^2 + b), where k,b are coefficients
@@ -512,13 +535,13 @@ void vtkMapMarkerSet::Update()
     if (node->NumberOfMarkers == 1)  // point marker
       {
       types->InsertNextValue(MARKER_TYPE);
-      colors->InsertNextTupleValue(kwBlue);
+      colors->InsertNextTupleValue(markerGlyphColor);
       scales->InsertNextValue(1.0);
       }
     else  // cluster marker
       {
       types->InsertNextValue(CLUSTER_TYPE);
-      colors->InsertNextTupleValue(kwGreen);
+      colors->InsertNextTupleValue(clusterGlyphColor);
       double x = static_cast<double>(node->NumberOfMarkers);
       double scale = k*x*x / (x*x + b);
       scales->InsertNextValue(scale);
