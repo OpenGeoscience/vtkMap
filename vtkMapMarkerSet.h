@@ -113,6 +113,11 @@ public:
 
   void GetMarkerIdsRecursive(vtkIdType clusterId, vtkIdList *markerIds);
 
+  // Description:
+  // Generates next color for actor (which can be overridden, of course)
+  void ComputeNextColor(double color[3]);
+  static unsigned int NextMarkerHue;
+
  private:
   class MapMarkerSetInternals;
   MapMarkerSetInternals* Internals;

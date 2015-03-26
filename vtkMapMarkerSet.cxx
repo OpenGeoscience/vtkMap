@@ -42,6 +42,7 @@
 #include <vector>
 
 const int NumberOfClusterLevels = 20;
+unsigned int vtkMapMarkerSet::NextMarkerHue = 0;
 #define MARKER_TYPE 0
 #define CLUSTER_TYPE 1
 
@@ -80,12 +81,15 @@ public:
 };
 
 //----------------------------------------------------------------------------
-vtkMapMarkerSet::vtkMapMarkerSet()
+vtkMapMarkerSet::vtkMapMarkerSet() : vtkPolydataFeature()
 {
   this->Initialized = false;
   this->PolyData = vtkPolyData::New();
   this->Clustering = false;
   this->MaxClusterScaleFactor = 2.0;
+  double color[3] = {0.0, 0.0, 0.0};
+  this->ComputeNextColor(color);
+  this->GetActor()->GetProperty()->SetColor(color);
 
   this->Internals = new MapMarkerSetInternals;
   this->Internals->MarkersChanged = false;
@@ -744,6 +748,35 @@ MergeNodes(ClusteringNode *node, ClusteringNode *mergingNode,
   // todo Check CurrentNodes too?
   this->Internals->AllNodes[mergingNode->NodeId] = NULL;
   delete mergingNode;
+}
+
+//----------------------------------------------------------------------------
+void vtkMapMarkerSet::ComputeNextColor(double color[3])
+{
+  // Generate "next" hue using logic adapted from
+  // http://ridiculousfish.com/blog/posts/colors.html
+  unsigned int bitCount = 10;  // 1024 colors - hope that's enough...
+
+  // Reverse the bits in vtkMapMarkerSet::NextMarkerHue
+  unsigned int forwardBits = vtkMapMarkerSet::NextMarkerHue;
+  unsigned int reverseBits = 0;
+  for (int i=0; i<bitCount; i++)
+    {
+    reverseBits = (reverseBits << 1) | (forwardBits & 1);
+    forwardBits >>= 1;
+    }
+
+  // Divide by max
+  unsigned int maxCount = 1 << bitCount;
+
+  double hue = static_cast<double>(reverseBits) / maxCount;
+  hue += 0.6;  // offset to start at blue
+  hue = (hue > 1.0) ? hue - 10.0 : hue;
+  vtkMapMarkerSet::NextMarkerHue += 1;
+
+  double hsv[3] = {0.0, 1.0, 1.0};
+  hsv[0] = hue;
+  vtkMath::HSVToRGB(hsv, color);
 }
 
 #undef MARKER_TYPE
