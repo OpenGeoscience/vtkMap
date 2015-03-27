@@ -57,6 +57,15 @@ public:
   vtkIdType AddMarker(double latitude, double longitude);
 
   // Description:
+  // Set marker visibility
+  bool SetMarkerVisibility(int markerId, bool visible);
+  bool GetMarkerVisibility(int markerId) const;
+
+  // Description:
+  // Select or unselect marker
+  bool SetMarkerSelection(int markerId, bool selected);
+
+  // Description:
   // Return descendent ids for given cluster id.
   // This is inteneded for traversing selected clusters.
   void GetClusterChildren(vtkIdType clusterId, vtkIdList *childMarkerIds,

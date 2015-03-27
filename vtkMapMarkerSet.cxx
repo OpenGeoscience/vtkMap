@@ -77,6 +77,8 @@ public:
   int NumberOfMarkers;
   double ClusterDistance;
   int NumberOfNodes;  // for dev use
+  std::vector<bool> MarkerVisible;  // for single-markers only (not clusters)
+  std::vector<bool> MarkerSelected;  // for single-markers only (not clusters)
   std::vector<ClusteringNode*> AllNodes;   // for dev
 };
 
@@ -147,6 +149,8 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
   vtkDebugMacro("Inserting ClusteringNode " << node->NodeId
                 << " into level " << level);
   this->Internals->NodeTable[level].insert(node);
+  this->Internals->MarkerVisible.push_back(true);
+  this->Internals->MarkerSelected.push_back(false);
 
   // todo refactor into separate method
   // todo calc initial cluster distance here and divide down
@@ -300,6 +304,38 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
     }
 
   return markerId;
+}
+
+//----------------------------------------------------------------------------
+bool vtkMapMarkerSet::SetMarkerVisibility(int markerId, bool visible)
+{
+  // std::cout << "Set marker id " << markerId
+  //           << " to visible: " << visible << std::endl;
+  bool isModified = visible != this->Internals->MarkerVisible[markerId];
+  if (!isModified)
+    {
+    return false;
+    }
+
+  this->Internals->MarkerVisible[markerId] = visible;
+  this->Internals->MarkersChanged = true;
+  return true;
+}
+
+//----------------------------------------------------------------------------
+bool vtkMapMarkerSet::SetMarkerSelection(int markerId, bool selected)
+{
+  // std::cout << "Set marker id " << markerId
+  //           << " to selected: " << selected << std::endl;
+  bool isModified = selected != this->Internals->MarkerSelected[markerId];
+  if (!isModified)
+    {
+    return false;
+    }
+
+  this->Internals->MarkerSelected[markerId] = selected;
+  this->Internals->MarkersChanged = true;
+  return true;
 }
 
 //----------------------------------------------------------------------------
@@ -520,6 +556,8 @@ void vtkMapMarkerSet::Update()
     markerGlyphColor[i] = static_cast<unsigned char>(actorRGB[i] * 255.0);
     clusterGlyphColor[i] = static_cast<unsigned char>(clusterRGB[i] * 255.0);
     }
+  // Hard-code selection color for now
+  unsigned char selectedGlyphColor[] = {255, 0, 255};
 
   // Coefficients for scaling cluster size, using simple 2nd order model
   // The equation is y = k*x^2 / (x^2 + b), where k,b are coefficients
@@ -534,12 +572,29 @@ void vtkMapMarkerSet::Update()
   for (iter = nodeSet.begin(); iter != nodeSet.end(); iter++)
     {
     ClusteringNode *node = *iter;
+    bool isVisible = true;
+    if (node->MarkerId >= 0)
+      {
+      isVisible = this->Internals->MarkerVisible[node->MarkerId];
+      }
+    if (!isVisible)
+      {
+      continue;
+      }
+
     points->InsertNextPoint(node->gcsCoords);
     this->Internals->CurrentNodes.push_back(node);
     if (node->NumberOfMarkers == 1)  // point marker
       {
       types->InsertNextValue(MARKER_TYPE);
-      colors->InsertNextTupleValue(markerGlyphColor);
+      if (this->Internals->MarkerSelected[node->MarkerId])
+        {
+        colors->InsertNextTupleValue(selectedGlyphColor);
+        }
+      else
+        {
+        colors->InsertNextTupleValue(markerGlyphColor);
+        }
       scales->InsertNextValue(1.0);
       }
     else  // cluster marker
