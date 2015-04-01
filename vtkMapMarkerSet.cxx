@@ -77,7 +77,6 @@ public:
   int ZoomLevel;
   std::vector<std::set<ClusteringNode*> > NodeTable;
   int NumberOfMarkers;
-  double ClusterDistance;
   int NumberOfNodes;  // for dev use
   std::vector<bool> MarkerVisible;  // for single-markers only (not clusters)
   std::vector<bool> MarkerSelected;  // for single-markers only (not clusters)
@@ -90,6 +89,7 @@ vtkMapMarkerSet::vtkMapMarkerSet() : vtkPolydataFeature()
   this->Initialized = false;
   this->PolyData = vtkPolyData::New();
   this->Clustering = false;
+  this->ClusterDistance = 80.0;
   this->MaxClusterScaleFactor = 2.0;
   double color[3] = {0.0, 0.0, 0.0};
   this->ComputeNextColor(color);
@@ -102,7 +102,6 @@ vtkMapMarkerSet::vtkMapMarkerSet() : vtkPolydataFeature()
   std::fill_n(std::back_inserter(this->Internals->NodeTable),
               NumberOfClusterLevels, clusterSet);
   this->Internals->NumberOfMarkers = 0;
-  this->Internals->ClusterDistance = 80.0;
   this->Internals->NumberOfNodes = 0;
 }
 
@@ -170,7 +169,7 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
     // a clustering partner is found.
     level--;
     double threshold2 = this->ComputeDistanceThreshold2(
-      latitude, longitude, this->Internals->ClusterDistance);
+      latitude, longitude, this->ClusterDistance);
     for (; level >= 0; level--)
       {
       ClusteringNode *closest =

@@ -45,6 +45,13 @@ public:
   vtkBooleanMacro(Clustering, bool);
 
   // Description:
+  // Threshold distance to use when creating clusters.
+  // The value is in display units (pixels).
+  // Default value is 80 pixels.
+  vtkSetMacro(ClusterDistance, double);
+  vtkGetMacro(ClusterDistance, double);
+
+  // Description:
   // Max scale factor to apply to cluster markers, default is 2.0
   // The scale function is 2nd order model: y = k*x^2 / (x^2 + b).
   // Coefficient k sets the max scale factor, i.e., y(inf) = k
@@ -113,6 +120,10 @@ public:
   // Description:
   // Geometry representation; gets updated each zoom-level change
   vtkPolyData *PolyData;
+
+  // Description:
+  // Threshold distance when combining markers/clusters
+  double ClusterDistance;
 
   class ClusteringNode;
 
