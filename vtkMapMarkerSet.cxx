@@ -39,12 +39,14 @@
 #include <vtkUnsignedIntArray.h>
 
 #include <algorithm>
+#include <cmath>
 #include <vector>
 
 const int NumberOfClusterLevels = 20;
 unsigned int vtkMapMarkerSet::NextMarkerHue = 0;
 #define MARKER_TYPE 0
 #define CLUSTER_TYPE 1
+#define SQRT_TWO sqrt(2.0)
 
 //----------------------------------------------------------------------------
 // Internal class for cluster tree nodes
@@ -133,6 +135,14 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
   int markerId = this->Internals->NumberOfMarkers++;
   vtkDebugMacro("Adding marker " << markerId);
 
+  // if (markerId == 1)
+  //   {
+  //   vtkRenderer *renderer = this->Layer->GetMap()->GetRenderer();
+  //   int *viewPortSize = renderer->GetSize();
+  //   std::cout << "Using ViewPort " << viewPortSize[0]
+  //             << ", " << viewPortSize[1] << std::endl;
+  //   }
+
   // Insert nodes at bottom level
   int level = this->Internals->NodeTable.size() - 1;
 
@@ -159,11 +169,12 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
     // Insertion step: Starting at bottom level, populate NodeTable until
     // a clustering partner is found.
     level--;
-    double threshold = this->Internals->ClusterDistance;
+    double threshold2 = this->ComputeDistanceThreshold2(
+      latitude, longitude, this->Internals->ClusterDistance);
     for (; level >= 0; level--)
       {
       ClusteringNode *closest =
-        this->FindClosestNode(node, level, threshold);
+        this->FindClosestNode(node, level, threshold2);
       if (closest)
         {
         // Todo Update closest node with marker info
@@ -264,7 +275,7 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
 
       // Check for new clustering partner
       ClusteringNode *closest =
-        this->FindClosestNode(node, level, threshold);
+        this->FindClosestNode(node, level, threshold2);
       if (closest)
         {
         this->MergeNodes(node, closest, parentsToMerge, level);
@@ -695,15 +706,67 @@ GetMarkerIds(vtkIdList *cellIds, vtkIdList *markerIds, vtkIdList *clusterIds)
 }
 
 //----------------------------------------------------------------------------
+double vtkMapMarkerSet::
+ComputeDistanceThreshold2(double latitude, double longitude,
+                          double clusteringDistance) const
+{
+  // Get display coordinates for input point
+  double inputLatLonCoords[2] = {latitude, longitude};
+  double inputDisplayCoords[2];
+  this->Layer->GetMap()->ComputeDisplayCoords(
+    inputLatLonCoords, 0.0, inputDisplayCoords);
+
+  // Offset the display coords by clustering distance
+  double delta = clusteringDistance * SQRT_TWO / 2.0;
+  double secondDisplayCoords[2] =
+    {
+      inputDisplayCoords[0] + delta,
+      inputDisplayCoords[1] + delta
+    };
+
+  // Convert 2nd display coords to lat-lon
+  double secondLatLonCoords[3] = {0.0, 0.0, 0.0};
+  this->Layer->GetMap()->ComputeLatLngCoords(
+    secondDisplayCoords, 0.0, secondLatLonCoords);
+
+  // Convert both points to world coords
+  double inputWorldCoords[3] =
+    {
+      inputLatLonCoords[1],
+      vtkMercator::lat2y(inputLatLonCoords[0]),
+      0.0
+    };
+  double secondWorldCoords[3] =
+    {
+      secondLatLonCoords[1],
+      vtkMercator::lat2y(secondLatLonCoords[0]),
+      0.0
+    };
+
+  // Return value is the distance squared
+  double threshold2 = vtkMath::Distance2BetweenPoints(
+    inputWorldCoords, secondWorldCoords);
+
+  // Need to adjust by current zoom level
+  int zoomLevel = this->Layer->GetMap()->GetZoom();
+  double scale = static_cast<double>(1<<zoomLevel);
+  threshold2 *= (scale * scale);
+
+  return threshold2;
+}
+
+//----------------------------------------------------------------------------
 vtkMapMarkerSet::ClusteringNode*
 vtkMapMarkerSet::
-FindClosestNode(ClusteringNode *node, int zoomLevel, double distanceThreshold)
+FindClosestNode(ClusteringNode *node, int zoomLevel, double distanceThreshold2)
 {
   // Convert distanceThreshold from image to gcs coords
-  double level0Scale = 360.0 / 256.0;  // 360 degress <==> 256 tile pixels
-  double scale = level0Scale / static_cast<double>(1<<zoomLevel);
-  double gcsThreshold = scale * distanceThreshold;
-  double gcsThreshold2 = gcsThreshold * gcsThreshold;
+  // double level0Scale = 360.0 / 256.0;  // 360 degress <==> 256 tile pixels
+  // double scale = level0Scale / static_cast<double>(1<<zoomLevel);
+  // double gcsThreshold = scale * distanceThreshold;
+  // double gcsThreshold2 = gcsThreshold * gcsThreshold;
+  double scale = static_cast<double>(1<<zoomLevel);
+  double gcsThreshold2 = distanceThreshold2 / scale / scale;
 
   ClusteringNode *closestNode = NULL;
   double closestDistance2 = gcsThreshold2;
@@ -834,5 +897,6 @@ void vtkMapMarkerSet::ComputeNextColor(double color[3])
   vtkMath::HSVToRGB(hsv, color);
 }
 
+#undef SQRT_TWO
 #undef MARKER_TYPE
 #undef CLUSTER_TYPE

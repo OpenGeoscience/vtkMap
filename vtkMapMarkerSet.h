@@ -115,8 +115,14 @@ public:
   vtkPolyData *PolyData;
 
   class ClusteringNode;
+
+  // Computes clustering distance in gcs coordinates
+  double ComputeDistanceThreshold2(double latitude, double longitude,
+                                   double clusteringDistance) const;
+
+  // Find closest node within distance threshold squared
   ClusteringNode *FindClosestNode(ClusteringNode *node, int zoomLevel,
-                                  double distanceThreshold);
+                                  double distanceThreshold2);
   void MergeNodes(ClusteringNode *node, ClusteringNode *mergingNode,
                   std::set<ClusteringNode*>& parentsToMerge, int level);
 

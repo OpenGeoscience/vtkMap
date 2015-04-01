@@ -139,6 +139,12 @@ public:
   // [latitude, longitude, elevation].
   void ComputeLatLngCoords(double displayCoords[2], double elevation,
                            double latLngCoords[3]);
+
+  // Description:
+  // Compute display coordinates for given lat/lon/elevation.
+  // For internal debug/test use
+  void ComputeDisplayCoords(double lanLngCoords[2], double elevation,
+                            double displayCoords[3]);
 protected:
   vtkMap();
   ~vtkMap();
@@ -150,12 +156,6 @@ protected:
   // Computes display-to-world point at specified z coord
   void ComputeWorldCoords(double displayCoords[2], double z,
                           double worldCoords[3]);
-
-  // Description:
-  // Compute display coordinates for given lat/lon/elevation.
-  // For internal debug/test use
-  void ComputeDisplayCoords(double lanLngCoords[2], double elevation,
-                            double displayCoords[3]);
 
   // Description:
   // The renderer used to draw the maps
