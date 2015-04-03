@@ -68,6 +68,84 @@ void vtkOsmLayer::PrintSelf(ostream& os, vtkIndent indent)
 }
 
 //----------------------------------------------------------------------------
+void vtkOsmLayer::SetMapTileServer(const char *URI, const char *attribution)
+{
+  if (!this->Map)
+    {
+    vtkWarningMacro("Cannot set map-tile server before adding layer to vtkMap");
+    return;
+    }
+
+  // Strip scheme from URI
+  std::string protocol;
+  std::string server;
+  if (!vtksys::SystemTools::ParseURLProtocol(URI, protocol, server))
+    {
+    vtkErrorMacro("Unable to parse uri " << URI << " -- ignoring");
+    return;
+    }
+
+  // Set cache directory
+  // Do *not* use SystemTools::JoinPath(), because it omits the first slash
+  std::string fullPath = this->Map->GetStorageDirectory() + std::string("/")
+    + server;
+
+  // Create directory if it doesn't already exist
+  if(!vtksys::SystemTools::FileIsDirectory(fullPath.c_str()))
+    {
+    if (vtksys::SystemTools::MakeDirectory(fullPath.c_str()))
+      {
+      std::cerr << "Created map-tile cache directory "
+                << fullPath << std::endl;
+      }
+    else
+      {
+      vtkErrorMacro("Unable to create directory for map-tile cache: "
+                    << fullPath);
+      return;
+      }
+    }
+
+  // Update internals
+  this->MapTileServer = strdup(URI);
+  this->MapTileAttribution = strdup(attribution);
+  this->CacheDirectory = strdup(fullPath.c_str());
+}
+
+//----------------------------------------------------------------------------
+void vtkOsmLayer::Update()
+{
+  if (!this->Map)
+    {
+    return;
+    }
+
+  if (!this->CacheDirectory)
+    {
+    this->SetMapTileServer(this->MapTileServer, this->MapTileAttribution);
+    }
+
+  if (!this->AttributionActor && this->MapTileAttribution)
+    {
+    this->AttributionActor = vtkTextActor::New();
+    this->AttributionActor->SetInput(this->MapTileAttribution);
+    this->AttributionActor->SetDisplayPosition(100, 0);
+    vtkTextProperty *textProperty = this->AttributionActor->GetTextProperty();
+    textProperty->SetFontSize(12);
+    textProperty->SetFontFamilyToArial();
+    textProperty->SetJustificationToCentered();
+    textProperty->SetColor(0, 0, 0);
+    textProperty->SetBackgroundColor(1, 1, 1);
+    textProperty->SetBackgroundOpacity(1.0);
+    this->Map->GetRenderer()->AddActor2D(this->AttributionActor);
+    }
+
+  this->AddTiles();
+
+  this->Superclass::Update();
+}
+
+//----------------------------------------------------------------------------
 void vtkOsmLayer::SetCacheSubDirectory(const char *relativePath)
 {
   if (!this->Map)
@@ -89,44 +167,10 @@ void vtkOsmLayer::SetCacheSubDirectory(const char *relativePath)
   // Create directory if it doesn't already exist
   if(!vtksys::SystemTools::FileIsDirectory(fullPath.c_str()))
     {
-    std::cerr << "Creating osm tile cache " << fullPath << std::endl;
+    std::cerr << "Creating tile cache directory" << fullPath << std::endl;
     vtksys::SystemTools::MakeDirectory(fullPath.c_str());
     }
-  this->SetCacheDirectory(fullPath.c_str());
-}
-
-//----------------------------------------------------------------------------
-void vtkOsmLayer::Update()
-{
-  if (!this->Map)
-    {
-    return;
-    }
-
-  if (!this->CacheDirectory)
-    {
-    // Note this calls the public "Sub" directory method
-    this->SetCacheSubDirectory("osm");
-    }
-
-  if (!this->AttributionActor && this->MapTileAttribution)
-    {
-    this->AttributionActor = vtkTextActor::New();
-    this->AttributionActor->SetInput(this->MapTileAttribution);
-    this->AttributionActor->SetDisplayPosition(100, 0);
-    vtkTextProperty *textProperty = this->AttributionActor->GetTextProperty();
-    textProperty->SetFontSize(12);
-    textProperty->SetFontFamilyToArial();
-    textProperty->SetJustificationToCentered();
-    textProperty->SetColor(0, 0, 0);
-    textProperty->SetBackgroundColor(1, 1, 1);
-    textProperty->SetBackgroundOpacity(1.0);
-    this->Map->GetRenderer()->AddActor2D(this->AttributionActor);
-    }
-
-  this->AddTiles();
-
-  this->Superclass::Update();
+  this->CacheDirectory = strdup(fullPath.c_str());
 }
 
 //----------------------------------------------------------------------------

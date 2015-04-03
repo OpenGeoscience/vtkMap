@@ -39,11 +39,6 @@ public:
   virtual void PrintSelf(ostream &os, vtkIndent indent);
   vtkTypeMacro(vtkOsmLayer, vtkFeatureLayer)
 
-  // Description:
-  // Set the subdirectory used for caching map files.
-  // The argument is *relative* to vtkMap::StorageDirectory.
-  void SetCacheSubDirectory(const char *relativePath);
-
   // Set the host URI and attribute text for the tile server
   // The default is tile.openstreetmap.org
   void SetMapTileServer(const char *URI, const char *attribution);
@@ -55,6 +50,12 @@ public:
 
   // Description:
   virtual void Update();
+
+  // Description:
+  // Set the subdirectory used for caching map files.
+  // This method is intended for *testing* use only.
+  // The argument is *relative* to vtkMap::StorageDirectory.
+  void SetCacheSubDirectory(const char *relativePath);
 
 protected:
   vtkOsmLayer();
