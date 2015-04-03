@@ -19,8 +19,11 @@
 
 #include <vtkObjectFactory.h>
 #include <vtksys/SystemTools.hxx>
+#include <vtkTextActor.h>
+#include <vtkTextProperty.h>
 
 #include <algorithm>
+#include <cstring>  // strdup
 #include <iomanip>
 #include <iterator>
 #include <math.h>
@@ -41,12 +44,19 @@ struct sortTiles
 vtkOsmLayer::vtkOsmLayer() : vtkFeatureLayer()
 {
   this->BaseOn();
+  this->MapTileServer = strdup("http://tile.openstreetmap.org");
+  this->MapTileAttribution = strdup("(c) OpenStreetMap contributors");
+  this->AttributionActor = NULL;
   this->CacheDirectory = NULL;
 }
 
 //----------------------------------------------------------------------------
 vtkOsmLayer::~vtkOsmLayer()
 {
+  if (this->AttributionActor)
+    {
+    this->AttributionActor->Delete();
+    }
   this->RemoveTiles();
   delete [] this->CacheDirectory;
 }
@@ -97,6 +107,21 @@ void vtkOsmLayer::Update()
     {
     // Note this calls the public "Sub" directory method
     this->SetCacheSubDirectory("osm");
+    }
+
+  if (!this->AttributionActor && this->MapTileAttribution)
+    {
+    this->AttributionActor = vtkTextActor::New();
+    this->AttributionActor->SetInput(this->MapTileAttribution);
+    this->AttributionActor->SetDisplayPosition(100, 0);
+    vtkTextProperty *textProperty = this->AttributionActor->GetTextProperty();
+    textProperty->SetFontSize(12);
+    textProperty->SetFontFamilyToArial();
+    textProperty->SetJustificationToCentered();
+    textProperty->SetColor(0, 0, 0);
+    textProperty->SetBackgroundColor(1, 1, 1);
+    textProperty->SetBackgroundOpacity(1.0);
+    this->Map->GetRenderer()->AddActor2D(this->AttributionActor);
     }
 
   this->AddTiles();
@@ -301,7 +326,7 @@ InitializeTiles(std::vector<vtkMapTile*>& tiles,
 
     // Set tile texture source
     oss.str("");
-    oss << "http://tile.openstreetmap.org"
+    oss << this->MapTileServer
         << "/" << spec.ZoomRowCol[0]
         << "/" << spec.ZoomRowCol[1]
         << "/" << spec.ZoomRowCol[2]

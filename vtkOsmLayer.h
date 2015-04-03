@@ -30,6 +30,8 @@
 #include <map>
 #include <vector>
 
+class vtkTextActor;
+
 class VTKMAP_EXPORT vtkOsmLayer : public vtkFeatureLayer
 {
 public:
@@ -42,8 +44,13 @@ public:
   // The argument is *relative* to vtkMap::StorageDirectory.
   void SetCacheSubDirectory(const char *relativePath);
 
+  // Set the host URI and attribute text for the tile server
+  // The default is tile.openstreetmap.org
+  void SetMapTileServer(const char *URI, const char *attribution);
+
   // Description:
-  // The full path to the directory used for caching OSM image files.
+  // The full path to the directory used for caching map-tile files.
+  // Set automatically by vtkMap.
   vtkGetStringMacro(CacheDirectory);
 
   // Description:
@@ -69,6 +76,10 @@ protected:
   vtkMapTile* GetCachedTile(int zoom, int x, int y);
 
 protected:
+  char *MapTileServer;
+  char *MapTileAttribution;
+  vtkTextActor *AttributionActor;
+
   char *CacheDirectory;
   std::map< int, std::map< int, std::map <int, vtkMapTile*> > > CachedTilesMap;
   std::vector<vtkMapTile*> CachedTiles;
