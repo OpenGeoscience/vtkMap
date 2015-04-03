@@ -134,6 +134,8 @@ int main(int argc, char *argv[])
   bool singleThreaded = false;
   int zoomLevel = 10;
   std::vector<double> centerLatLon;
+  std::string tileServer;
+  std::string tileServerAttribution;
 
   vtksys::CommandLineArguments arg;
   arg.Initialize(argc, argv);
@@ -142,8 +144,12 @@ int main(int argc, char *argv[])
                   &showHelp, "show help message");
   arg.AddArgument("--help", vtksys::CommandLineArguments::NO_ARGUMENT,
                   &showHelp, "show help message");
+  arg.AddArgument("-a", vtksys::CommandLineArguments::SPACE_ARGUMENT,
+                  &tileServerAttribution, "map-tile server attribution");
   arg.AddArgument("-c", vtksys::CommandLineArguments::MULTI_ARGUMENT,
                   &centerLatLon, "initial center (latitude longitude)");
+  arg.AddArgument("-m", vtksys::CommandLineArguments::SPACE_ARGUMENT,
+                  &tileServer, "map-tile server (tile.openstreetmaps.org)");
   arg.AddArgument("-o", vtksys::CommandLineArguments::NO_ARGUMENT,
                   &clusteringOff, "turn clustering off");
   arg.AddArgument("-s", vtksys::CommandLineArguments::NO_ARGUMENT,
@@ -192,6 +198,12 @@ int main(int argc, char *argv[])
     osmLayer = vtkMultiThreadedOsmLayer::New();
     }
   map->AddLayer(osmLayer);
+
+  if (tileServer != "")
+    {
+    osmLayer->SetMapTileServer(
+      tileServer.c_str(), tileServerAttribution.c_str());
+    }
 
   vtkNew<vtkRenderWindow> wind;
   wind->AddRenderer(rend.GetPointer());;

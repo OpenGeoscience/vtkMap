@@ -266,7 +266,7 @@ void vtkMultiThreadedOsmLayer::RequestThreadExecute(int threadId)
       {
       // If DownloadMode, perform http request
       oss.str("");
-      oss << "http://tile.openstreetmap.org"
+      oss << "http://" << this->MapTileServer
           << "/" << spec.ZoomRowCol[0]
           << "/" << spec.ZoomRowCol[1]
           << "/" << spec.ZoomRowCol[2]
@@ -435,7 +435,7 @@ CreateTile(vtkMapTileSpecInternal& spec)
 
   // Set tile texture source
   oss.str("");
-  oss << "http://tile.openstreetmap.org"
+  oss << "http://" << this->MapTileServer
       << "/" << spec.ZoomRowCol[0]
       << "/" << spec.ZoomRowCol[1]
       << "/" << spec.ZoomRowCol[2]

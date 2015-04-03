@@ -44,7 +44,7 @@ struct sortTiles
 vtkOsmLayer::vtkOsmLayer() : vtkFeatureLayer()
 {
   this->BaseOn();
-  this->MapTileServer = strdup("http://tile.openstreetmap.org");
+  this->MapTileServer = strdup("tile.openstreetmap.org");
   this->MapTileAttribution = strdup("(c) OpenStreetMap contributors");
   this->AttributionActor = NULL;
   this->CacheDirectory = NULL;
@@ -59,6 +59,8 @@ vtkOsmLayer::~vtkOsmLayer()
     }
   this->RemoveTiles();
   delete [] this->CacheDirectory;
+  delete [] this->MapTileAttribution;
+  delete [] this->MapTileServer;
 }
 
 //----------------------------------------------------------------------------
@@ -68,20 +70,12 @@ void vtkOsmLayer::PrintSelf(ostream& os, vtkIndent indent)
 }
 
 //----------------------------------------------------------------------------
-void vtkOsmLayer::SetMapTileServer(const char *URI, const char *attribution)
+void vtkOsmLayer::
+SetMapTileServer(const char *server, const char *attribution)
 {
   if (!this->Map)
     {
     vtkWarningMacro("Cannot set map-tile server before adding layer to vtkMap");
-    return;
-    }
-
-  // Strip scheme from URI
-  std::string protocol;
-  std::string server;
-  if (!vtksys::SystemTools::ParseURLProtocol(URI, protocol, server))
-    {
-    vtkErrorMacro("Unable to parse uri " << URI << " -- ignoring");
     return;
     }
 
@@ -107,9 +101,15 @@ void vtkOsmLayer::SetMapTileServer(const char *URI, const char *attribution)
     }
 
   // Update internals
-  this->MapTileServer = strdup(URI);
+  this->MapTileServer = strdup(server);
   this->MapTileAttribution = strdup(attribution);
   this->CacheDirectory = strdup(fullPath.c_str());
+
+  if (this->AttributionActor)
+    {
+    this->AttributionActor->SetInput(this->MapTileAttribution);
+    this->Modified();
+    }
 }
 
 //----------------------------------------------------------------------------
@@ -129,11 +129,11 @@ void vtkOsmLayer::Update()
     {
     this->AttributionActor = vtkTextActor::New();
     this->AttributionActor->SetInput(this->MapTileAttribution);
-    this->AttributionActor->SetDisplayPosition(100, 0);
+    this->AttributionActor->SetDisplayPosition(10, 0);
     vtkTextProperty *textProperty = this->AttributionActor->GetTextProperty();
     textProperty->SetFontSize(12);
     textProperty->SetFontFamilyToArial();
-    textProperty->SetJustificationToCentered();
+    textProperty->SetJustificationToLeft();
     textProperty->SetColor(0, 0, 0);
     textProperty->SetBackgroundColor(1, 1, 1);
     textProperty->SetBackgroundOpacity(1.0);
@@ -370,7 +370,7 @@ InitializeTiles(std::vector<vtkMapTile*>& tiles,
 
     // Set tile texture source
     oss.str("");
-    oss << this->MapTileServer
+    oss << "http://" << this->MapTileServer
         << "/" << spec.ZoomRowCol[0]
         << "/" << spec.ZoomRowCol[1]
         << "/" << spec.ZoomRowCol[2]

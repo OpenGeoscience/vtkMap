@@ -39,9 +39,9 @@ public:
   virtual void PrintSelf(ostream &os, vtkIndent indent);
   vtkTypeMacro(vtkOsmLayer, vtkFeatureLayer)
 
-  // Set the host URI and attribute text for the tile server
-  // The default is tile.openstreetmap.org
-  void SetMapTileServer(const char *URI, const char *attribution);
+  // Set the map tile server and corresponding attribute text.
+  // The default server is tile.openstreetmap.org
+  void SetMapTileServer(const char *server, const char *attribution);
 
   // Description:
   // The full path to the directory used for caching map-tile files.
