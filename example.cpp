@@ -4,6 +4,7 @@
 #include "vtkInteractorStyleGeoMap.h"
 #include "vtkMapMarkerSet.h"
 #include "vtkMercator.h"
+#include "vtkMultiThreadedOsmLayer.h"
 #include "vtkOsmLayer.h"
 #include "vtkPolydataFeature.h"
 
@@ -19,9 +20,11 @@
 #include <vtkRenderer.h>
 #include <vtkRenderWindowInteractor.h>
 #include <vtkRegularPolygonSource.h>
+#include <vtksys/CommandLineArguments.hxx>
 
 #include <iostream>
 
+// ------------------------------------------------------------
 class PickCallback : public vtkCommand
 {
 public:
@@ -121,24 +124,74 @@ protected:
   vtkMap *Map;
 };
 
-int main()
+// ------------------------------------------------------------
+int main(int argc, char *argv[])
 {
-  // Kitware geo coords (Clifton Park, NY)
-  double kwLatitude = 42.849604;
-  double kwLongitude = -73.758345;
+  // Setup command line arguments
+  std::string inputFile;
+  int clusteringOff = false;
+  bool showHelp = false;
+  bool singleThreaded = false;
+  int zoomLevel = 10;
+  std::vector<double> centerLatLon;
+
+  vtksys::CommandLineArguments arg;
+  arg.Initialize(argc, argv);
+  arg.StoreUnusedArguments(true);
+  arg.AddArgument("-h", vtksys::CommandLineArguments::NO_ARGUMENT,
+                  &showHelp, "show help message");
+  arg.AddArgument("--help", vtksys::CommandLineArguments::NO_ARGUMENT,
+                  &showHelp, "show help message");
+  arg.AddArgument("-c", vtksys::CommandLineArguments::MULTI_ARGUMENT,
+                  &centerLatLon, "initial center (latitude longitude)");
+  arg.AddArgument("-o", vtksys::CommandLineArguments::NO_ARGUMENT,
+                  &clusteringOff, "turn clustering off");
+  arg.AddArgument("-s", vtksys::CommandLineArguments::NO_ARGUMENT,
+                  &singleThreaded, "use single-threaded map I/O");
+  arg.AddArgument("-z", vtksys::CommandLineArguments::SPACE_ARGUMENT,
+                  &zoomLevel, "initial zoom level (1-20)");
+
+  if (!arg.Parse() || showHelp)
+    {
+    std::cout << "\n"
+              << arg.GetHelp()
+              << std::endl;
+    return -1;
+    }
 
   vtkNew<vtkMap> map;
+
+  // For reference, Kitware geo coords (Clifton Park, NY)
+  double kwLatitude = 42.849604;
+  double kwLongitude = -73.758345;
 
   // Note: Always set map's renderer *before* adding layers
   vtkNew<vtkRenderer> rend;
   map->SetRenderer(rend.GetPointer());
 
+  if (centerLatLon.size() < 2)
+    {
+    // If default needed, use Kitware geo coords
+    centerLatLon.push_back(kwLatitude);
+    centerLatLon.push_back(kwLongitude);
+    }
+  map->SetCenter(centerLatLon[0], centerLatLon[1]);
+  map->SetZoom(zoomLevel);
+
   // Set viewpoint to display continental US
   double latLngCoords[] = {25.0, -115.0, 50.0, -75.0};
   map->SetVisibleBounds(latLngCoords);
 
-  vtkNew<vtkOsmLayer> osmLayer;
-  map->AddLayer(osmLayer.GetPointer());
+  vtkOsmLayer *osmLayer;
+  if (singleThreaded)
+    {
+    osmLayer = vtkOsmLayer::New();
+    }
+  else
+    {
+    osmLayer = vtkMultiThreadedOsmLayer::New();
+    }
+  map->AddLayer(osmLayer);
 
   vtkNew<vtkRenderWindow> wind;
   wind->AddRenderer(rend.GetPointer());;
@@ -190,7 +243,7 @@ int main()
     32.301393, -90.871495   // ERDC
   };
   vtkNew<vtkMapMarkerSet> markerSet;
-  markerSet->ClusteringOn();
+  markerSet->SetClustering(!clusteringOff);
   featureLayer->AddFeature(markerSet.GetPointer());
   unsigned numMarkers = sizeof(latlonCoords) / sizeof(double) / 2;
   for (unsigned i=0; i<numMarkers; ++i)
@@ -217,5 +270,6 @@ int main()
   intr->Start();
 
   //map->Print(std::cout);
+  osmLayer->Delete();
   return 0;
 }

@@ -86,9 +86,9 @@ int main(int argc, char* argv[])
   if (centerLatLon.size() < 2)
     {
     // Use KHQ coordinates
-centerLatLon.push_back(42.849604);
-centerLatLon.push_back(-73.758345);
-}
+    centerLatLon.push_back(42.849604);
+    centerLatLon.push_back(-73.758345);
+    }
   map->SetCenter(centerLatLon[0], centerLatLon[1]);
   map->SetZoom(zoomLevel);
 
