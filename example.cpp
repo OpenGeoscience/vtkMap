@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
   int clusteringOff = false;
   bool showHelp = false;
   bool singleThreaded = false;
-  int zoomLevel = 10;
+  int zoomLevel = -1;
   std::vector<double> centerLatLon;
   std::string tileExtension = "png";
   std::string tileServer;
@@ -178,18 +178,22 @@ int main(int argc, char *argv[])
   vtkNew<vtkRenderer> rend;
   map->SetRenderer(rend.GetPointer());
 
-  if (centerLatLon.size() < 2)
+  // Set viewport
+  if (centerLatLon.size() == 2)
     {
-    // If default needed, use Kitware geo coords
-    centerLatLon.push_back(kwLatitude);
-    centerLatLon.push_back(kwLongitude);
+    map->SetCenter(centerLatLon[0], centerLatLon[1]);
     }
-  map->SetCenter(centerLatLon[0], centerLatLon[1]);
-  map->SetZoom(zoomLevel);
+  else
+    {
+    // If center not specified, display CONUS
+    double latLngCoords[] = {25.0, -115.0, 50.0, -75.0};
+    map->SetVisibleBounds(latLngCoords);
+    }
 
-  // Set viewpoint to display continental US
-  double latLngCoords[] = {25.0, -115.0, 50.0, -75.0};
-  map->SetVisibleBounds(latLngCoords);
+  if (zoomLevel > 0)
+    {
+    map->SetZoom(zoomLevel);
+    }
 
   vtkOsmLayer *osmLayer;
   if (singleThreaded)
