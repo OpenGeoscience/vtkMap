@@ -54,9 +54,7 @@ int computeZoomLevel(vtkCamera* cam)
   double width = pos[2] * sin(vtkMath::RadiansFromDegrees(cam->GetViewAngle()));
 
   for (int i = 0; i < 20; ++i) {
-    if (width >= (360.0 / std::pow( 2.0, i))) {
-      /// We are forcing the minimum zoom level to 2 so that we can get
-      /// high res imagery even at the zoom level 0 distance
+    if (width >= (360.0 / std::pow(2.0, i)) + 0.5) {
       return i;
     }
   }
