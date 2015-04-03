@@ -45,6 +45,7 @@ vtkOsmLayer::vtkOsmLayer() : vtkFeatureLayer()
 {
   this->BaseOn();
   this->MapTileServer = strdup("tile.openstreetmap.org");
+  this->MapTileExtension = strdup("png");
   this->MapTileAttribution = strdup("(c) OpenStreetMap contributors");
   this->AttributionActor = NULL;
   this->CacheDirectory = NULL;
@@ -60,6 +61,7 @@ vtkOsmLayer::~vtkOsmLayer()
   this->RemoveTiles();
   delete [] this->CacheDirectory;
   delete [] this->MapTileAttribution;
+  delete [] this->MapTileExtension;
   delete [] this->MapTileServer;
 }
 
@@ -71,7 +73,8 @@ void vtkOsmLayer::PrintSelf(ostream& os, vtkIndent indent)
 
 //----------------------------------------------------------------------------
 void vtkOsmLayer::
-SetMapTileServer(const char *server, const char *attribution)
+SetMapTileServer(const char *server, const char *attribution,
+                 const char *extension)
 {
   if (!this->Map)
     {
@@ -101,6 +104,7 @@ SetMapTileServer(const char *server, const char *attribution)
     }
 
   // Update internals
+  this->MapTileExtension = strdup(extension);
   this->MapTileServer = strdup(server);
   this->MapTileAttribution = strdup(attribution);
   this->CacheDirectory = strdup(fullPath.c_str());
@@ -122,7 +126,8 @@ void vtkOsmLayer::Update()
 
   if (!this->CacheDirectory)
     {
-    this->SetMapTileServer(this->MapTileServer, this->MapTileAttribution);
+    this->SetMapTileServer(
+      this->MapTileServer, this->MapTileAttribution, this->MapTileExtension);
     }
 
   if (!this->AttributionActor && this->MapTileAttribution)
@@ -365,7 +370,8 @@ InitializeTiles(std::vector<vtkMapTile*>& tiles,
     oss.str("");
     oss << spec.ZoomRowCol[0]
         << spec.ZoomRowCol[1]
-        << spec.ZoomRowCol[2];
+        << spec.ZoomRowCol[2]
+        << "." << this->MapTileExtension;
     tile->SetImageKey(oss.str());
 
     // Set tile texture source
@@ -374,7 +380,7 @@ InitializeTiles(std::vector<vtkMapTile*>& tiles,
         << "/" << spec.ZoomRowCol[0]
         << "/" << spec.ZoomRowCol[1]
         << "/" << spec.ZoomRowCol[2]
-        << ".png";
+        << "." << this->MapTileExtension;
     tile->SetImageSource(oss.str());
 
     // Initialize the tile and add to the cache

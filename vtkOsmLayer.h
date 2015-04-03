@@ -40,8 +40,12 @@ public:
   vtkTypeMacro(vtkOsmLayer, vtkFeatureLayer)
 
   // Set the map tile server and corresponding attribute text.
-  // The default server is tile.openstreetmap.org
-  void SetMapTileServer(const char *server, const char *attribution);
+  // The default server is tile.openstreetmap.org.
+  // The attribution will be displayed at the bottom of the window.
+  // The file extension is typically "png" or "jpg".
+  void SetMapTileServer(const char *server,
+                        const char *attribution,
+                        const char *extension);
 
   // Description:
   // The full path to the directory used for caching map-tile files.
@@ -77,6 +81,7 @@ protected:
   vtkMapTile* GetCachedTile(int zoom, int x, int y);
 
 protected:
+  char *MapTileExtension;
   char *MapTileServer;
   char *MapTileAttribution;
   vtkTextActor *AttributionActor;

@@ -259,7 +259,7 @@ void vtkMultiThreadedOsmLayer::RequestThreadExecute(int threadId)
         << spec.ZoomRowCol[0]
         << spec.ZoomRowCol[1]
         << spec.ZoomRowCol[2]
-        << ".png";
+        << "." << this->MapTileExtension;
     std::string filename = oss.str();
 
     if (this->Internals->DownloadMode)
@@ -270,7 +270,7 @@ void vtkMultiThreadedOsmLayer::RequestThreadExecute(int threadId)
           << "/" << spec.ZoomRowCol[0]
           << "/" << spec.ZoomRowCol[1]
           << "/" << spec.ZoomRowCol[2]
-          << ".png";
+          << "." << this->MapTileExtension;;
       std::string url = oss.str();
 
       if (this->DownloadImageFile(url, filename))
@@ -430,7 +430,8 @@ CreateTile(vtkMapTileSpecInternal& spec)
   oss.str("");
   oss << spec.ZoomRowCol[0]
       << spec.ZoomRowCol[1]
-      << spec.ZoomRowCol[2];
+      << spec.ZoomRowCol[2]
+      << "." << this->MapTileExtension;
   tile->SetImageKey(oss.str());
 
   // Set tile texture source
@@ -439,7 +440,7 @@ CreateTile(vtkMapTileSpecInternal& spec)
       << "/" << spec.ZoomRowCol[0]
       << "/" << spec.ZoomRowCol[1]
       << "/" << spec.ZoomRowCol[2]
-      << ".png";
+      << "." << this->MapTileExtension;;
   tile->SetImageSource(oss.str());
 
   // Don't call tile->Init() here; must do that in the foreground thread

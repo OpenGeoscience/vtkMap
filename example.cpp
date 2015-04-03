@@ -134,6 +134,7 @@ int main(int argc, char *argv[])
   bool singleThreaded = false;
   int zoomLevel = 10;
   std::vector<double> centerLatLon;
+  std::string tileExtension = "png";
   std::string tileServer;
   std::string tileServerAttribution;
 
@@ -145,7 +146,9 @@ int main(int argc, char *argv[])
   arg.AddArgument("--help", vtksys::CommandLineArguments::NO_ARGUMENT,
                   &showHelp, "show help message");
   arg.AddArgument("-a", vtksys::CommandLineArguments::SPACE_ARGUMENT,
-                  &tileServerAttribution, "map-tile server attribution");
+                  &tileServerAttribution, "map-tile file extension");
+  arg.AddArgument("-e", vtksys::CommandLineArguments::SPACE_ARGUMENT,
+                  &tileExtension, "map-tile file extension (jpg, png, etc.)");
   arg.AddArgument("-c", vtksys::CommandLineArguments::MULTI_ARGUMENT,
                   &centerLatLon, "initial center (latitude longitude)");
   arg.AddArgument("-m", vtksys::CommandLineArguments::SPACE_ARGUMENT,
@@ -202,7 +205,7 @@ int main(int argc, char *argv[])
   if (tileServer != "")
     {
     osmLayer->SetMapTileServer(
-      tileServer.c_str(), tileServerAttribution.c_str());
+      tileServer.c_str(), tileServerAttribution.c_str(), tileExtension.c_str());
     }
 
   vtkNew<vtkRenderWindow> wind;
