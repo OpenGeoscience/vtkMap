@@ -19,8 +19,11 @@
 
 #include <vtkObjectFactory.h>
 #include <vtksys/SystemTools.hxx>
+#include <vtkTextActor.h>
+#include <vtkTextProperty.h>
 
 #include <algorithm>
+#include <cstring>  // strdup
 #include <iomanip>
 #include <iterator>
 #include <math.h>
@@ -41,20 +44,110 @@ struct sortTiles
 vtkOsmLayer::vtkOsmLayer() : vtkFeatureLayer()
 {
   this->BaseOn();
+  this->MapTileServer = strdup("tile.openstreetmap.org");
+  this->MapTileExtension = strdup("png");
+  this->MapTileAttribution = strdup("(c) OpenStreetMap contributors");
+  this->AttributionActor = NULL;
   this->CacheDirectory = NULL;
 }
 
 //----------------------------------------------------------------------------
 vtkOsmLayer::~vtkOsmLayer()
 {
+  if (this->AttributionActor)
+    {
+    this->AttributionActor->Delete();
+    }
   this->RemoveTiles();
   delete [] this->CacheDirectory;
+  delete [] this->MapTileAttribution;
+  delete [] this->MapTileExtension;
+  delete [] this->MapTileServer;
 }
 
 //----------------------------------------------------------------------------
 void vtkOsmLayer::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
+}
+
+//----------------------------------------------------------------------------
+void vtkOsmLayer::
+SetMapTileServer(const char *server, const char *attribution,
+                 const char *extension)
+{
+  if (!this->Map)
+    {
+    vtkWarningMacro("Cannot set map-tile server before adding layer to vtkMap");
+    return;
+    }
+
+  // Set cache directory
+  // Do *not* use SystemTools::JoinPath(), because it omits the first slash
+  std::string fullPath = this->Map->GetStorageDirectory() + std::string("/")
+    + server;
+
+  // Create directory if it doesn't already exist
+  if(!vtksys::SystemTools::FileIsDirectory(fullPath.c_str()))
+    {
+    if (vtksys::SystemTools::MakeDirectory(fullPath.c_str()))
+      {
+      std::cerr << "Created map-tile cache directory "
+                << fullPath << std::endl;
+      }
+    else
+      {
+      vtkErrorMacro("Unable to create directory for map-tile cache: "
+                    << fullPath);
+      return;
+      }
+    }
+
+  // Update internals
+  this->MapTileExtension = strdup(extension);
+  this->MapTileServer = strdup(server);
+  this->MapTileAttribution = strdup(attribution);
+  this->CacheDirectory = strdup(fullPath.c_str());
+
+  if (this->AttributionActor)
+    {
+    this->AttributionActor->SetInput(this->MapTileAttribution);
+    this->Modified();
+    }
+}
+
+//----------------------------------------------------------------------------
+void vtkOsmLayer::Update()
+{
+  if (!this->Map)
+    {
+    return;
+    }
+
+  if (!this->CacheDirectory)
+    {
+    this->SetMapTileServer(
+      this->MapTileServer, this->MapTileAttribution, this->MapTileExtension);
+    }
+
+  if (!this->AttributionActor && this->MapTileAttribution)
+    {
+    this->AttributionActor = vtkTextActor::New();
+    this->AttributionActor->SetInput(this->MapTileAttribution);
+    this->AttributionActor->SetDisplayPosition(10, 0);
+    vtkTextProperty *textProperty = this->AttributionActor->GetTextProperty();
+    textProperty->SetFontSize(12);
+    textProperty->SetFontFamilyToArial();
+    textProperty->SetJustificationToLeft();
+    textProperty->SetColor(0, 0, 0);
+    textProperty->SetBackgroundColor(1, 1, 1);
+    textProperty->SetBackgroundOpacity(1.0);
+    this->Map->GetRenderer()->AddActor2D(this->AttributionActor);
+    }
+
+  this->AddTiles();
+
+  this->Superclass::Update();
 }
 
 //----------------------------------------------------------------------------
@@ -79,29 +172,10 @@ void vtkOsmLayer::SetCacheSubDirectory(const char *relativePath)
   // Create directory if it doesn't already exist
   if(!vtksys::SystemTools::FileIsDirectory(fullPath.c_str()))
     {
-    std::cerr << "Creating osm tile cache " << fullPath << std::endl;
+    std::cerr << "Creating tile cache directory" << fullPath << std::endl;
     vtksys::SystemTools::MakeDirectory(fullPath.c_str());
     }
-  this->SetCacheDirectory(fullPath.c_str());
-}
-
-//----------------------------------------------------------------------------
-void vtkOsmLayer::Update()
-{
-  if (!this->Map)
-    {
-    return;
-    }
-
-  if (!this->CacheDirectory)
-    {
-    // Note this calls the public "Sub" directory method
-    this->SetCacheSubDirectory("osm");
-    }
-
-  this->AddTiles();
-
-  this->Superclass::Update();
+  this->CacheDirectory = strdup(fullPath.c_str());
 }
 
 //----------------------------------------------------------------------------
@@ -296,16 +370,17 @@ InitializeTiles(std::vector<vtkMapTile*>& tiles,
     oss.str("");
     oss << spec.ZoomRowCol[0]
         << spec.ZoomRowCol[1]
-        << spec.ZoomRowCol[2];
+        << spec.ZoomRowCol[2]
+        << "." << this->MapTileExtension;
     tile->SetImageKey(oss.str());
 
     // Set tile texture source
     oss.str("");
-    oss << "http://tile.openstreetmap.org"
+    oss << "http://" << this->MapTileServer
         << "/" << spec.ZoomRowCol[0]
         << "/" << spec.ZoomRowCol[1]
         << "/" << spec.ZoomRowCol[2]
-        << ".png";
+        << "." << this->MapTileExtension;
     tile->SetImageSource(oss.str());
 
     // Initialize the tile and add to the cache

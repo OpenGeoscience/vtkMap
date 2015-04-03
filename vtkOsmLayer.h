@@ -30,6 +30,8 @@
 #include <map>
 #include <vector>
 
+class vtkTextActor;
+
 class VTKMAP_EXPORT vtkOsmLayer : public vtkFeatureLayer
 {
 public:
@@ -37,17 +39,27 @@ public:
   virtual void PrintSelf(ostream &os, vtkIndent indent);
   vtkTypeMacro(vtkOsmLayer, vtkFeatureLayer)
 
-  // Description:
-  // Set the subdirectory used for caching map files.
-  // The argument is *relative* to vtkMap::StorageDirectory.
-  void SetCacheSubDirectory(const char *relativePath);
+  // Set the map tile server and corresponding attribute text.
+  // The default server is tile.openstreetmap.org.
+  // The attribution will be displayed at the bottom of the window.
+  // The file extension is typically "png" or "jpg".
+  void SetMapTileServer(const char *server,
+                        const char *attribution,
+                        const char *extension);
 
   // Description:
-  // The full path to the directory used for caching OSM image files.
+  // The full path to the directory used for caching map-tile files.
+  // Set automatically by vtkMap.
   vtkGetStringMacro(CacheDirectory);
 
   // Description:
   virtual void Update();
+
+  // Description:
+  // Set the subdirectory used for caching map files.
+  // This method is intended for *testing* use only.
+  // The argument is *relative* to vtkMap::StorageDirectory.
+  void SetCacheSubDirectory(const char *relativePath);
 
 protected:
   vtkOsmLayer();
@@ -69,6 +81,11 @@ protected:
   vtkMapTile* GetCachedTile(int zoom, int x, int y);
 
 protected:
+  char *MapTileExtension;
+  char *MapTileServer;
+  char *MapTileAttribution;
+  vtkTextActor *AttributionActor;
+
   char *CacheDirectory;
   std::map< int, std::map< int, std::map <int, vtkMapTile*> > > CachedTilesMap;
   std::vector<vtkMapTile*> CachedTiles;
