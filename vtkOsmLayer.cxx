@@ -59,10 +59,10 @@ vtkOsmLayer::~vtkOsmLayer()
     this->AttributionActor->Delete();
     }
   this->RemoveTiles();
-  delete [] this->CacheDirectory;
-  delete [] this->MapTileAttribution;
-  delete [] this->MapTileExtension;
-  delete [] this->MapTileServer;
+  free(this->CacheDirectory);
+  free(this->MapTileAttribution);
+  free(this->MapTileExtension);
+  free(this->MapTileServer);
 }
 
 //----------------------------------------------------------------------------
@@ -140,8 +140,9 @@ void vtkOsmLayer::Update()
     textProperty->SetFontFamilyToArial();
     textProperty->SetJustificationToLeft();
     textProperty->SetColor(0, 0, 0);
-    textProperty->SetBackgroundColor(1, 1, 1);
-    textProperty->SetBackgroundOpacity(1.0);
+    // Background properties available in vtk 6.2
+    //textProperty->SetBackgroundColor(1, 1, 1);
+    //textProperty->SetBackgroundOpacity(1.0);
     this->Map->GetRenderer()->AddActor2D(this->AttributionActor);
     }
 
