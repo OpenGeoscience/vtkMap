@@ -103,7 +103,16 @@ SetMapTileServer(const char *server, const char *attribution,
       }
     }
 
-  // Update internals
+  // Clear tile cached and update internals
+  // Remove tiles from renderer before calling RemoveTiles()
+  std::vector<vtkMapTile*>::iterator iter = this->CachedTiles.begin();
+  for (; iter != this->CachedTiles.end(); iter++)
+    {
+    vtkMapTile *tile = *iter;
+    this->Renderer->RemoveActor(tile->GetActor());
+    }
+  this->RemoveTiles();
+
   this->MapTileExtension = strdup(extension);
   this->MapTileServer = strdup(server);
   this->MapTileAttribution = strdup(attribution);

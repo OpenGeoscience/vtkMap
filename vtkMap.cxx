@@ -367,6 +367,11 @@ vtkLayer *vtkMap::FindLayer(const char *name)
 {
   vtkLayer *result = NULL;  // return value
 
+  if (this->BaseLayer && this->BaseLayer->GetName() == name)
+    {
+    return this->BaseLayer;
+    }
+
   std::vector<vtkLayer*>::iterator it = this->Layers.begin();
   for (; it != this->Layers.end(); it++)
     {
