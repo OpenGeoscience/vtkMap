@@ -44,8 +44,7 @@ vtkStandardNewMacro(vtkMap)
 double computeCameraDistance(vtkCamera* cam, int zoomLevel)
 {
   double deg = 360.0 / std::pow( 2.0, zoomLevel);
-  // Offset by 0.1% to reduce numerical issues w/computeZoomLevel()
-  return (1.001 * deg / std::sin(vtkMath::RadiansFromDegrees(cam->GetViewAngle())));
+  return (deg / std::sin(vtkMath::RadiansFromDegrees(cam->GetViewAngle())));
 }
 
 //----------------------------------------------------------------------------
@@ -55,7 +54,7 @@ int computeZoomLevel(vtkCamera* cam)
   double width = pos[2] * sin(vtkMath::RadiansFromDegrees(cam->GetViewAngle()));
 
   for (int i = 0; i < 20; ++i) {
-    if (width >= (360.0 / std::pow(2.0, i)) + 0.5) {
+    if (width >= (360.0 / std::pow(2.0, i)) - 0.5) {
       return i;
     }
   }
@@ -366,6 +365,11 @@ void vtkMap::RemoveLayer(vtkLayer* layer)
 vtkLayer *vtkMap::FindLayer(const char *name)
 {
   vtkLayer *result = NULL;  // return value
+
+  if (this->BaseLayer && this->BaseLayer->GetName() == name)
+    {
+    return this->BaseLayer;
+    }
 
   std::vector<vtkLayer*>::iterator it = this->Layers.begin();
   for (; it != this->Layers.end(); it++)
