@@ -55,16 +55,22 @@ SuggestOutputDimensions(GDALDataset *dataset, const char *projection,
 {
   // Create OGRSpatialReference for projection
   OGRSpatialReference ref;
-  ref.SetFromUserInput(projection);
-  if (ref.Validate() != OGRERR_NONE)
+  OGRErr errcode = ref.SetFromUserInput(projection);
+  if (errcode != OGRERR_NONE)
     {
-    vtkErrorMacro(<< "Projection is not valid or not supported: "
-                  << projection);
-    return false;
+    vtkWarningMacro(<< "OGRSpatialReference::SetFromUserInput("
+                    << projection << ") returned " << errcode
+                    << ". You might need to set GDAL_DATA.");
     }
   char *outputWKT = NULL;
-  ref.exportToWkt(&outputWKT);
-  //std::cout << "outputWKT: \n" << outputWKT << std::endl;
+  errcode = ref.exportToWkt(&outputWKT);
+  if (errcode != OGRERR_NONE)
+    {
+    vtkWarningMacro(<< "OGRSpatialReference::exportToWKT("
+                    << ") returned " << errcode
+                    << ". You might need to set GDAL_DATA.");
+    std::cout << "Resulting outputWKT: \n" << outputWKT << std::endl;
+    }
 
   // Create transformer
   const char *inputWKT = dataset->GetProjectionRef();
