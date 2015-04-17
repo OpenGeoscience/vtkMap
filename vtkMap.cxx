@@ -53,11 +53,13 @@ int computeZoomLevel(vtkCamera* cam)
   double* pos = cam->GetPosition();
   double width = pos[2] * sin(vtkMath::RadiansFromDegrees(cam->GetViewAngle()));
 
-  for (int i = 0; i < 20; ++i) {
-    if (width >= (360.0 / std::pow(2.0, i)) - 0.5) {
+  for (int i = 0; i < 20; ++i)
+    {
+    if (width >= (360.0 / (std::pow(2.0, i) * 1.001)))
+      {
       return i;
+      }
     }
-  }
   return 0;
 }
 
