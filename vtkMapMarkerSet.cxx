@@ -711,7 +711,7 @@ ComputeDistanceThreshold2(double latitude, double longitude,
 {
   // Get display coordinates for input point
   double inputLatLonCoords[2] = {latitude, longitude};
-  double inputDisplayCoords[2];
+  double inputDisplayCoords[3];
   this->Layer->GetMap()->ComputeDisplayCoords(
     inputLatLonCoords, 0.0, inputDisplayCoords);
 
