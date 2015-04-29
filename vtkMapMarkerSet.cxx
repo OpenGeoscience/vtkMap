@@ -22,7 +22,7 @@
 #include <vtkDoubleArray.h>
 #include <vtkIdList.h>
 #include <vtkIdTypeArray.h>
-#include <vtkGlyph3D.h>
+#include <vtkGlyph3DMapper.h>
 #include <vtkMath.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
@@ -70,6 +70,7 @@ vtkStandardNewMacro(vtkMapMarkerSet)
 class vtkMapMarkerSet::MapMarkerSetInternals
 {
 public:
+  vtkGlyph3DMapper *GlyphMapper;
   bool MarkersChanged;
   std::vector<ClusteringNode*> CurrentNodes;  // in this->PolyData
 
@@ -103,6 +104,7 @@ vtkMapMarkerSet::vtkMapMarkerSet() : vtkPolydataFeature()
               NumberOfClusterLevels, clusterSet);
   this->Internals->NumberOfMarkers = 0;
   this->Internals->NumberOfNodes = 0;
+  this->Internals->GlyphMapper = vtkGlyph3DMapper::New();
 }
 
 //----------------------------------------------------------------------------
@@ -124,6 +126,7 @@ vtkMapMarkerSet::~vtkMapMarkerSet()
     {
     this->PolyData->Delete();
     }
+  this->Internals->GlyphMapper->Delete();
   delete this->Internals;
 }
 
@@ -461,26 +464,22 @@ void vtkMapMarkerSet::Init()
   clusterGlyphSource->SetThetaResolution(20);
   clusterGlyphSource->SetRadius(0.25);
 
-  // Setup glyph
-  vtkNew<vtkGlyph3D> glyph;
-  glyph->SetSourceConnection(0, rotateMarker->GetOutputPort());
-  glyph->SetSourceConnection(1, clusterGlyphSource->GetOutputPort());
-  glyph->SetInputConnection(dFilter->GetOutputPort());
-  glyph->SetIndexModeToVector();
-  glyph->ScalingOn();
-  glyph->SetScaleFactor(1.0);
-  glyph->SetScaleModeToScaleByScalar();
-  glyph->SetColorModeToColorByScalar();
-  // Just gotta know this:
-  glyph->SetInputArrayToProcess(
+  this->Internals->GlyphMapper->SetSourceConnection(0, rotateMarker->GetOutputPort());
+  this->Internals->GlyphMapper->SetSourceConnection(1, clusterGlyphSource->GetOutputPort());
+  this->Internals->GlyphMapper->SetInputConnection(dFilter->GetOutputPort());
+  this->Internals->GlyphMapper->SourceIndexingOn();
+  this->Internals->GlyphMapper->ScalingOn();
+  this->Internals->GlyphMapper->SetScaleFactor(1.0);
+  this->Internals->GlyphMapper->SetScaleModeToScaleByMagnitude();
+  this->Internals->GlyphMapper->SetInputArrayToProcess(
     0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "DistanceToCamera");
-  glyph->SetInputArrayToProcess(
+  this->Internals->GlyphMapper->SetInputArrayToProcess(
     1, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "MarkerType");
-  glyph->GeneratePointIdsOn();
 
-  // Setup mapper and actor
-  this->GetMapper()->SetInputConnection(glyph->GetOutputPort());
-  this->Superclass::Init();
+  // Switch in our mapper, and do NOT call Superclass::Init()
+  this->Internals->GlyphMapper->Update();
+  this->GetActor()->SetMapper(this->Internals->GlyphMapper);
+  this->Layer->GetRenderer()->AddActor(this->Actor);
 
   this->Initialized = true;
 }
