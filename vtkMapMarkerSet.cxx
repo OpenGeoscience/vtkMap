@@ -420,13 +420,6 @@ void vtkMapMarkerSet::Init()
 {
   // Set up rendering pipeline
 
-  // Add "Color" data array to polydata
-  const char *colorName = "Color";
-  vtkNew<vtkUnsignedCharArray> colors;
-  colors->SetName(colorName);
-  colors->SetNumberOfComponents(3);  // for RGB
-  this->PolyData->GetPointData()->AddArray(colors.GetPointer());
-
   // Add "MarkerType" array to polydata - to select glyph
   const char *typeName = "MarkerType";
   vtkNew<vtkUnsignedCharArray> types;
@@ -483,8 +476,6 @@ void vtkMapMarkerSet::Init()
     0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "DistanceToCamera");
   glyph->SetInputArrayToProcess(
     1, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "MarkerType");
-  glyph->SetInputArrayToProcess(
-    3, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "Color");
   glyph->GeneratePointIdsOn();
 
   // Setup mapper and actor
@@ -533,9 +524,6 @@ void vtkMapMarkerSet::Update()
 
   // Get pointers to data arrays
   vtkDataArray *array;
-  array = this->PolyData->GetPointData()->GetArray("Color");
-  vtkUnsignedCharArray *colors = vtkUnsignedCharArray::SafeDownCast(array);
-  colors->Reset();
   array = this->PolyData->GetPointData()->GetArray("MarkerType");
   vtkUnsignedCharArray *types = vtkUnsignedCharArray::SafeDownCast(array);
   types->Reset();
@@ -597,20 +585,11 @@ void vtkMapMarkerSet::Update()
     if (node->NumberOfMarkers == 1)  // point marker
       {
       types->InsertNextValue(MARKER_TYPE);
-      if (this->Internals->MarkerSelected[node->MarkerId])
-        {
-        colors->InsertNextTupleValue(selectedGlyphColor);
-        }
-      else
-        {
-        colors->InsertNextTupleValue(markerGlyphColor);
-        }
       scales->InsertNextValue(1.0);
       }
     else  // cluster marker
       {
       types->InsertNextValue(CLUSTER_TYPE);
-      colors->InsertNextTupleValue(clusterGlyphColor);
       double x = static_cast<double>(node->NumberOfMarkers);
       double scale = k*x*x / (x*x + b);
       scales->InsertNextValue(scale);
