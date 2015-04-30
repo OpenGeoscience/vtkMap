@@ -131,6 +131,7 @@ int main(int argc, char *argv[])
   std::string inputFile;
   int clusteringOff = false;
   bool showHelp = false;
+  bool rubberBandSelection = false;
   bool singleThreaded = false;
   int zoomLevel = -1;
   std::vector<double> centerLatLon;
@@ -146,7 +147,7 @@ int main(int argc, char *argv[])
   arg.AddArgument("--help", vtksys::CommandLineArguments::NO_ARGUMENT,
                   &showHelp, "show help message");
   arg.AddArgument("-a", vtksys::CommandLineArguments::SPACE_ARGUMENT,
-                  &tileServerAttribution, "map-tile file extension");
+                  &tileServerAttribution, "map-tile server attribution");
   arg.AddArgument("-e", vtksys::CommandLineArguments::SPACE_ARGUMENT,
                   &tileExtension, "map-tile file extension (jpg, png, etc.)");
   arg.AddArgument("-c", vtksys::CommandLineArguments::MULTI_ARGUMENT,
@@ -155,6 +156,9 @@ int main(int argc, char *argv[])
                   &tileServer, "map-tile server (tile.openstreetmaps.org)");
   arg.AddArgument("-o", vtksys::CommandLineArguments::NO_ARGUMENT,
                   &clusteringOff, "turn clustering off");
+  arg.AddArgument("-r", vtksys::CommandLineArguments::NO_ARGUMENT,
+                  &rubberBandSelection,
+                  "set interactor to rubberband selection mode");
   arg.AddArgument("-s", vtksys::CommandLineArguments::NO_ARGUMENT,
                   &singleThreaded, "use single-threaded map I/O");
   arg.AddArgument("-z", vtksys::CommandLineArguments::SPACE_ARGUMENT,
@@ -222,7 +226,10 @@ int main(int argc, char *argv[])
   vtkInteractorStyle *style = map->GetInteractorStyle();
   vtkInteractorStyleGeoMap *mapStyle =
     vtkInteractorStyleGeoMap::SafeDownCast(style);
-  //mapStyle->SetRubberBandModeToSelection();
+  if (rubberBandSelection)
+    {
+    mapStyle->SetRubberBandModeToSelection();
+    }
   intr->SetInteractorStyle(style);
 
   intr->Initialize();

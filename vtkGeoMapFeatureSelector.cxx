@@ -35,6 +35,7 @@
 #include <vtkProp.h>
 #include <vtkProp3DCollection.h>
 #include <vtkRenderedAreaPicker.h>
+#include <vtkRenderWindow.h>
 #include <vtkSelection.h>
 #include <vtkSelectionNode.h>
 #include <vtkUnstructuredGrid.h>
@@ -187,6 +188,13 @@ PickArea(vtkRenderer *renderer, int displayCoords[4],
 
     if (markerProps.size() > 0)
       {
+      // Sanity check - Cannot use vtkHardwareSelector with AAFrames
+      if (renderer->GetRenderWindow()->GetAAFrames() > 0)
+        {
+        vtkWarningMacro("Render window has anti-aliasing frames set (AAFrames)"
+                        << ", so selection of markers may not work");
+        }
+
       // For markers use vtkHardwareSelector
       vtkNew<vtkHardwareSelector> hwSelector;
       hwSelector->SetRenderer(renderer);
