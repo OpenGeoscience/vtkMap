@@ -23,6 +23,7 @@
 #include <vtkActor.h>
 #include <vtkCellData.h>
 #include <vtkExtractSelectedFrustum.h>
+#include <vtkHardwareSelector.h>
 #include <vtkIdList.h>
 #include <vtkIdTypeArray.h>
 #include <vtkMatrix4x4.h>
@@ -33,6 +34,8 @@
 #include <vtkProp.h>
 #include <vtkProp3DCollection.h>
 #include <vtkRenderedAreaPicker.h>
+#include <vtkSelection.h>
+#include <vtkSelectionNode.h>
 #include <vtkUnstructuredGrid.h>
 
 #include <map>
@@ -160,18 +163,37 @@ PickArea(vtkRenderer *renderer, int displayCoords[4],
       if (markerFeature)
         {
         // Process markers first, since they are also polydata features
-        this->PickPolyDataCells(
-          prop, areaPicker->GetFrustum(), cellIdList.GetPointer());
-
-        if (cellIdList->GetNumberOfIds() > 0)
+        // Markers use vtkGlyph3DMapper, which can be found with vtkHardwareSelector
+        vtkNew<vtkHardwareSelector> selector;
+        selector->SetFieldAssociation(vtkDataObject::FIELD_ASSOCIATION_POINTS);
+        selector->SetRenderer(renderer);
+        selector->SetArea(
+          displayCoords[0], displayCoords[1],
+          displayCoords[2], displayCoords[3]);
+        vtkSelection *glyphSelection = selector->Select();
+        vtkSelectionNode *glyphIds = glyphSelection->GetNode(0);
+        if (glyphIds)
           {
-          // Get list of marker ids for given cell ids
-          markerFeature->GetMarkerIds(cellIdList.GetPointer(),
-                                      markerIdList.GetPointer(),
-                                      clusterIdList.GetPointer());
+          vtkAbstractArray *abs = glyphIds->GetSelectionList();
+          vtkIdTypeArray *ids = vtkIdTypeArray::SafeDownCast(abs);
+          for (vtkIdType i=0; i<ids->GetNumberOfTuples(); i++)
+            {
+            vtkIdType displayId = ids->GetValue(i);
+            vtkIdType markerId = markerFeature->GetMarkerId(displayId);
+            if (markerId >= 0)
+              {
+              markerIdList->InsertNextId(markerId);
+              }
+            else
+              {
+              vtkIdType clusterId = markerFeature->GetClusterId(displayId);
+              clusterIdList->InsertNextId(clusterId);
+              }
+            }
           selection->AddFeature(feature, markerIdList.GetPointer(),
                                 clusterIdList.GetPointer());
           }
+        glyphSelection->Delete();
         }
       else
         {

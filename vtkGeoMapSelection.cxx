@@ -67,9 +67,18 @@ bool vtkGeoMapSelection::
 GetPolyDataCellIds(vtkFeature *feature, vtkIdList *idList) const
 {
   idList->Reset();
+
   // Only defined for vtkPolydataFeature types that are *not* markers
   vtkPolydataFeature *polyFeature = vtkPolydataFeature::SafeDownCast(feature);
+  if (!polyFeature)
+    {
+    return false;
+    }
   vtkMapMarkerSet *markerFeature = vtkMapMarkerSet::SafeDownCast(feature);
+  if (markerFeature)
+    {
+    return false;
+    }
 
   // Copy the list of cell ids
   std::map<vtkFeature*, vtkIdList *>::iterator iter =

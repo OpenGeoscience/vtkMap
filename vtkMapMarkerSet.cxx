@@ -471,8 +471,7 @@ void vtkMapMarkerSet::Init()
   this->Internals->GlyphMapper->ScalingOn();
   this->Internals->GlyphMapper->SetScaleFactor(1.0);
   this->Internals->GlyphMapper->SetScaleModeToScaleByMagnitude();
-  this->Internals->GlyphMapper->SetInputArrayToProcess(
-    0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "DistanceToCamera");
+  this->Internals->GlyphMapper->SetScaleArray("DistanceToCamera");
   this->Internals->GlyphMapper->SetInputArrayToProcess(
     1, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "MarkerType");
 
@@ -626,60 +625,35 @@ void vtkMapMarkerSet::Cleanup()
 }
 
 //----------------------------------------------------------------------------
-void vtkMapMarkerSet::
-GetMarkerIds(vtkIdList *cellIds, vtkIdList *markerIds, vtkIdList *clusterIds)
+vtkIdType vtkMapMarkerSet::GetClusterId(vtkIdType displayId)
 {
-  // Get the *rendered* polydata (not this->PolyData, which is marker points)
-  vtkObject *object = this->Actor->GetMapper()->GetInput();
-  vtkPolyData *polyData = vtkPolyData::SafeDownCast(object);
-
-  // Get its data array with input point ids
-  vtkDataArray *dataArray =
-    polyData->GetPointData()->GetArray("InputPointIds");
-  vtkIdTypeArray *inputPointIdArray = vtkIdTypeArray::SafeDownCast(dataArray);
-
-  // Get data array with marker type info
-  // Note that this time we *do* use the source polydata
-  vtkDataArray *array = this->PolyData->GetPointData()->GetArray("MarkerType");
-  vtkUnsignedCharArray *markerTypes = vtkUnsignedCharArray::SafeDownCast(array);
-
-  // Use std::set to only add each marker id once
-  std::set<vtkIdType> idSet;
-
-  // Traverse all cells
-  vtkNew<vtkIdList> pointIds;
-  for (int i=0; i<cellIds->GetNumberOfIds(); i++)
+  // Check input validity
+  if (displayId < 0 || displayId > this->Internals->CurrentNodes.size())
     {
-    vtkIdType cellId = cellIds->GetId(i);
+    return -1;
+    }
 
-    // Get points from cell
-    polyData->GetCellPoints(cellId, pointIds.GetPointer());
+  ClusteringNode *node = this->Internals->CurrentNodes[displayId];
+  return node->NodeId;
+}
 
-    // Only need 1 point, since they are all in same marker
-    vtkIdType pointId = pointIds->GetId(0);
+//----------------------------------------------------------------------------
+vtkIdType vtkMapMarkerSet::GetMarkerId(vtkIdType displayId)
+{
+  // Check input validity
+  if (displayId < 0 || displayId > this->Internals->CurrentNodes.size())
+    {
+    return -1;
+    }
 
-    // Look up input point id
-    vtkIdType inputPointId = inputPointIdArray->GetValue(pointId);
-    if (idSet.count(inputPointId) > 0)
-      {
-      // Already have processed this marker
-      continue;
-      }
+  ClusteringNode *node = this->Internals->CurrentNodes[displayId];
+  if (node->NumberOfMarkers == 1)
+    {
+    return node->MarkerId;
+    }
 
-    // Get info from the clustering node
-    ClusteringNode *node = this->Internals->CurrentNodes[inputPointId];
-    if (node->NumberOfMarkers == 1)
-      {
-      markerIds->InsertNextId(node->MarkerId);
-      }
-    else
-      {
-      clusterIds->InsertNextId(node->NodeId);
-      }
-
-    idSet.insert(inputPointId);
-    }  // for (i)
-
+  // else
+  return -1;
 }
 
 //----------------------------------------------------------------------------
