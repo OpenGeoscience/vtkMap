@@ -65,6 +65,7 @@ public:
 
   // Description:
   // Set marker visibility
+  // Note that you MUST REDRAW after changing visibility
   bool SetMarkerVisibility(int markerId, bool visible);
   bool GetMarkerVisibility(int markerId) const;
 

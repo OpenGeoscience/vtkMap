@@ -17,6 +17,7 @@
 #include "vtkTeardropSource.h"
 
 #include <vtkActor.h>
+#include <vtkBitArray.h>
 #include <vtkDataArray.h>
 #include <vtkDistanceToCamera.h>
 #include <vtkDoubleArray.h>
@@ -276,7 +277,7 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
         ClusteringNode *child = *childIter;
         numMarkers += child->NumberOfMarkers;
         numSelectedMarkers += child->NumberOfSelectedMarkers;
-        numVisibleMarkers += child->NumberOfSelectedMarkers;
+        numVisibleMarkers += child->NumberOfVisibleMarkers;
         for (int i=0; i<2; i++)
           {
           numerator[i] += child->NumberOfMarkers * child->gcsCoords[i];
@@ -365,6 +366,9 @@ bool vtkMapMarkerSet::SetMarkerVisibility(int markerId, bool visible)
 
   this->Internals->MarkerVisible[markerId] = visible;
   this->Internals->MarkersChanged = true;
+  // Do we need to set Modified?
+  // Better still - rebuild visibility (mask) array for current display
+  // Better still - incrementally update visibility array
   return true;
 }
 
@@ -473,6 +477,13 @@ void vtkMapMarkerSet::Init()
   // Set up rendering pipeline
 
   // Add "MarkerType" array to polydata - to select glyph
+  const char *maskName = "Visible";
+  vtkNew<vtkBitArray> visibles;
+  visibles->SetName(maskName);
+  visibles->SetNumberOfComponents(1);
+  this->PolyData->GetPointData()->AddArray(visibles.GetPointer());
+
+  // Add "MarkerType" array to polydata - to select glyph
   const char *typeName = "MarkerType";
   vtkNew<vtkUnsignedCharArray> types;
   types->SetName(typeName);
@@ -523,6 +534,8 @@ void vtkMapMarkerSet::Init()
   this->Internals->GlyphMapper->SetScaleArray("DistanceToCamera");
   this->Internals->GlyphMapper->SetInputArrayToProcess(
     1, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "MarkerType");
+  this->Internals->GlyphMapper->MaskingOn();
+  this->Internals->GlyphMapper->SetMaskArray("Visible");
 
   // Switch in our mapper, and do NOT call Superclass::Init()
   this->Internals->GlyphMapper->Update();
@@ -571,6 +584,9 @@ void vtkMapMarkerSet::Update()
 
   // Get pointers to data arrays
   vtkDataArray *array;
+  array = this->PolyData->GetPointData()->GetArray("Visible");
+  vtkBitArray *visibles = vtkBitArray::SafeDownCast(array);
+  visibles->Reset();
   array = this->PolyData->GetPointData()->GetArray("MarkerType");
   vtkUnsignedCharArray *types = vtkUnsignedCharArray::SafeDownCast(array);
   types->Reset();
@@ -617,16 +633,6 @@ void vtkMapMarkerSet::Update()
   for (iter = nodeSet.begin(); iter != nodeSet.end(); iter++)
     {
     ClusteringNode *node = *iter;
-    bool isVisible = true;
-    if (node->MarkerId >= 0)
-      {
-      isVisible = this->Internals->MarkerVisible[node->MarkerId];
-      }
-    if (!isVisible)
-      {
-      continue;
-      }
-
     points->InsertNextPoint(node->gcsCoords);
     this->Internals->CurrentNodes.push_back(node);
     if (node->NumberOfMarkers == 1)  // point marker
@@ -641,6 +647,10 @@ void vtkMapMarkerSet::Update()
       double scale = k*x*x / (x*x + b);
       scales->InsertNextValue(scale);
       }
+
+    // Set visibility
+    bool isVisible = node->NumberOfVisibleMarkers > 0;
+    visibles->InsertNextValue(isVisible);
     }
   this->PolyData->Reset();
   this->PolyData->SetPoints(points.GetPointer());
@@ -677,7 +687,7 @@ void vtkMapMarkerSet::Cleanup()
 vtkIdType vtkMapMarkerSet::GetClusterId(vtkIdType displayId)
 {
   // Check input validity
-  if (displayId < 0 || displayId > this->Internals->CurrentNodes.size())
+  if ((displayId < 0) || (displayId >= this->Internals->CurrentNodes.size()))
     {
     return -1;
     }
@@ -690,7 +700,7 @@ vtkIdType vtkMapMarkerSet::GetClusterId(vtkIdType displayId)
 vtkIdType vtkMapMarkerSet::GetMarkerId(vtkIdType displayId)
 {
   // Check input validity
-  if (displayId < 0 || displayId > this->Internals->CurrentNodes.size())
+  if ((displayId < 0) || (displayId >= this->Internals->CurrentNodes.size()))
     {
     return -1;
     }
