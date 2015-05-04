@@ -61,6 +61,8 @@ public:
   std::set<ClusteringNode*> Children;
   int NumberOfMarkers;  // 1 for single-point nodes, >1 for clusters
   int MarkerId;  // only relevant for single-point markers (not clusters)
+  int NumberOfVisibleMarkers;
+  int NumberOfSelectedMarkers;
 };
 
 //----------------------------------------------------------------------------
@@ -82,6 +84,9 @@ public:
   std::vector<bool> MarkerVisible;  // for single-markers only (not clusters)
   std::vector<bool> MarkerSelected;  // for single-markers only (not clusters)
   std::vector<ClusteringNode*> AllNodes;   // for dev
+
+  // Used to quickly locate non-cluster nodes (ordered by MarkerId)
+  std::vector<ClusteringNode*> MarkerNodes;
 };
 
 //----------------------------------------------------------------------------
@@ -158,11 +163,14 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
   node->NumberOfMarkers = 1;
   node->Parent = 0;
   node->MarkerId = markerId;
+  node->NumberOfVisibleMarkers = 1;
+  node->NumberOfSelectedMarkers = 0;
   vtkDebugMacro("Inserting ClusteringNode " << node->NodeId
                 << " into level " << level);
   this->Internals->NodeTable[level].insert(node);
   this->Internals->MarkerVisible.push_back(true);
   this->Internals->MarkerSelected.push_back(false);
+  this->Internals->MarkerNodes.push_back(node);
 
   // todo refactor into separate method
   // todo calc initial cluster distance here and divide down
@@ -190,6 +198,7 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
           closest->gcsCoords[i] = numerator/denominator;
           }
         closest->NumberOfMarkers++;
+        closest->NumberOfVisibleMarkers++;
         closest->MarkerId = -1;
         closest->Children.insert(node);
         node->Parent = closest;
@@ -208,6 +217,8 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
         newNode->gcsCoords[0] = node->gcsCoords[0];
         newNode->gcsCoords[1] = node->gcsCoords[1];
         newNode->NumberOfMarkers = node->NumberOfMarkers;
+        newNode->NumberOfVisibleMarkers = node->NumberOfVisibleMarkers;
+        newNode->NumberOfSelectedMarkers = node->NumberOfSelectedMarkers;
         newNode->MarkerId = node->MarkerId;
         newNode->Parent = NULL;
         newNode->Children.insert(node);
@@ -255,6 +266,8 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
 
       // Update count
       int numMarkers = 0;
+      int numSelectedMarkers = 0;
+      int numVisibleMarkers = 0;
       double numerator[2];
       numerator[0] = numerator[1] = 0.0;
       std::set<ClusteringNode*>::iterator childIter = node->Children.begin();
@@ -262,12 +275,16 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
         {
         ClusteringNode *child = *childIter;
         numMarkers += child->NumberOfMarkers;
+        numSelectedMarkers += child->NumberOfSelectedMarkers;
+        numVisibleMarkers += child->NumberOfSelectedMarkers;
         for (int i=0; i<2; i++)
           {
           numerator[i] += child->NumberOfMarkers * child->gcsCoords[i];
           }
         }
       node->NumberOfMarkers = numMarkers;
+      node->NumberOfSelectedMarkers = numSelectedMarkers;
+      node->NumberOfVisibleMarkers = numVisibleMarkers;
       if (numMarkers > 1)
         {
         node->MarkerId = -1;
@@ -324,10 +341,26 @@ bool vtkMapMarkerSet::SetMarkerVisibility(int markerId, bool visible)
 {
   // std::cout << "Set marker id " << markerId
   //           << " to visible: " << visible << std::endl;
+  if ((markerId < 0) || (markerId > this->Internals->MarkerNodes.size()))
+    {
+    vtkWarningMacro("Invalid Marker Id: " << markerId);
+    return false;
+    }
+
   bool isModified = visible != this->Internals->MarkerVisible[markerId];
   if (!isModified)
     {
     return false;
+    }
+
+  // Recursively update ancestor ClusteringNode instances
+  int delta = visible ? 1 : -1;
+  ClusteringNode *node = this->Internals->MarkerNodes[markerId];
+  ClusteringNode *parent = node->Parent;
+  while (parent)
+    {
+    parent->NumberOfVisibleMarkers += delta;
+    parent = parent->Parent;
     }
 
   this->Internals->MarkerVisible[markerId] = visible;
@@ -340,10 +373,26 @@ bool vtkMapMarkerSet::SetMarkerSelection(int markerId, bool selected)
 {
   // std::cout << "Set marker id " << markerId
   //           << " to selected: " << selected << std::endl;
+  if ((markerId < 0) || (markerId > this->Internals->MarkerNodes.size()))
+    {
+    vtkWarningMacro("Invalid Marker Id: " << markerId);
+    return false;
+    }
+
   bool isModified = selected != this->Internals->MarkerSelected[markerId];
   if (!isModified)
     {
     return false;
+    }
+
+  // Recursively update ancestor ClusteringNoe instances
+  int delta = selected ? 1 : -1;
+  ClusteringNode *node = this->Internals->MarkerNodes[markerId];
+  ClusteringNode *parent = node->Parent;
+  while (parent)
+    {
+    parent->NumberOfSelectedMarkers += delta;
+    parent = parent->Parent;
     }
 
   this->Internals->MarkerSelected[markerId] = selected;
