@@ -24,6 +24,7 @@
 
 class vtkActor;
 class vtkIdList;
+class vtkLookupTable;
 class vtkMapper;
 class vtkPolyDataMapper;
 class vtkPolyData;
@@ -65,11 +66,13 @@ public:
 
   // Description:
   // Set marker visibility
+  // Note that you MUST REDRAW after changing visibility
   bool SetMarkerVisibility(int markerId, bool visible);
   bool GetMarkerVisibility(int markerId) const;
 
   // Description:
   // Select or unselect marker
+  // Note that you MUST REDRAW after changing selection
   bool SetMarkerSelection(int markerId, bool selected);
 
   // Description:
@@ -96,10 +99,20 @@ public:
   virtual void Cleanup();
 
   // Description:
-  // Return list of marker ids for set of polydata cell ids
-  // This is intended for internal use
-  void GetMarkerIds(vtkIdList *cellIds, vtkIdList *markerIds,
-                    vtkIdList *clusterIds);
+  // Return cluster id for display id at current zoom level.
+  // The cluster id is a unique, persistent id assigned
+  // to each display element, whether it represents a single
+  // marker or a cluster. As such, cluster ids are different
+  // for each zoom level.
+  // Returns -1 for invalid display id
+  vtkIdType GetClusterId(vtkIdType displayId);
+
+  // Description:
+  // Return marker id for display id at current zoom level.
+  // Marker ids are independent of zoom level.
+  // If the display id represents a cluster, returns -1.
+  // Also returns -1 for invalid display id.
+  vtkIdType GetMarkerId(vtkIdType displayId);
 
  protected:
   vtkMapMarkerSet();
@@ -124,6 +137,10 @@ public:
   // Description:
   // Threshold distance when combining markers/clusters
   double ClusterDistance;
+
+  // Description:
+  // Stores colors for standard display and selection
+  vtkLookupTable *ColorTable;
 
   class ClusteringNode;
 

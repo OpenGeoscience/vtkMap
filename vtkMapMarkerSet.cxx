@@ -17,12 +17,14 @@
 #include "vtkTeardropSource.h"
 
 #include <vtkActor.h>
+#include <vtkBitArray.h>
 #include <vtkDataArray.h>
 #include <vtkDistanceToCamera.h>
 #include <vtkDoubleArray.h>
 #include <vtkIdList.h>
 #include <vtkIdTypeArray.h>
-#include <vtkGlyph3D.h>
+#include <vtkGlyph3DMapper.h>
+#include <vtkLookupTable.h>
 #include <vtkMath.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
@@ -61,6 +63,8 @@ public:
   std::set<ClusteringNode*> Children;
   int NumberOfMarkers;  // 1 for single-point nodes, >1 for clusters
   int MarkerId;  // only relevant for single-point markers (not clusters)
+  int NumberOfVisibleMarkers;
+  int NumberOfSelectedMarkers;
 };
 
 //----------------------------------------------------------------------------
@@ -70,6 +74,7 @@ vtkStandardNewMacro(vtkMapMarkerSet)
 class vtkMapMarkerSet::MapMarkerSetInternals
 {
 public:
+  vtkGlyph3DMapper *GlyphMapper;
   bool MarkersChanged;
   std::vector<ClusteringNode*> CurrentNodes;  // in this->PolyData
 
@@ -81,6 +86,9 @@ public:
   std::vector<bool> MarkerVisible;  // for single-markers only (not clusters)
   std::vector<bool> MarkerSelected;  // for single-markers only (not clusters)
   std::vector<ClusteringNode*> AllNodes;   // for dev
+
+  // Used to quickly locate non-cluster nodes (ordered by MarkerId)
+  std::vector<ClusteringNode*> MarkerNodes;
 };
 
 //----------------------------------------------------------------------------
@@ -91,9 +99,24 @@ vtkMapMarkerSet::vtkMapMarkerSet() : vtkPolydataFeature()
   this->Clustering = false;
   this->ClusterDistance = 80.0;
   this->MaxClusterScaleFactor = 2.0;
-  double color[3] = {0.0, 0.0, 0.0};
+
+  // Initialize color table
+  this->ColorTable = vtkLookupTable::New();
+  this->ColorTable->SetNumberOfTableValues(2);
+  this->ColorTable->Build();
+
+  // Default color
+  double color[4] = {0.0, 0.0, 0.0, 1.0};
   this->ComputeNextColor(color);
-  this->GetActor()->GetProperty()->SetColor(color);
+  this->ColorTable->SetTableValue(0, color);
+
+  // Selected color
+  double  violet[4] = {1.0, 0.0, 1.0, 1.0};
+  this->ColorTable->SetTableValue(1, violet);
+
+  // Set Nan color for development & test
+  double red[] = {1.0, 0.0, 0.0, 1.0};
+  this->ColorTable->SetNanColor(red);
 
   this->Internals = new MapMarkerSetInternals;
   this->Internals->MarkersChanged = false;
@@ -103,6 +126,8 @@ vtkMapMarkerSet::vtkMapMarkerSet() : vtkPolydataFeature()
               NumberOfClusterLevels, clusterSet);
   this->Internals->NumberOfMarkers = 0;
   this->Internals->NumberOfNodes = 0;
+  this->Internals->GlyphMapper = vtkGlyph3DMapper::New();
+  this->Internals->GlyphMapper->SetLookupTable(this->ColorTable);
 }
 
 //----------------------------------------------------------------------------
@@ -124,6 +149,11 @@ vtkMapMarkerSet::~vtkMapMarkerSet()
     {
     this->PolyData->Delete();
     }
+  if (this->ColorTable)
+    {
+    this->ColorTable->Delete();
+    }
+  this->Internals->GlyphMapper->Delete();
   delete this->Internals;
 }
 
@@ -155,11 +185,14 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
   node->NumberOfMarkers = 1;
   node->Parent = 0;
   node->MarkerId = markerId;
+  node->NumberOfVisibleMarkers = 1;
+  node->NumberOfSelectedMarkers = 0;
   vtkDebugMacro("Inserting ClusteringNode " << node->NodeId
                 << " into level " << level);
   this->Internals->NodeTable[level].insert(node);
   this->Internals->MarkerVisible.push_back(true);
   this->Internals->MarkerSelected.push_back(false);
+  this->Internals->MarkerNodes.push_back(node);
 
   // todo refactor into separate method
   // todo calc initial cluster distance here and divide down
@@ -187,6 +220,7 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
           closest->gcsCoords[i] = numerator/denominator;
           }
         closest->NumberOfMarkers++;
+        closest->NumberOfVisibleMarkers++;
         closest->MarkerId = -1;
         closest->Children.insert(node);
         node->Parent = closest;
@@ -205,6 +239,8 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
         newNode->gcsCoords[0] = node->gcsCoords[0];
         newNode->gcsCoords[1] = node->gcsCoords[1];
         newNode->NumberOfMarkers = node->NumberOfMarkers;
+        newNode->NumberOfVisibleMarkers = node->NumberOfVisibleMarkers;
+        newNode->NumberOfSelectedMarkers = node->NumberOfSelectedMarkers;
         newNode->MarkerId = node->MarkerId;
         newNode->Parent = NULL;
         newNode->Children.insert(node);
@@ -252,6 +288,8 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
 
       // Update count
       int numMarkers = 0;
+      int numSelectedMarkers = 0;
+      int numVisibleMarkers = 0;
       double numerator[2];
       numerator[0] = numerator[1] = 0.0;
       std::set<ClusteringNode*>::iterator childIter = node->Children.begin();
@@ -259,12 +297,16 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
         {
         ClusteringNode *child = *childIter;
         numMarkers += child->NumberOfMarkers;
+        numSelectedMarkers += child->NumberOfSelectedMarkers;
+        numVisibleMarkers += child->NumberOfVisibleMarkers;
         for (int i=0; i<2; i++)
           {
           numerator[i] += child->NumberOfMarkers * child->gcsCoords[i];
           }
         }
       node->NumberOfMarkers = numMarkers;
+      node->NumberOfSelectedMarkers = numSelectedMarkers;
+      node->NumberOfVisibleMarkers = numVisibleMarkers;
       if (numMarkers > 1)
         {
         node->MarkerId = -1;
@@ -321,14 +363,33 @@ bool vtkMapMarkerSet::SetMarkerVisibility(int markerId, bool visible)
 {
   // std::cout << "Set marker id " << markerId
   //           << " to visible: " << visible << std::endl;
+  if ((markerId < 0) || (markerId > this->Internals->MarkerNodes.size()))
+    {
+    vtkWarningMacro("Invalid Marker Id: " << markerId);
+    return false;
+    }
+
   bool isModified = visible != this->Internals->MarkerVisible[markerId];
   if (!isModified)
     {
     return false;
     }
 
+  // Recursively update ancestor ClusteringNode instances
+  int delta = visible ? 1 : -1;
+  ClusteringNode *node = this->Internals->MarkerNodes[markerId];
+  ClusteringNode *parent = node->Parent;
+  while (parent)
+    {
+    parent->NumberOfVisibleMarkers += delta;
+    parent = parent->Parent;
+    }
+
   this->Internals->MarkerVisible[markerId] = visible;
   this->Internals->MarkersChanged = true;
+  // Do we need to set Modified?
+  // Better still - rebuild visibility (mask) array for current display
+  // Better still - incrementally update visibility array
   return true;
 }
 
@@ -337,10 +398,26 @@ bool vtkMapMarkerSet::SetMarkerSelection(int markerId, bool selected)
 {
   // std::cout << "Set marker id " << markerId
   //           << " to selected: " << selected << std::endl;
+  if ((markerId < 0) || (markerId > this->Internals->MarkerNodes.size()))
+    {
+    vtkWarningMacro("Invalid Marker Id: " << markerId);
+    return false;
+    }
+
   bool isModified = selected != this->Internals->MarkerSelected[markerId];
   if (!isModified)
     {
     return false;
+    }
+
+  // Recursively update ancestor ClusteringNoe instances
+  int delta = selected ? 1 : -1;
+  ClusteringNode *node = this->Internals->MarkerNodes[markerId];
+  ClusteringNode *parent = node->Parent;
+  while (parent)
+    {
+    parent->NumberOfSelectedMarkers += delta;
+    parent = parent->Parent;
     }
 
   this->Internals->MarkerSelected[markerId] = selected;
@@ -420,12 +497,19 @@ void vtkMapMarkerSet::Init()
 {
   // Set up rendering pipeline
 
-  // Add "Color" data array to polydata
-  const char *colorName = "Color";
-  vtkNew<vtkUnsignedCharArray> colors;
-  colors->SetName(colorName);
-  colors->SetNumberOfComponents(3);  // for RGB
-  this->PolyData->GetPointData()->AddArray(colors.GetPointer());
+  // Add "Visible" array to polydata - to mask display
+  const char *maskName = "Visible";
+  vtkNew<vtkBitArray> visibles;
+  visibles->SetName(maskName);
+  visibles->SetNumberOfComponents(1);
+  this->PolyData->GetPointData()->AddArray(visibles.GetPointer());
+
+  // Add "Selected" array to polydata - for seleted state
+  const char *selectName = "Selected";
+  vtkNew<vtkBitArray> selects;
+  selects->SetName(selectName);
+  selects->SetNumberOfComponents(1);
+  this->PolyData->GetPointData()->AddArray(selects.GetPointer());
 
   // Add "MarkerType" array to polydata - to select glyph
   const char *typeName = "MarkerType";
@@ -468,29 +552,34 @@ void vtkMapMarkerSet::Init()
   clusterGlyphSource->SetThetaResolution(20);
   clusterGlyphSource->SetRadius(0.25);
 
-  // Setup glyph
-  vtkNew<vtkGlyph3D> glyph;
-  glyph->SetSourceConnection(0, rotateMarker->GetOutputPort());
-  glyph->SetSourceConnection(1, clusterGlyphSource->GetOutputPort());
-  glyph->SetInputConnection(dFilter->GetOutputPort());
-  glyph->SetIndexModeToVector();
-  glyph->ScalingOn();
-  glyph->SetScaleFactor(1.0);
-  glyph->SetScaleModeToScaleByScalar();
-  glyph->SetColorModeToColorByScalar();
-  // Just gotta know this:
-  glyph->SetInputArrayToProcess(
-    0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "DistanceToCamera");
-  glyph->SetInputArrayToProcess(
-    1, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "MarkerType");
-  glyph->SetInputArrayToProcess(
-    3, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "Color");
-  glyph->GeneratePointIdsOn();
+  // Switch in our mapper, and do NOT call Superclass::Init()
+  this->GetActor()->SetMapper(this->Internals->GlyphMapper);
+  this->Layer->GetRenderer()->AddActor(this->Actor);
 
-  // Setup mapper and actor
-  this->GetMapper()->SetInputConnection(glyph->GetOutputPort());
-  this->Superclass::Init();
+  // Set up glyph mapper inputs
+  this->Internals->GlyphMapper->SetSourceConnection(0, rotateMarker->GetOutputPort());
+  this->Internals->GlyphMapper->SetSourceConnection(1, clusterGlyphSource->GetOutputPort());
+  this->Internals->GlyphMapper->SetInputConnection(dFilter->GetOutputPort());
 
+  // Select glyph type by "MarkerType" array
+  this->Internals->GlyphMapper->SourceIndexingOn();
+  this->Internals->GlyphMapper->SetSourceIndexArray(typeName);
+
+  // Set scale by "DistanceToCamera" array
+  this->Internals->GlyphMapper->ScalingOn();
+  this->Internals->GlyphMapper->SetScaleFactor(1.0);
+  this->Internals->GlyphMapper->SetScaleModeToScaleByMagnitude();
+  this->Internals->GlyphMapper->SetScaleArray("DistanceToCamera");
+
+  // Set visibility by "Visible" array
+  this->Internals->GlyphMapper->MaskingOn();
+  this->Internals->GlyphMapper->SetMaskArray(maskName);
+
+  // Set color by "Selected" array
+  this->Internals->GlyphMapper->SetColorModeToMapScalars();
+  this->PolyData->GetPointData()->SetActiveScalars(selectName);
+
+  this->Internals->GlyphMapper->Update();
   this->Initialized = true;
 }
 
@@ -533,41 +622,18 @@ void vtkMapMarkerSet::Update()
 
   // Get pointers to data arrays
   vtkDataArray *array;
-  array = this->PolyData->GetPointData()->GetArray("Color");
-  vtkUnsignedCharArray *colors = vtkUnsignedCharArray::SafeDownCast(array);
-  colors->Reset();
+  array = this->PolyData->GetPointData()->GetArray("Visible");
+  vtkBitArray *visibles = vtkBitArray::SafeDownCast(array);
+  visibles->Reset();
+  array = this->PolyData->GetPointData()->GetArray("Selected");
+  vtkBitArray *selects = vtkBitArray::SafeDownCast(array);
+  selects->Reset();
   array = this->PolyData->GetPointData()->GetArray("MarkerType");
   vtkUnsignedCharArray *types = vtkUnsignedCharArray::SafeDownCast(array);
   types->Reset();
   array = this->PolyData->GetPointData()->GetArray("MarkerScale");
   vtkDoubleArray *scales = vtkDoubleArray::SafeDownCast(array);
   scales->Reset();
-
-  // Copy actor's assigned color to marker & cluster colors
-  double actorRGB[3];
-  this->GetActor()->GetProperty()->GetColor(actorRGB);
-
-  // Convert to HSV and make clusters a bit darkers, markers a bit lighter
-  double actorHSV[3];
-  vtkMath::RGBToHSV(actorRGB, actorHSV);
-
-  double clusterHSV[3];
-  double clusterRGB[3];
-  clusterHSV[0] = actorHSV[0];
-  clusterHSV[1] = actorHSV[1];
-  clusterHSV[2] = 0.5 * actorHSV[2];
-  vtkMath::HSVToRGB(clusterHSV, clusterRGB);
-
-  // Convert RGB colors to unsigned char
-  unsigned char markerGlyphColor[3];
-  unsigned char clusterGlyphColor[3];
-  for (int i=0; i<3; i++)
-    {
-    markerGlyphColor[i] = static_cast<unsigned char>(actorRGB[i] * 255.0);
-    clusterGlyphColor[i] = static_cast<unsigned char>(clusterRGB[i] * 255.0);
-    }
-  // Hard-code selection color for now
-  unsigned char selectedGlyphColor[] = {255, 0, 255};
 
   // Coefficients for scaling cluster size, using simple 2nd order model
   // The equation is y = k*x^2 / (x^2 + b), where k,b are coefficients
@@ -582,39 +648,28 @@ void vtkMapMarkerSet::Update()
   for (iter = nodeSet.begin(); iter != nodeSet.end(); iter++)
     {
     ClusteringNode *node = *iter;
-    bool isVisible = true;
-    if (node->MarkerId >= 0)
-      {
-      isVisible = this->Internals->MarkerVisible[node->MarkerId];
-      }
-    if (!isVisible)
-      {
-      continue;
-      }
-
     points->InsertNextPoint(node->gcsCoords);
     this->Internals->CurrentNodes.push_back(node);
     if (node->NumberOfMarkers == 1)  // point marker
       {
       types->InsertNextValue(MARKER_TYPE);
-      if (this->Internals->MarkerSelected[node->MarkerId])
-        {
-        colors->InsertNextTupleValue(selectedGlyphColor);
-        }
-      else
-        {
-        colors->InsertNextTupleValue(markerGlyphColor);
-        }
       scales->InsertNextValue(1.0);
       }
     else  // cluster marker
       {
       types->InsertNextValue(CLUSTER_TYPE);
-      colors->InsertNextTupleValue(clusterGlyphColor);
       double x = static_cast<double>(node->NumberOfMarkers);
       double scale = k*x*x / (x*x + b);
       scales->InsertNextValue(scale);
       }
+
+    // Set visibility
+    bool isVisible = node->NumberOfVisibleMarkers > 0;
+    visibles->InsertNextValue(isVisible);
+
+    // Set color
+    bool isSelected = node->NumberOfSelectedMarkers > 0;
+    selects->InsertNextValue(isSelected);
     }
   this->PolyData->Reset();
   this->PolyData->SetPoints(points.GetPointer());
@@ -648,60 +703,35 @@ void vtkMapMarkerSet::Cleanup()
 }
 
 //----------------------------------------------------------------------------
-void vtkMapMarkerSet::
-GetMarkerIds(vtkIdList *cellIds, vtkIdList *markerIds, vtkIdList *clusterIds)
+vtkIdType vtkMapMarkerSet::GetClusterId(vtkIdType displayId)
 {
-  // Get the *rendered* polydata (not this->PolyData, which is marker points)
-  vtkObject *object = this->Actor->GetMapper()->GetInput();
-  vtkPolyData *polyData = vtkPolyData::SafeDownCast(object);
-
-  // Get its data array with input point ids
-  vtkDataArray *dataArray =
-    polyData->GetPointData()->GetArray("InputPointIds");
-  vtkIdTypeArray *inputPointIdArray = vtkIdTypeArray::SafeDownCast(dataArray);
-
-  // Get data array with marker type info
-  // Note that this time we *do* use the source polydata
-  vtkDataArray *array = this->PolyData->GetPointData()->GetArray("MarkerType");
-  vtkUnsignedCharArray *markerTypes = vtkUnsignedCharArray::SafeDownCast(array);
-
-  // Use std::set to only add each marker id once
-  std::set<vtkIdType> idSet;
-
-  // Traverse all cells
-  vtkNew<vtkIdList> pointIds;
-  for (int i=0; i<cellIds->GetNumberOfIds(); i++)
+  // Check input validity
+  if ((displayId < 0) || (displayId >= this->Internals->CurrentNodes.size()))
     {
-    vtkIdType cellId = cellIds->GetId(i);
+    return -1;
+    }
 
-    // Get points from cell
-    polyData->GetCellPoints(cellId, pointIds.GetPointer());
+  ClusteringNode *node = this->Internals->CurrentNodes[displayId];
+  return node->NodeId;
+}
 
-    // Only need 1 point, since they are all in same marker
-    vtkIdType pointId = pointIds->GetId(0);
+//----------------------------------------------------------------------------
+vtkIdType vtkMapMarkerSet::GetMarkerId(vtkIdType displayId)
+{
+  // Check input validity
+  if ((displayId < 0) || (displayId >= this->Internals->CurrentNodes.size()))
+    {
+    return -1;
+    }
 
-    // Look up input point id
-    vtkIdType inputPointId = inputPointIdArray->GetValue(pointId);
-    if (idSet.count(inputPointId) > 0)
-      {
-      // Already have processed this marker
-      continue;
-      }
+  ClusteringNode *node = this->Internals->CurrentNodes[displayId];
+  if (node->NumberOfMarkers == 1)
+    {
+    return node->MarkerId;
+    }
 
-    // Get info from the clustering node
-    ClusteringNode *node = this->Internals->CurrentNodes[inputPointId];
-    if (node->NumberOfMarkers == 1)
-      {
-      markerIds->InsertNextId(node->MarkerId);
-      }
-    else
-      {
-      clusterIds->InsertNextId(node->NodeId);
-      }
-
-    idSet.insert(inputPointId);
-    }  // for (i)
-
+  // else
+  return -1;
 }
 
 //----------------------------------------------------------------------------

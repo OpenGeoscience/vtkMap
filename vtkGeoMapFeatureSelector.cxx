@@ -23,8 +23,10 @@
 #include <vtkActor.h>
 #include <vtkCellData.h>
 #include <vtkExtractSelectedFrustum.h>
+#include <vtkHardwareSelector.h>
 #include <vtkIdList.h>
 #include <vtkIdTypeArray.h>
+#include <vtkInformation.h>
 #include <vtkMatrix4x4.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
@@ -33,9 +35,13 @@
 #include <vtkProp.h>
 #include <vtkProp3DCollection.h>
 #include <vtkRenderedAreaPicker.h>
+#include <vtkRenderWindow.h>
+#include <vtkSelection.h>
+#include <vtkSelectionNode.h>
 #include <vtkUnstructuredGrid.h>
 
 #include <map>
+#include <set>
 #include <string>
 
 vtkStandardNewMacro(vtkGeoMapFeatureSelector);
@@ -122,6 +128,7 @@ PickArea(vtkRenderer *renderer, int displayCoords[4],
 
   if (result)
     {
+    std::set<vtkProp*> markerProps;  // markers processed separately
     vtkNew<vtkIdList> cellIdList;
     vtkNew<vtkIdList> markerIdList;
     vtkNew<vtkIdList> clusterIdList;
@@ -159,19 +166,7 @@ PickArea(vtkRenderer *renderer, int displayCoords[4],
       vtkMapMarkerSet *markerFeature = vtkMapMarkerSet::SafeDownCast(feature);
       if (markerFeature)
         {
-        // Process markers first, since they are also polydata features
-        this->PickPolyDataCells(
-          prop, areaPicker->GetFrustum(), cellIdList.GetPointer());
-
-        if (cellIdList->GetNumberOfIds() > 0)
-          {
-          // Get list of marker ids for given cell ids
-          markerFeature->GetMarkerIds(cellIdList.GetPointer(),
-                                      markerIdList.GetPointer(),
-                                      clusterIdList.GetPointer());
-          selection->AddFeature(feature, markerIdList.GetPointer(),
-                                clusterIdList.GetPointer());
-          }
+        markerProps.insert(prop);
         }
       else
         {
@@ -190,6 +185,62 @@ PickArea(vtkRenderer *renderer, int displayCoords[4],
         }
 
       }  // while (props)
+
+    if (markerProps.size() > 0)
+      {
+      // Sanity check - Cannot use vtkHardwareSelector with AAFrames
+      if (renderer->GetRenderWindow()->GetAAFrames() > 0)
+        {
+        vtkWarningMacro("Render window has anti-aliasing frames set (AAFrames)"
+                        << ", so selection of markers may not work");
+        }
+
+      // For markers use vtkHardwareSelector
+      vtkNew<vtkHardwareSelector> hwSelector;
+      hwSelector->SetRenderer(renderer);
+      hwSelector->SetArea(
+        displayCoords[0], displayCoords[1],
+        displayCoords[2], displayCoords[3]);
+
+      hwSelector->SetFieldAssociation(vtkDataObject::FIELD_ASSOCIATION_POINTS);
+      vtkSelection *hwSelection = hwSelector->Select();
+      for (int i=0; i<hwSelection->GetNumberOfNodes(); i++)
+        {
+        vtkSelectionNode *node = hwSelection->GetNode(i);
+        vtkObjectBase *base = node->GetProperties()->Get(vtkSelectionNode::PROP());
+        vtkProp *prop = vtkProp::SafeDownCast(base);
+        if (markerProps.count(prop) == 0)
+          {
+          continue;
+          }
+
+        std::map<vtkProp*, vtkFeature*>::iterator findIter =
+          this->Internal->FeaturePickMap.find(prop);
+        vtkFeature *feature = findIter->second;
+        vtkMapMarkerSet *markerFeature = vtkMapMarkerSet::SafeDownCast(feature);
+
+        vtkAbstractArray *abs = node->GetSelectionList();
+        vtkIdTypeArray *ids = vtkIdTypeArray::SafeDownCast(abs);
+        for (vtkIdType i=0; i<ids->GetNumberOfTuples(); i++)
+          {
+          vtkIdType displayId = ids->GetValue(i);
+          vtkIdType markerId = markerFeature->GetMarkerId(displayId);
+          if (markerId >= 0)
+            {
+            markerIdList->InsertNextId(markerId);
+            }
+          else
+            {
+            vtkIdType clusterId = markerFeature->GetClusterId(displayId);
+            clusterIdList->InsertNextId(clusterId);
+            }
+          }
+
+        selection->AddFeature(feature, markerIdList.GetPointer(),
+                              clusterIdList.GetPointer());
+        }
+      hwSelection->Delete();
+      }
     }  // if (result)
 }
 

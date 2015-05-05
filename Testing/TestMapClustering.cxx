@@ -117,7 +117,8 @@ int main(int argc, char* argv[])
       42.915081,  -73.805122,  // Country Knolls
       42.902851,  -73.687340,  // Mechanicville
       42.792580,  -73.681229,  // Waterford
-      42.774239,  -73.700119   // Cohoes
+      42.774239,  -73.700119,  // Cohoes
+      42.779800,  -73.845680   // Niskayuna
     };
     unsigned numMarkers = sizeof(latLonCoords) / sizeof(double) / 2;
     for (unsigned i=0; i<numMarkers; ++i)
@@ -153,6 +154,13 @@ int main(int argc, char* argv[])
     markerSet->AddMarker(lat, lon);
     }
 
+  map->Draw();
+
+  // Hide the first marker
+  markerSet->SetMarkerVisibility(0, false);
+
+  // Select the next marker
+  markerSet->SetMarkerSelection(1, true);
   map->Draw();
 
   interactor->Start();
