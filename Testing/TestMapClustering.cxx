@@ -158,6 +158,9 @@ int main(int argc, char* argv[])
 
   // Hide the first marker
   markerSet->SetMarkerVisibility(0, false);
+
+  // Select the next marker
+  markerSet->SetMarkerSelection(1, true);
   map->Draw();
 
   interactor->Start();

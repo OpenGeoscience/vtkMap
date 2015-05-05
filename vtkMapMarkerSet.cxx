@@ -24,6 +24,7 @@
 #include <vtkIdList.h>
 #include <vtkIdTypeArray.h>
 #include <vtkGlyph3DMapper.h>
+#include <vtkLookupTable.h>
 #include <vtkMath.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
@@ -98,9 +99,24 @@ vtkMapMarkerSet::vtkMapMarkerSet() : vtkPolydataFeature()
   this->Clustering = false;
   this->ClusterDistance = 80.0;
   this->MaxClusterScaleFactor = 2.0;
-  double color[3] = {0.0, 0.0, 0.0};
+
+  // Initialize color table
+  this->ColorTable = vtkLookupTable::New();
+  this->ColorTable->SetNumberOfTableValues(2);
+  this->ColorTable->Build();
+
+  // Default color
+  double color[4] = {0.0, 0.0, 0.0, 1.0};
   this->ComputeNextColor(color);
-  this->GetActor()->GetProperty()->SetColor(color);
+  this->ColorTable->SetTableValue(0, color);
+
+  // Selected color
+  double  violet[4] = {1.0, 0.0, 1.0, 1.0};
+  this->ColorTable->SetTableValue(1, violet);
+
+  // Set Nan color for development & test
+  double red[] = {1.0, 0.0, 0.0, 1.0};
+  this->ColorTable->SetNanColor(red);
 
   this->Internals = new MapMarkerSetInternals;
   this->Internals->MarkersChanged = false;
@@ -111,6 +127,7 @@ vtkMapMarkerSet::vtkMapMarkerSet() : vtkPolydataFeature()
   this->Internals->NumberOfMarkers = 0;
   this->Internals->NumberOfNodes = 0;
   this->Internals->GlyphMapper = vtkGlyph3DMapper::New();
+  this->Internals->GlyphMapper->SetLookupTable(this->ColorTable);
 }
 
 //----------------------------------------------------------------------------
@@ -131,6 +148,10 @@ vtkMapMarkerSet::~vtkMapMarkerSet()
   if (this->PolyData)
     {
     this->PolyData->Delete();
+    }
+  if (this->ColorTable)
+    {
+    this->ColorTable->Delete();
     }
   this->Internals->GlyphMapper->Delete();
   delete this->Internals;
@@ -476,12 +497,19 @@ void vtkMapMarkerSet::Init()
 {
   // Set up rendering pipeline
 
-  // Add "MarkerType" array to polydata - to select glyph
+  // Add "Visible" array to polydata - to mask display
   const char *maskName = "Visible";
   vtkNew<vtkBitArray> visibles;
   visibles->SetName(maskName);
   visibles->SetNumberOfComponents(1);
   this->PolyData->GetPointData()->AddArray(visibles.GetPointer());
+
+  // Add "Selected" array to polydata - for seleted state
+  const char *selectName = "Selected";
+  vtkNew<vtkBitArray> selects;
+  selects->SetName(selectName);
+  selects->SetNumberOfComponents(1);
+  this->PolyData->GetPointData()->AddArray(selects.GetPointer());
 
   // Add "MarkerType" array to polydata - to select glyph
   const char *typeName = "MarkerType";
@@ -524,24 +552,34 @@ void vtkMapMarkerSet::Init()
   clusterGlyphSource->SetThetaResolution(20);
   clusterGlyphSource->SetRadius(0.25);
 
+  // Switch in our mapper, and do NOT call Superclass::Init()
+  this->GetActor()->SetMapper(this->Internals->GlyphMapper);
+  this->Layer->GetRenderer()->AddActor(this->Actor);
+
+  // Set up glyph mapper inputs
   this->Internals->GlyphMapper->SetSourceConnection(0, rotateMarker->GetOutputPort());
   this->Internals->GlyphMapper->SetSourceConnection(1, clusterGlyphSource->GetOutputPort());
   this->Internals->GlyphMapper->SetInputConnection(dFilter->GetOutputPort());
+
+  // Select glyph type by "MarkerType" array
   this->Internals->GlyphMapper->SourceIndexingOn();
+  this->Internals->GlyphMapper->SetSourceIndexArray(typeName);
+
+  // Set scale by "DistanceToCamera" array
   this->Internals->GlyphMapper->ScalingOn();
   this->Internals->GlyphMapper->SetScaleFactor(1.0);
   this->Internals->GlyphMapper->SetScaleModeToScaleByMagnitude();
   this->Internals->GlyphMapper->SetScaleArray("DistanceToCamera");
-  this->Internals->GlyphMapper->SetInputArrayToProcess(
-    1, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "MarkerType");
+
+  // Set visibility by "Visible" array
   this->Internals->GlyphMapper->MaskingOn();
-  this->Internals->GlyphMapper->SetMaskArray("Visible");
+  this->Internals->GlyphMapper->SetMaskArray(maskName);
 
-  // Switch in our mapper, and do NOT call Superclass::Init()
+  // Set color by "Selected" array
+  this->Internals->GlyphMapper->SetColorModeToMapScalars();
+  this->PolyData->GetPointData()->SetActiveScalars(selectName);
+
   this->Internals->GlyphMapper->Update();
-  this->GetActor()->SetMapper(this->Internals->GlyphMapper);
-  this->Layer->GetRenderer()->AddActor(this->Actor);
-
   this->Initialized = true;
 }
 
@@ -587,38 +625,15 @@ void vtkMapMarkerSet::Update()
   array = this->PolyData->GetPointData()->GetArray("Visible");
   vtkBitArray *visibles = vtkBitArray::SafeDownCast(array);
   visibles->Reset();
+  array = this->PolyData->GetPointData()->GetArray("Selected");
+  vtkBitArray *selects = vtkBitArray::SafeDownCast(array);
+  selects->Reset();
   array = this->PolyData->GetPointData()->GetArray("MarkerType");
   vtkUnsignedCharArray *types = vtkUnsignedCharArray::SafeDownCast(array);
   types->Reset();
   array = this->PolyData->GetPointData()->GetArray("MarkerScale");
   vtkDoubleArray *scales = vtkDoubleArray::SafeDownCast(array);
   scales->Reset();
-
-  // Copy actor's assigned color to marker & cluster colors
-  double actorRGB[3];
-  this->GetActor()->GetProperty()->GetColor(actorRGB);
-
-  // Convert to HSV and make clusters a bit darkers, markers a bit lighter
-  double actorHSV[3];
-  vtkMath::RGBToHSV(actorRGB, actorHSV);
-
-  double clusterHSV[3];
-  double clusterRGB[3];
-  clusterHSV[0] = actorHSV[0];
-  clusterHSV[1] = actorHSV[1];
-  clusterHSV[2] = 0.5 * actorHSV[2];
-  vtkMath::HSVToRGB(clusterHSV, clusterRGB);
-
-  // Convert RGB colors to unsigned char
-  unsigned char markerGlyphColor[3];
-  unsigned char clusterGlyphColor[3];
-  for (int i=0; i<3; i++)
-    {
-    markerGlyphColor[i] = static_cast<unsigned char>(actorRGB[i] * 255.0);
-    clusterGlyphColor[i] = static_cast<unsigned char>(clusterRGB[i] * 255.0);
-    }
-  // Hard-code selection color for now
-  unsigned char selectedGlyphColor[] = {255, 0, 255};
 
   // Coefficients for scaling cluster size, using simple 2nd order model
   // The equation is y = k*x^2 / (x^2 + b), where k,b are coefficients
@@ -651,6 +666,10 @@ void vtkMapMarkerSet::Update()
     // Set visibility
     bool isVisible = node->NumberOfVisibleMarkers > 0;
     visibles->InsertNextValue(isVisible);
+
+    // Set color
+    bool isSelected = node->NumberOfSelectedMarkers > 0;
+    selects->InsertNextValue(isSelected);
     }
   this->PolyData->Reset();
   this->PolyData->SetPoints(points.GetPointer());

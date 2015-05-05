@@ -24,6 +24,7 @@
 
 class vtkActor;
 class vtkIdList;
+class vtkLookupTable;
 class vtkMapper;
 class vtkPolyDataMapper;
 class vtkPolyData;
@@ -71,6 +72,7 @@ public:
 
   // Description:
   // Select or unselect marker
+  // Note that you MUST REDRAW after changing selection
   bool SetMarkerSelection(int markerId, bool selected);
 
   // Description:
@@ -135,6 +137,10 @@ public:
   // Description:
   // Threshold distance when combining markers/clusters
   double ClusterDistance;
+
+  // Description:
+  // Stores colors for standard display and selection
+  vtkLookupTable *ColorTable;
 
   class ClusteringNode;
 
