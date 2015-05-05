@@ -160,12 +160,19 @@ vtkInteractorStyle *vtkMap::GetInteractorStyle()
 //----------------------------------------------------------------------------
 void vtkMap::SetVisibleBounds(double latLngCoords[4])
 {
+  // Clip input coords to max lat/lon supported by web mercator (for now)
+  double validCoords[4];
+  validCoords[0] = vtkMercator::validLatitude(latLngCoords[0]);
+  validCoords[1] = vtkMercator::validLongitude(latLngCoords[1]);
+  validCoords[2] = vtkMercator::validLatitude(latLngCoords[2]);
+  validCoords[3] = vtkMercator::validLongitude(latLngCoords[3]);
+
   // Convert to gcs coordinates
   double worldCoords[4];
-  worldCoords[0] = latLngCoords[1];
-  worldCoords[1] = vtkMercator::lat2y(latLngCoords[0]);
-  worldCoords[2] = latLngCoords[3];
-  worldCoords[3] = vtkMercator::lat2y(latLngCoords[2]);
+  worldCoords[0] = validCoords[1];
+  worldCoords[1] = vtkMercator::lat2y(validCoords[0]);
+  worldCoords[2] = validCoords[3];
+  worldCoords[3] = vtkMercator::lat2y(validCoords[2]);
 
   // Compute size as the larger of delta lon/lat
   double deltaLon = fabs(worldCoords[2] - worldCoords[0]);
@@ -178,7 +185,8 @@ void vtkMap::SetVisibleBounds(double latLngCoords[4])
     worldCoords[2] += worldCoords[2] < 0.0 ? 360.0 : 0;
     }
   double deltaLat = fabs(worldCoords[3] - worldCoords[1]);
-  double delta = deltaLon > deltaLat ? deltaLon : deltaLat;
+  double deltaLat2 = 2.0 * deltaLat;
+  double delta = deltaLon > deltaLat2 ? deltaLon : deltaLat2;
 
   // Compute zoom level
   double maxDelta = 360.0;
