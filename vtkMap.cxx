@@ -479,6 +479,7 @@ void vtkMap::Draw()
       computeCameraDistance(this->Renderer->GetActiveCamera(), this->Zoom);
     this->Renderer->GetActiveCamera()->SetPosition(x, y, distance);
     this->Renderer->GetActiveCamera()->SetFocalPoint(x, y, 0.0);
+    this->Renderer->SetBackground(1.0, 1.0, 1.0);
     this->Renderer->GetRenderWindow()->Render();
     }
   this->Update();
