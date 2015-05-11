@@ -68,14 +68,12 @@ GetPolyDataCellIds(vtkFeature *feature, vtkIdList *idList) const
 {
   idList->Reset();
 
-  // Only defined for vtkPolydataFeature types that are *not* markers
-  vtkPolydataFeature *polyFeature = vtkPolydataFeature::SafeDownCast(feature);
-  if (!polyFeature)
+  // Skip feature types that we know don't apply
+  if (feature->GetClassName() == "vtkMapMarkerSet")
     {
     return false;
     }
-  vtkMapMarkerSet *markerFeature = vtkMapMarkerSet::SafeDownCast(feature);
-  if (markerFeature)
+  if (feature->GetClassName() == "vtkRasterFeature")
     {
     return false;
     }
