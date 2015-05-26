@@ -112,7 +112,7 @@ CopyToVTK(GDALDataset *dataset,
         if (hasNoDataValue &&
             (static_cast<double>(buffer[index]) == noDataValue))
           {
-          vtkDebugMacro("Blank Point at col, row: " << col << ", " << row);
+          //std::cout << "Blank Point at col, row: " << col << ", " << row << std::endl;
           uniformGridData->BlankPoint(col, row, 0);
           }
         index++;
