@@ -17,6 +17,7 @@
 // VTK includes
 #include <vtkDataArray.h>
 #include <vtkDataArrayIteratorMacro.h>
+#include <vtkDoubleArray.h>
 #include <vtkImageData.h>
 #include <vtkMath.h>
 #include <vtkObjectFactory.h>
@@ -40,7 +41,9 @@ public:
   GDALDataType ToGDALDataType(int vtkDataType);
 
   template<typename VTK_TYPE> void
-  CopyToVTK(GDALDataset *gdalData, vtkDataArray *vtkData);
+  CopyToVTK(GDALDataset *gdalData,
+            vtkDataArray *vtkData,
+            vtkUniformGrid *uniformGridData);
 
   template<typename GDAL_TYPE> void
   FindDataRange(GDALRasterBand *band, double *minValue, double *maxValue);
@@ -70,7 +73,9 @@ ToGDALDataType(int vtkDataType)
 // Copies contents of GDALDataset to vtkDataArray
 template<typename VTK_TYPE>
 void vtkGDALRasterConverter::vtkGDALRasterConverterInternal::
-CopyToVTK(GDALDataset *dataset, vtkDataArray *array)
+CopyToVTK(GDALDataset *dataset,
+          vtkDataArray *array,
+          vtkUniformGrid *uniformGridData)
 {
   // Initialize array storage
   int stride = dataset->GetRasterCount();
@@ -90,6 +95,9 @@ CopyToVTK(GDALDataset *dataset, vtkDataArray *array)
     CPLErr err = band->RasterIO(GF_Read, 0, 0, xSize, ySize, buffer,
                                 xSize, ySize, gdalDataType, 0, 0);
 
+    int hasNoDataValue = 0;
+    double noDataValue = band->GetNoDataValue(&hasNoDataValue);
+
     // Copy data from buffer to vtkDataArray
     // Traverse by gdal row & column to make y-inversion easier
     for (int row=0, index=0; row < ySize; row++)
@@ -100,7 +108,14 @@ CopyToVTK(GDALDataset *dataset, vtkDataArray *array)
       int offset = invertedRow * xSize;
       for (int col=0; col < xSize; col++)
         {
-        array->SetComponent(offset + col, i, buffer[index++]);
+        array->SetComponent(offset + col, i, buffer[index]);
+        if (hasNoDataValue &&
+            (static_cast<double>(buffer[index]) == noDataValue))
+          {
+          vtkDebugMacro("Blank Point at col, row: " << col << ", " << row);
+          uniformGridData->BlankPoint(col, row, 0);
+          }
+        index++;
         }
       }
 
@@ -172,6 +187,7 @@ void StaticCopyToGDAL(Iterator begin, Iterator end, VTK_TYPE typeVar,
         buffer[offset + col] = *iter;
 
         // Advance to next tuple
+        // Todo is this loop the same as "iter += stride"?
         for (int k=0; k<stride; k++)
           {
           iter++;
@@ -227,21 +243,36 @@ CopyToGDAL(vtkImageData *input, GDALDataset *output)
   double *spacing = input->GetSpacing();
   this->SetGDALGeoTransform(output, origin, spacing);
 
-  if (!vtkMath::IsNan(this->NoDataValue))
+  // Check for NO_DATA_VALUE array
+  int index = -1;
+  vtkDataArray *array = input->GetFieldData()->GetArray("NO_DATA_VALUE", index);
+  vtkDoubleArray *noDataArray = vtkDoubleArray::SafeDownCast(array);
+  if (noDataArray)
     {
-    for (int i=0; i<output->GetRasterCount(); i++)
+    for (int i=0; i<array->GetNumberOfTuples(); i++)
       {
-      GDALRasterBand *band = output->GetRasterBand(i+1);
-      band->SetNoDataValue(this->NoDataValue);
+      double value = noDataArray->GetValue(i);
+      if (!vtkMath::IsNan(value))
+        {
+        GDALRasterBand *band = output->GetRasterBand(i+1);
+        band->SetNoDataValue(value);
+        }
       }
-    }
+    }  // if (noDataArray)
 
   // Copy scalars to gdal bands
-  vtkDataArray *array = input->GetPointData()->GetScalars();
+  array = input->GetPointData()->GetScalars();
   switch (array->GetDataType())
     {
     vtkDataArrayIteratorMacro(array,
       StaticCopyToGDAL(vtkDABegin, vtkDAEnd, vtkDAValueType(), array, output));
+    }
+
+  // Check for point visibility array
+  vtkUniformGrid *uniformGrid = vtkUniformGrid::SafeDownCast(input);
+  if (uniformGrid && uniformGrid->GetPointBlanking())
+    {
+    vtkDebugMacro("Apply Point Blanking");
     }
 
   // Finis
@@ -310,37 +341,37 @@ CreateVTKUniformGrid(GDALDataset *dataset)
     {
     case GDT_Byte:
       array = vtkDataArray::CreateDataArray(VTK_TYPE_UINT8);
-      this->Internal->CopyToVTK<vtkTypeUInt8>(dataset, array);
+      this->Internal->CopyToVTK<vtkTypeUInt8>(dataset, array, image);
       break;
 
     case GDT_UInt16:
       array = vtkDataArray::CreateDataArray(VTK_TYPE_UINT16);
-      this->Internal->CopyToVTK<vtkTypeUInt16>(dataset, array);
+      this->Internal->CopyToVTK<vtkTypeUInt16>(dataset, array, image);
       break;
 
     case GDT_Int16:
       array = vtkDataArray::CreateDataArray(VTK_TYPE_INT16);
-      this->Internal->CopyToVTK<vtkTypeInt16>(dataset, array);
+      this->Internal->CopyToVTK<vtkTypeInt16>(dataset, array, image);
       break;
 
     case GDT_UInt32:
       array = vtkDataArray::CreateDataArray(VTK_TYPE_UINT32);
-      this->Internal->CopyToVTK<vtkTypeUInt32>(dataset, array);
+      this->Internal->CopyToVTK<vtkTypeUInt32>(dataset, array, image);
       break;
 
     case GDT_Int32:
       array = vtkDataArray::CreateDataArray(VTK_TYPE_INT32);
-      this->Internal->CopyToVTK<vtkTypeInt32>(dataset, array);
+      this->Internal->CopyToVTK<vtkTypeInt32>(dataset, array, image);
       break;
 
     case GDT_Float32:
       array = vtkDataArray::CreateDataArray(VTK_TYPE_FLOAT32);
-      this->Internal->CopyToVTK<vtkTypeFloat32>(dataset, array);
+      this->Internal->CopyToVTK<vtkTypeFloat32>(dataset, array, image);
       break;
 
     case GDT_Float64:
       array = vtkDataArray::CreateDataArray(VTK_TYPE_FLOAT64);
-      this->Internal->CopyToVTK<vtkTypeFloat64>(dataset, array);
+      this->Internal->CopyToVTK<vtkTypeFloat64>(dataset, array, image);
       break;
     }
 
@@ -392,6 +423,39 @@ SetGDALGeoTransform(GDALDataset *dataset, double origin[2], double spacing[2])
   geoTransform[4] = 0.0;
   geoTransform[5] = spacing[1];
   dataset->SetGeoTransform(geoTransform);
+}
+
+//----------------------------------------------------------------------------
+void vtkGDALRasterConverter::
+CopyNoDataValues(GDALDataset *src, GDALDataset *dst)
+{
+  // Check that raster count is consistent and > 0
+  int numSrcBands = src->GetRasterCount();
+  int numDstBands = dst->GetRasterCount();
+  if (numSrcBands != numDstBands)
+    {
+    vtkWarningMacro("raster count different between src & dst datasets");
+    return;
+    }
+
+  if (numSrcBands == 0)
+    {
+    return;
+    }
+
+  double noDataValue = vtkMath::Nan();
+  int success = -1;
+  for (int i=0; i<numSrcBands; i++)
+    {
+    int index = i+1;
+    GDALRasterBand *srcBand = src->GetRasterBand(index);
+    noDataValue = srcBand->GetNoDataValue(&success);
+    if (success)
+      {
+      GDALRasterBand *dstBand = dst->GetRasterBand(index);
+      dstBand->SetNoDataValue(noDataValue);
+      }
+    }
 }
 
 //----------------------------------------------------------------------------

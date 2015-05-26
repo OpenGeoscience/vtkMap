@@ -68,6 +68,10 @@ public:
                            double spacing[2]);
 
   // Description:
+  // Copies NoDataValue info from 1st to 2nd dataset
+  void CopyNoDataValues(GDALDataset *src, GDALDataset *dest);
+
+  // Description:
   // Write GDALDataset to tiff file
   void WriteTifFile(GDALDataset *dataset, const char *filename);
 

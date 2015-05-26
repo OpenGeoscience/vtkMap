@@ -193,6 +193,7 @@ RequestData(vtkInformation * vtkNotUsed(request),
   this->Internal->GDALConverter->SetGDALProjection(
     outputGDAL, this->OutputProjection);
   outputGDAL->SetGeoTransform(this->Internal->OutputImageGeoTransform);
+  this->Internal->GDALConverter->CopyNoDataValues(inputGDAL, outputGDAL);
 
   // Apply the reprojection
   this->Internal->GDALReprojection->SetMaxError(this->MaxError);
