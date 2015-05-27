@@ -17,6 +17,7 @@
 #include "vtkRasterReprojectionFilter.h"
 
 #include <vtkFieldData.h>
+#include <vtkImageProperty.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
 #include <vtkStringArray.h>
@@ -97,6 +98,7 @@ void vtkRasterFeature::Init()
   displayImage->SetSpacing(spacing);
 
   this->Mapper->SetInputData(displayImage);
+  this->Actor->GetProperty()->UseLookupTableScalarRangeOn();
   this->Actor->Update();
   this->Layer->GetRenderer()->AddActor(this->Actor);
 }
