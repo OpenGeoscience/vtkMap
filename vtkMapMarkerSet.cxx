@@ -105,14 +105,18 @@ vtkMapMarkerSet::vtkMapMarkerSet() : vtkPolydataFeature()
   this->ColorTable->SetNumberOfTableValues(2);
   this->ColorTable->Build();
 
+  // Selected color
+  this->SelectionHue = 5.0/6.0;  // magenta (fushia?)
+  double hsv[3] = {this->SelectionHue, 1.0, 1.0};
+  double rgb[3] = {0.0, 0.0, 0.0};
+  vtkMath::HSVToRGB(hsv, rgb);
+  double  selected[4] = {rgb[0], rgb[1], rgb[2], 1.0};
+  this->ColorTable->SetTableValue(1, selected);
+
   // Default color
   double color[4] = {0.0, 0.0, 0.0, 1.0};
   this->ComputeNextColor(color);
   this->ColorTable->SetTableValue(0, color);
-
-  // Selected color
-  double  violet[4] = {1.0, 0.0, 1.0, 1.0};
-  this->ColorTable->SetTableValue(1, violet);
 
   // Set Nan color for development & test
   double red[] = {1.0, 0.0, 0.0, 1.0};
@@ -155,6 +159,12 @@ vtkMapMarkerSet::~vtkMapMarkerSet()
     }
   this->Internals->GlyphMapper->Delete();
   delete this->Internals;
+}
+
+//----------------------------------------------------------------------------
+int vtkMapMarkerSet::GetNumberOfMarkers()
+{
+  return this->Internals->NumberOfMarkers;
 }
 
 //----------------------------------------------------------------------------
@@ -902,27 +912,47 @@ void vtkMapMarkerSet::ComputeNextColor(double color[3])
 {
   // Generate "next" hue using logic adapted from
   // http://ridiculousfish.com/blog/posts/colors.html
-  unsigned int bitCount = 10;  // 1024 colors - hope that's enough...
 
-  // Reverse the bits in vtkMapMarkerSet::NextMarkerHue
-  unsigned int forwardBits = vtkMapMarkerSet::NextMarkerHue;
-  unsigned int reverseBits = 0;
-  for (int i=0; i<bitCount; i++)
+  unsigned int bitCount = 6;  // 2^6 == 64 colors
+  double hue;
+
+  // Use loop that includes checking for overlap with selection hue
+  int i = 0;
+  for (i=0; i<2; i++)
     {
-    reverseBits = (reverseBits << 1) | (forwardBits & 1);
-    forwardBits >>= 1;
+    // Reverse the bits in vtkMapMarkerSet::NextMarkerHue
+    unsigned int forwardBits = vtkMapMarkerSet::NextMarkerHue;
+    unsigned int reverseBits = 0;
+    for (int i=0; i<bitCount; i++)
+      {
+      reverseBits = (reverseBits << 1) | (forwardBits & 1);
+      forwardBits >>= 1;
+      }
+
+    // Divide by max
+    unsigned int maxCount = 1 << bitCount;
+
+    hue = static_cast<double>(reverseBits) / maxCount;
+    hue += 0.6;  // offset to start at blue
+    hue = (hue > 1.0) ? hue - 1.0 : hue;
+    vtkMapMarkerSet::NextMarkerHue += 1;
+
+    // Check distance from SelectionHue
+    if (fabs(hue - this->SelectionHue) > 1.0/30.0)
+      {
+      break;
+      }
+
+    vtkDebugMacro("ComputeNextColor skipping hue " << hue);
+    }  // for (i)
+
+  if (i > 1)
+    {
+    vtkWarningMacro("ComputeNextColor default after 2 iterations");
     }
 
-  // Divide by max
-  unsigned int maxCount = 1 << bitCount;
-
-  double hue = static_cast<double>(reverseBits) / maxCount;
-  hue += 0.6;  // offset to start at blue
-  hue = (hue > 1.0) ? hue - 10.0 : hue;
-  vtkMapMarkerSet::NextMarkerHue += 1;
-
-  double hsv[3] = {0.0, 1.0, 1.0};
-  hsv[0] = hue;
+  vtkDebugMacro("ComputeNextColor hue: " << hue);
+  double hsv[3] = {hue, 1.0, 1.0};
   vtkMath::HSVToRGB(hsv, color);
 }
 

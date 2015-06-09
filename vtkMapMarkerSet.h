@@ -61,6 +61,10 @@ public:
   vtkGetMacro(MaxClusterScaleFactor, double);
 
   // Description:
+  // Get number of markers
+  int GetNumberOfMarkers();
+
+  // Description:
   // Add marker to map, returns id
   vtkIdType AddMarker(double latitude, double longitude);
 
@@ -160,6 +164,7 @@ public:
   // Generates next color for actor (which can be overridden, of course)
   void ComputeNextColor(double color[3]);
   static unsigned int NextMarkerHue;
+  double SelectionHue;
 
  private:
   class MapMarkerSetInternals;
