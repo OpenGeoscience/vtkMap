@@ -16,6 +16,7 @@
 #ifndef __vtkMercator_h
 #define __vtkMercator_h
 
+#include <vtkObject.h>
 #include <cmath>
 
 #define WEB_MERCATOR_EXTENT 20037508.34
