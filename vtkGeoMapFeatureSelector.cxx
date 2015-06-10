@@ -126,19 +126,19 @@ PickArea(vtkRenderer *renderer, int displayCoords[4],
     renderer);
   //std::cout << "Pick result " << result << std::endl;
 
+  int markerCount = 0;
   if (result)
     {
-    std::set<vtkProp*> markerProps;  // markers processed separately
     vtkNew<vtkIdList> cellIdList;
-    vtkNew<vtkIdList> markerIdList;
-    vtkNew<vtkIdList> clusterIdList;
 
     // Process each object detected by the area picker
     vtkProp3DCollection *props = areaPicker->GetProp3Ds();
     // std::cout << "Number of prop3d objects: " << props->GetNumberOfItems()
     //           << std::endl;
+    // Also need to keep track of non-marker props
+    std::set<vtkProp*> nonMarkerProps;
     props->InitTraversal();
-    vtkProp3D *prop = props->GetNextProp3D();
+    vtkProp *prop = props->GetNextProp3D();
     for (; prop; prop = props->GetNextProp3D())
       {
       // Find corresponding map feature
@@ -151,8 +151,6 @@ PickArea(vtkRenderer *renderer, int displayCoords[4],
         }
       vtkFeature *feature = findIter->second;
       cellIdList->Reset();
-      markerIdList->Reset();
-      clusterIdList->Reset();
 
       // Handling depends on feature type
       vtkRasterFeature *rasterFeature =
@@ -160,13 +158,15 @@ PickArea(vtkRenderer *renderer, int displayCoords[4],
       if (rasterFeature)
         {
         selection->AddFeature(feature);
+        prop->PickableOff();
+        nonMarkerProps.insert(prop);
         continue;
         }
 
       vtkMapMarkerSet *markerFeature = vtkMapMarkerSet::SafeDownCast(feature);
       if (markerFeature)
         {
-        markerProps.insert(prop);
+        markerCount++;
         }
       else
         {
@@ -182,64 +182,22 @@ PickArea(vtkRenderer *renderer, int displayCoords[4],
           {
           selection->AddFeature(feature);
           }
+        prop->PickableOff();
+        nonMarkerProps.insert(prop);
         }
+      }  // for (props)
 
-      }  // while (props)
-
-    if (markerProps.size() > 0)
+    if (markerCount > 0)
       {
-      // Sanity check - Cannot use vtkHardwareSelector with AAFrames
-      if (renderer->GetRenderWindow()->GetAAFrames() > 0)
-        {
-        vtkWarningMacro("Render window has anti-aliasing frames set (AAFrames)"
-                        << ", so selection of markers may not work");
-        }
+      this->PickMarkers(renderer, displayCoords, selection);
+      }
 
-      // For markers use vtkHardwareSelector
-      vtkNew<vtkHardwareSelector> hwSelector;
-      hwSelector->SetRenderer(renderer);
-      hwSelector->SetArea(
-        displayCoords[0], displayCoords[1],
-        displayCoords[2], displayCoords[3]);
-
-      hwSelector->SetFieldAssociation(vtkDataObject::FIELD_ASSOCIATION_POINTS);
-      vtkSelection *hwSelection = hwSelector->Select();
-      for (int i=0; i<hwSelection->GetNumberOfNodes(); i++)
-        {
-        vtkSelectionNode *node = hwSelection->GetNode(i);
-        vtkObjectBase *base = node->GetProperties()->Get(vtkSelectionNode::PROP());
-        vtkProp *prop = vtkProp::SafeDownCast(base);
-        if (markerProps.count(prop) == 0)
-          {
-          continue;
-          }
-
-        std::map<vtkProp*, vtkFeature*>::iterator findIter =
-          this->Internal->FeaturePickMap.find(prop);
-        vtkFeature *feature = findIter->second;
-        vtkMapMarkerSet *markerFeature = vtkMapMarkerSet::SafeDownCast(feature);
-
-        vtkAbstractArray *abs = node->GetSelectionList();
-        vtkIdTypeArray *ids = vtkIdTypeArray::SafeDownCast(abs);
-        for (vtkIdType i=0; i<ids->GetNumberOfTuples(); i++)
-          {
-          vtkIdType displayId = ids->GetValue(i);
-          vtkIdType markerId = markerFeature->GetMarkerId(displayId);
-          if (markerId >= 0)
-            {
-            markerIdList->InsertNextId(markerId);
-            }
-          else
-            {
-            vtkIdType clusterId = markerFeature->GetClusterId(displayId);
-            clusterIdList->InsertNextId(clusterId);
-            }
-          }
-
-        selection->AddFeature(feature, markerIdList.GetPointer(),
-                              clusterIdList.GetPointer());
-        }
-      hwSelection->Delete();
+    // Restore pickable state to props
+    std::set<vtkProp*>::iterator iter = nonMarkerProps.begin();
+    for (; iter != nonMarkerProps.end(); iter++)
+      {
+      prop = *iter;
+      prop->PickableOn();
       }
     }  // if (result)
 }
@@ -329,5 +287,102 @@ PickPolyDataCells(vtkProp *prop, vtkPlanes *frustum, vtkIdList *idList)
     // Get the input polydata id
     vtkIdType id = idArray->GetValue(i);
     idList->InsertNextId(id);
+    }
+}
+
+// ------------------------------------------------------------
+void vtkGeoMapFeatureSelector::PickMarkers(
+  vtkRenderer *renderer,
+  int displayCoords[4],
+  vtkGeoMapSelection *selection)
+{
+  // Finds marker/cluster features at given display coords
+  // Appends its results to the input selection (i.e., does NOT reset it).
+  // Calling code *should* set all other feature types unpickable.
+
+  // Sanity check: Cannot use vtkHardwareSelector with AAFrames
+  if (renderer->GetRenderWindow()->GetAAFrames() > 0)
+    {
+    vtkWarningMacro("Render window has anti-aliasing frames set (AAFrames)"
+                    << ", so selection of markers may not work");
+    return;
+    }
+
+  std::set<vtkProp*> propSet;  // remembers props marked unpickable
+  vtkNew<vtkIdList> markerIdList;
+  vtkNew<vtkIdList> clusterIdList;
+
+  // For marker features, use vtkHardwareSelector
+  vtkNew<vtkHardwareSelector> hwSelector;
+  hwSelector->SetRenderer(renderer);
+  hwSelector->SetArea(
+    displayCoords[0], displayCoords[1],
+    displayCoords[2], displayCoords[3]);
+  hwSelector->SetFieldAssociation(vtkDataObject::FIELD_ASSOCIATION_POINTS);
+
+  vtkSelection *hwSelection;
+  vtkProp *prop;
+  // Use mulitiple passes because markers can be hidden behind other markers
+  bool done = false;
+  while (!done)
+    {
+    hwSelection = hwSelector->Select();
+    if (hwSelection->GetNumberOfNodes() < 1)
+      {
+      hwSelection->Delete();
+      done = true;
+      break;
+      }
+
+    for (int i=0; i<hwSelection->GetNumberOfNodes(); i++)
+      {
+      vtkSelectionNode *node = hwSelection->GetNode(i);
+      vtkObjectBase *base = node->GetProperties()->Get(vtkSelectionNode::PROP());
+      prop = vtkProp::SafeDownCast(base);
+      propSet.insert(prop);
+      prop->PickableOff();  // don't pick again (in this method)
+
+      std::map<vtkProp*, vtkFeature*>::iterator findIter =
+        this->Internal->FeaturePickMap.find(prop);
+      vtkFeature *feature = findIter->second;
+      vtkMapMarkerSet *markerFeature = vtkMapMarkerSet::SafeDownCast(feature);
+      if (!markerFeature)
+        {
+        vtkWarningMacro("feature is not a marker feature");
+        continue;
+        }
+
+      markerIdList->Reset();
+      clusterIdList->Reset();
+
+      vtkAbstractArray *abs = node->GetSelectionList();
+      vtkIdTypeArray *ids = vtkIdTypeArray::SafeDownCast(abs);
+      for (vtkIdType id=0; id<ids->GetNumberOfTuples(); id++)
+        {
+        vtkIdType displayId = ids->GetValue(id);
+        vtkIdType markerId = markerFeature->GetMarkerId(displayId);
+        if (markerId >= 0)
+          {
+          markerIdList->InsertNextId(markerId);
+          }
+        else
+          {
+          vtkIdType clusterId = markerFeature->GetClusterId(displayId);
+          clusterIdList->InsertNextId(clusterId);
+          }
+        }  // for (id)
+
+      selection->AddFeature(feature, markerIdList.GetPointer(),
+                            clusterIdList.GetPointer());
+      }  // for (i)
+    hwSelection->Delete();
+    }  // while
+
+  // Restore pickable state on all props
+  std::set<vtkProp*>::iterator iter = propSet.begin();
+  for (; iter != propSet.end(); iter++)
+    {
+    prop = *iter;
+    prop->PickableOn();
     }
 }

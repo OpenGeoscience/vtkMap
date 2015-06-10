@@ -51,8 +51,15 @@ class VTKMAP_NO_EXPORT vtkGeoMapFeatureSelector : public vtkObject
   vtkGeoMapFeatureSelector();
   ~vtkGeoMapFeatureSelector();
 
-  void PickPolyDataCells(vtkProp *prop, vtkPlanes *frustum,
-                         vtkIdList *idList);
+  void PickPolyDataCells(
+    vtkProp *prop,
+    vtkPlanes *frustum,
+    vtkIdList *idList);
+
+  void PickMarkers(
+    vtkRenderer *renderer,
+    int displayCoords[4],
+    vtkGeoMapSelection *selection);
 
  private:
   // Not implemented
