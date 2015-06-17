@@ -232,21 +232,27 @@ void vtkMap::GetVisibleBounds(double latLngCoords[4])
 
   double displayCoords[2];
   double worldCoords[3];
+  double latitude;
+  double longitude;
 
   // Convert origin to world coords
   displayCoords[0] = 0.0;
   displayCoords[1] = 0.0;
   this->ComputeWorldCoords(displayCoords, 0.0, worldCoords);
-  latLngCoords[0] = vtkMercator::y2lat(worldCoords[1]);
-  latLngCoords[1] = worldCoords[0];
+  latitude = vtkMercator::y2lat(worldCoords[1]);
+  longitude = worldCoords[0];
+  latLngCoords[0] = vtkMercator::validLatitude(latitude);
+  latLngCoords[1] = vtkMercator::validLongitude(longitude);
 
   // Convert opposite corner to world coords
   int *sizeCoords = this->Renderer->GetRenderWindow()->GetSize();
   displayCoords[0] = sizeCoords[0];
   displayCoords[1] = sizeCoords[1];
   this->ComputeWorldCoords(displayCoords, 0.0, worldCoords);
-  latLngCoords[2] = vtkMercator::y2lat(worldCoords[1]);
-  latLngCoords[3] = worldCoords[0];
+  latitude = vtkMercator::y2lat(worldCoords[1]);
+  longitude = worldCoords[0];
+  latLngCoords[2] = vtkMercator::validLatitude(latitude);
+  latLngCoords[3] = vtkMercator::validLongitude(longitude);
 }
 
 //----------------------------------------------------------------------------
@@ -524,9 +530,9 @@ void vtkMap::ComputeLatLngCoords(double displayCoords[2], double elevation,
   double latitude = vtkMercator::y2lat(worldCoords[1]);
   double longitude = worldCoords[0];
 
-  // Set output
-  latLngCoords[0] = latitude;
-  latLngCoords[1] = longitude;
+  // Clip to "valid" coords
+  latLngCoords[0] = vtkMercator::validLatitude(latitude);
+  latLngCoords[1] = vtkMercator::validLongitude(longitude);
   latLngCoords[3] = elevation;
 }
 
