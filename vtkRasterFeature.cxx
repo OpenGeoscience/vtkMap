@@ -27,6 +27,7 @@ vtkStandardNewMacro(vtkRasterFeature);
 //----------------------------------------------------------------------------
 vtkRasterFeature::vtkRasterFeature() : vtkFeature()
 {
+  this->ZCoord = 0.1;
   this->ImageData = NULL;
   this->InputProjection = NULL;
   this->Actor = vtkImageActor::New();
@@ -88,7 +89,7 @@ void vtkRasterFeature::Init()
   double *origin = displayImage->GetOrigin();
   origin[0] = vtkMercator::web2vtk(origin[0]);
   origin[1] = vtkMercator::web2vtk(origin[1]);
-  origin[2] = 0.1;  // in front of map tiles
+  origin[2] = this->ZCoord;
   displayImage->SetOrigin(origin);
 
   // Convert image spacing from web-mercator to kitware-mercator projection

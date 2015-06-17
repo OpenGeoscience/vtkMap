@@ -58,7 +58,7 @@ class vtkMapMarkerSet::ClusteringNode
 public:
   int NodeId;
   int Level;  // for dev
-  double gcsCoords[2];
+  double gcsCoords[3];
   ClusteringNode *Parent;
   std::set<ClusteringNode*> Children;
   int NumberOfMarkers;  // 1 for single-point nodes, >1 for clusters
@@ -95,6 +95,7 @@ public:
 vtkMapMarkerSet::vtkMapMarkerSet() : vtkPolydataFeature()
 {
   this->Initialized = false;
+  this->ZCoord = 0.1;
   this->PolyData = vtkPolyData::New();
   this->Clustering = false;
   this->ClusterDistance = 80.0;
@@ -192,6 +193,7 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
   node->Level = level;
   node->gcsCoords[0] = longitude;
   node->gcsCoords[1] = vtkMercator::lat2y(latitude);
+  node->gcsCoords[2] = this->ZCoord;
   node->NumberOfMarkers = 1;
   node->Parent = 0;
   node->MarkerId = markerId;
@@ -248,6 +250,7 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
         newNode->Level = level;
         newNode->gcsCoords[0] = node->gcsCoords[0];
         newNode->gcsCoords[1] = node->gcsCoords[1];
+        newNode->gcsCoords[2] = node->gcsCoords[2];
         newNode->NumberOfMarkers = node->NumberOfMarkers;
         newNode->NumberOfVisibleMarkers = node->NumberOfVisibleMarkers;
         newNode->NumberOfSelectedMarkers = node->NumberOfSelectedMarkers;

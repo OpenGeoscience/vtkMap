@@ -38,6 +38,13 @@ public:
   vtkTypeMacro(vtkMapMarkerSet, vtkPolydataFeature);
 
   // Description:
+  // Set/get the Z value, in world coordinates, to assign each marker.
+  // This value is intended to be set once, before adding markers.
+  // The default is 0.1
+  vtkSetMacro(ZCoord, double);
+  vtkGetMacro(ZCoord, double);
+
+  // Description:
   // Set/get whether to apply hierarchical clustering to map markers.
   // The default is off, and once turned on, behavior is undefined if
   // clustering is turned off.
@@ -121,6 +128,10 @@ public:
  protected:
   vtkMapMarkerSet();
   ~vtkMapMarkerSet();
+
+  // Description:
+  // Z Coordinate of this map feature
+  double ZCoord;
 
   // Description:
   // Indicates that internal logic & pipeline have been initialized

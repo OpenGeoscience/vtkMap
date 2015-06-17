@@ -47,6 +47,12 @@ public:
   vtkSetStringMacro(InputProjection);
   vtkGetStringMacro(InputProjection);
 
+  // Description:
+  // Set/get the Z value, in world coordinates, to assign the feature.
+  // The default is 0.1
+  vtkSetMacro(ZCoord, double);
+  vtkGetMacro(ZCoord, double);
+
   // Description
   // Get actor for the image data
   vtkGetObjectMacro(Actor, vtkImageActor);
@@ -75,6 +81,7 @@ protected:
   vtkRasterFeature();
   ~vtkRasterFeature();
 
+  double ZCoord;
   vtkImageData *ImageData;
   char *InputProjection;
   vtkImageActor *Actor;
