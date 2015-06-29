@@ -81,24 +81,7 @@ void vtkInteractorStyleGeoMap::OnLeftButtonDown()
     // Default map interaction == select feature & start pan
     int *pos = this->Interactor->GetEventPosition();
 
-    // Check if anything was picked
-    vtkNew<vtkGeoMapSelection> selection;
-    this->Map->PickPoint(pos, selection.GetPointer());
-
-    // Compute lat-lon coordinates
-    double latLngBounds[4];
-    double displayCoords[2];
-    displayCoords[0] = pos[0];
-    displayCoords[1] = pos[1];
-    double computedCoords[3];
-    this->Map->ComputeLatLngCoords(displayCoords, 0.0, computedCoords);
-    latLngBounds[0] = latLngBounds[2] = computedCoords[0];
-    latLngBounds[1] = latLngBounds[3] = computedCoords[1];
-    selection->SetLatLngBounds(latLngBounds);
-
-    this->InvokeEvent(SelectionCompleteEvent, selection.GetPointer());
     vtkDebugMacro("StartPan()");
-    //std::cout << "Start Pan" << std::endl;
     this->Interaction = PANNING;
     this->StartPan();
     }
@@ -215,9 +198,14 @@ void vtkInteractorStyleGeoMap::OnLeftButtonUp()
   boundCoords[1] = std::min(this->StartPosition[1], this->EndPosition[1]);
   boundCoords[2] = std::max(this->StartPosition[0], this->EndPosition[0]);
   boundCoords[3] = std::max(this->StartPosition[1], this->EndPosition[1]);
+  int area = (boundCoords[2] - boundCoords[0]) *
+    (boundCoords[3] - boundCoords[1]);
+  // Use threshold to distinguish between click and movement
+  bool moved = area > 25;
   vtkDebugMacro("RubberBand complete with points:"
                 << " " << boundCoords[0] << ", " << boundCoords[1]
-                << "  " << boundCoords[2] << ", " << boundCoords[3]);
+                << "  " << boundCoords[2] << ", " << boundCoords[3]
+                << ", area  " << area << ", moved " << moved);
 
   // Compute lat-lon coordinates
   double latLonCoords[4];
@@ -235,8 +223,20 @@ void vtkInteractorStyleGeoMap::OnLeftButtonUp()
   latLonCoords[2] = computedCoords[0];
   latLonCoords[3] = computedCoords[1];
 
+  // Default mode
+  if (this->RubberBandMode == vtkInteractorStyleGeoMap::DisabledMode)
+    {
+    if (!moved)  // treat as mouse click
+      {
+      vtkNew<vtkGeoMapSelection> pickResult;
+      pickResult->SetLatLngBounds(latLonCoords);
+      this->Map->PickArea(boundCoords, pickResult.GetPointer());
+      this->InvokeEvent(SelectionCompleteEvent, pickResult.GetPointer());
+      }
+    }
+
   // Display-only mode
-  if (this->RubberBandMode == vtkInteractorStyleGeoMap::DisplayOnlyMode)
+  else if (this->RubberBandMode == vtkInteractorStyleGeoMap::DisplayOnlyMode)
     {
     this->InvokeEvent(vtkInteractorStyleGeoMap::DisplayCompleteEvent,
                       latLonCoords);
@@ -254,10 +254,7 @@ void vtkInteractorStyleGeoMap::OnLeftButtonUp()
   // Zoom mode
   else if (this->RubberBandMode == vtkInteractorStyleGeoMap::ZoomMode)
     {
-    // Ignore small rubberband; probably unintentional
-    int area = (boundCoords[2] - boundCoords[0]) *
-      (boundCoords[3] - boundCoords[1]);
-    if (area > 25)
+    if (moved)
       {
       // Change visible bounds and send event
       this->Map->SetVisibleBounds(latLonCoords);
@@ -284,17 +281,8 @@ void vtkInteractorStyleGeoMap::OnMouseMove()
         this->FindPokedRenderer(pos[0], pos[1]);
         this->Interactor->GetRenderWindow()->SetCurrentCursor(VTK_CURSOR_SIZEALL);
         this->Pan();
-        this->InvokeEvent(vtkCommand::InteractionEvent, NULL);
         break;
       }
-    // Do NOT call superclass OnMouseMove() here
-    return;
-    }
-
-  if (this->Interaction != SELECTING || !this->RubberBandActor)
-    {
-    this->Superclass::OnMouseMove();
-    return;
     }
 
   this->EndPosition[0] = this->Interactor->GetEventPosition()[0];
@@ -339,12 +327,18 @@ void vtkInteractorStyleGeoMap::OnMouseMove()
     0.0
     };
 
-  this->RubberBandPoints->SetPoint(1, pos1);
-  this->RubberBandPoints->SetPoint(2, pos2);
-  this->RubberBandPoints->SetPoint(3, pos3);
+  if (this->RubberBandPoints && this->RubberBandMode != DisabledMode)
+    {
+    this->RubberBandPoints->SetPoint(1, pos1);
+    this->RubberBandPoints->SetPoint(2, pos2);
+    this->RubberBandPoints->SetPoint(3, pos3);
+    }
 
-  vtkPolyDataMapper2D::SafeDownCast(this->RubberBandActor->GetMapper())
-  ->GetInput()->Modified();
+  if (this->RubberBandActor)
+    {
+    vtkPolyDataMapper2D::SafeDownCast(this->RubberBandActor->GetMapper())
+      ->GetInput()->Modified();
+    }
 
   this->InvokeEvent(vtkCommand::InteractionEvent);
   this->GetInteractor()->Render();
