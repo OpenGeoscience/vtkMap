@@ -410,8 +410,8 @@ void vtkMap::Update()
     }
 
   // Compute the zoom level here
-  this->SetZoom(computeZoomLevel(this->Renderer->GetActiveCamera()));
-  std::cout << "vtkMap::Update() set Zoom to " << this->Zoom << std::endl;
+  //this->SetZoom(computeZoomLevel(this->Renderer->GetActiveCamera()));
+  //std::cout << "vtkMap::Update() set Zoom to " << this->Zoom << std::endl;
 
   vtkCamera *camera = this->Renderer->GetActiveCamera();
   camera->ParallelProjectionOn();
