@@ -411,6 +411,21 @@ void vtkMap::Update()
 
   // Compute the zoom level here
   this->SetZoom(computeZoomLevel(this->Renderer->GetActiveCamera()));
+  std::cout << "vtkMap::Update() set Zoom to " << this->Zoom << std::endl;
+
+  vtkCamera *camera = this->Renderer->GetActiveCamera();
+  camera->ParallelProjectionOn();
+
+  // Camera parallel scale == 1/2 the viewport height in world coords.
+  // Each tile is 360 / 2**zoom in world coords
+  // Each tile is 256 (pixels) in display coords
+
+  int *renSize = this->Renderer->GetSize();
+  //std::cout << "renSize " << renSize[0] << ", " << renSize[1] << std::endl;
+  int zoomLevelFactor = 1 << this->Zoom;
+  double parallelScale = 0.5 * (renSize[1] * 360.0 / zoomLevelFactor) / 256.0;
+  //std::cout << "SetParallelScale " << parallelScale << std::endl;
+  camera->SetParallelScale(parallelScale);
 
   // Update the base layer first
   this->BaseLayer->Update();

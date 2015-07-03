@@ -250,10 +250,10 @@ SelectTiles(std::vector<vtkMapTile*>& tiles,
 
   //std::cerr << "Before bottomLeft " << bottomLeft[0] << " " << bottomLeft[1] << std::endl;
 
-  bottomLeft[0] = std::max(bottomLeft[0], -180.0);
-  bottomLeft[0] = std::min(bottomLeft[0],  180.0);
-  bottomLeft[1] = std::max(bottomLeft[1], -180.0);
-  bottomLeft[1] = std::min(bottomLeft[1],  180.0);
+  // bottomLeft[0] = std::max(bottomLeft[0], -180.0);
+  // bottomLeft[0] = std::min(bottomLeft[0],  180.0);
+  // bottomLeft[1] = std::max(bottomLeft[1], -180.0);
+  // bottomLeft[1] = std::min(bottomLeft[1],  180.0);
 
   this->Renderer->SetDisplayPoint(tile_llx + width,
                                   tile_lly + height,
@@ -268,12 +268,12 @@ SelectTiles(std::vector<vtkMapTile*>& tiles,
     topRight[2] /= topRight[3];
     }
 
-  topRight[0] = std::max(topRight[0], -180.0);
-  topRight[0] = std::min(topRight[0],  180.0);
-  topRight[1] = std::max(topRight[1], -180.0);
-  topRight[1] = std::min(topRight[1],  180.0);
+  // topRight[0] = std::max(topRight[0], -180.0);
+  // topRight[0] = std::min(topRight[0],  180.0);
+  // topRight[1] = std::max(topRight[1], -180.0);
+  // topRight[1] = std::min(topRight[1],  180.0);
 
-  int zoomLevel = this->Map->GetZoom() + 1;
+  int zoomLevel = this->Map->GetZoom();
   int zoomLevelFactor = 1 << zoomLevel; // Zoom levels are interpreted as powers of two.
 
   int tile1x = vtkMercator::long2tilex(bottomLeft[0], zoomLevel);
