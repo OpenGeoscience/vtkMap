@@ -752,6 +752,17 @@ double vtkMapMarkerSet::
 ComputeDistanceThreshold2(double latitude, double longitude,
                           double clusteringDistance) const
 {
+  if (!this->Layer->GetMap()->GetPerspectiveProjection())
+    {
+    // For orthographic projection, the scaling is trivial.
+    // At level 0, world coordinates range is 360.0
+    // At level 0, map tile is 256 pixels.
+    // Convert clusteringDistance to that scale:
+    double scale = 360.0 * clusteringDistance / 256.0;
+    return scale * scale;
+    }
+
+
   // Get display coordinates for input point
   double inputLatLonCoords[2] = {latitude, longitude};
   double inputDisplayCoords[3];
