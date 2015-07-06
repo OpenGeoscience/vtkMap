@@ -367,25 +367,36 @@ void vtkInteractorStyleGeoMap::OnMouseWheelForward()
 
       // Get camera coordinates before zooming in
       double cameraCoords[3];
+      double nextCameraCoords[3];
       camera->GetPosition(cameraCoords);
 
-      // Apply the dolly operation (move closer to focal point)
-      camera->Dolly(2.0);
+      if (this->Map->GetPerspectiveProjection())
+        {
+        // Apply the dolly operation (move closer to focal point)
+        camera->Dolly(2.0);
 
-      // Get new camera coordinates
-      double nextCameraCoords[3];
-      camera->GetPosition(nextCameraCoords);
+        // Get new camera coordinates
+        camera->GetPosition(nextCameraCoords);
 
-      // Adjust xy position to be proportional to change in z
-      // That way, the zoom point remains stationary
-      const double f = 0.5;   // fraction that camera moved closer to origin
-      double losVector[3];  // line-of-sight vector, from camera to zoomCoords
-      vtkMath::Subtract(zoomCoords, cameraCoords, losVector);
-      vtkMath::Normalize(losVector);
-      vtkMath::MultiplyScalar(losVector, f * cameraCoords[2]);
-      nextCameraCoords[0] = cameraCoords[0] + losVector[0];
-      nextCameraCoords[1] = cameraCoords[1] + losVector[1];
-      camera->SetPosition(nextCameraCoords);
+        // Adjust xy position to be proportional to change in z
+        // That way, the zoom point remains stationary
+        const double f = 0.5;   // fraction that camera moved closer to origin
+        double losVector[3];  // line-of-sight vector, from camera to zoomCoords
+        vtkMath::Subtract(zoomCoords, cameraCoords, losVector);
+        vtkMath::Normalize(losVector);
+        vtkMath::MultiplyScalar(losVector, f * cameraCoords[2]);
+        nextCameraCoords[0] = cameraCoords[0] + losVector[0];
+        nextCameraCoords[1] = cameraCoords[1] + losVector[1];
+        camera->SetPosition(nextCameraCoords);
+        }
+      else
+        {
+        double camZ = cameraCoords[2];
+        vtkMath::Add(zoomCoords, cameraCoords, nextCameraCoords);
+        vtkMath::MultiplyScalar(nextCameraCoords, 0.5);
+        nextCameraCoords[2] = camZ;
+        camera->SetPosition(nextCameraCoords);
+        }
 
       // Set same xy coords for the focal point
       nextCameraCoords[2] = 0.0;
@@ -422,24 +433,41 @@ void vtkInteractorStyleGeoMap::OnMouseWheelBackward()
 
       // Get camera coordinates before zooming out
       double cameraCoords[3];
+      double nextCameraCoords[3];
       camera->GetPosition(cameraCoords);
 
-      // Apply the dolly operation (move away from focal point)
-      camera->Dolly(0.5);
+      if (this->Map->GetPerspectiveProjection())
+        {
+        // Apply the dolly operation (move away from focal point)
+        camera->Dolly(0.5);
 
-      // Get new camera coordinates
-      double nextCameraCoords[3];
-      camera->GetPosition(nextCameraCoords);
+        // Get new camera coordinates
+        camera->GetPosition(nextCameraCoords);
 
-      // Adjust xy position to be proportional to change in z
-      // That way, the zoom point remains stationary
-      double losVector[3];  // line-of-sight vector, from camera to zoomCoords
-      vtkMath::Subtract(zoomCoords, cameraCoords, losVector);
-      vtkMath::Normalize(losVector);
-      vtkMath::MultiplyScalar(losVector, -1.0 * cameraCoords[2]);
-      nextCameraCoords[0] = cameraCoords[0] + losVector[0];
-      nextCameraCoords[1] = cameraCoords[1] + losVector[1];
-      camera->SetPosition(nextCameraCoords);
+        // Adjust xy position to be proportional to change in z
+        // That way, the zoom point remains stationary
+        double losVector[3];  // line-of-sight vector, from camera to zoomCoords
+        vtkMath::Subtract(zoomCoords, cameraCoords, losVector);
+        vtkMath::Normalize(losVector);
+        vtkMath::MultiplyScalar(losVector, -1.0 * cameraCoords[2]);
+        nextCameraCoords[0] = cameraCoords[0] + losVector[0];
+        nextCameraCoords[1] = cameraCoords[1] + losVector[1];
+        camera->SetPosition(nextCameraCoords);
+        }
+        else
+        {
+        double camZ = cameraCoords[2];
+        cameraCoords[2] = 0.0;
+        zoomCoords[2] = 0.0;
+
+        // Adjust xy position to be proportional to change in z
+        // That way, the zoom point remains stationary
+        double losVector[3];  // line-of-sight vector, from camera to zoomCoords
+        vtkMath::Subtract(cameraCoords, zoomCoords, losVector);
+        vtkMath::Add(zoomCoords, losVector, nextCameraCoords);  // HACK!
+        nextCameraCoords[2] = camZ;
+        camera->SetPosition(nextCameraCoords);
+        }
 
       // Set same xy coords for the focal point
       nextCameraCoords[2] = 0.0;
@@ -451,15 +479,6 @@ void vtkInteractorStyleGeoMap::OnMouseWheelBackward()
     }
   this->Superclass::OnMouseWheelBackward();
 }
-
-//-----------------------------------------------------------------------------
-// void vtkInteractorStyleGeoMap::ZoomToExtents(vtkRenderer* ren,
-//     double extents[4])
-// {
-//   // vtkVgRendererUtils::ZoomToExtents2D(ren, extents);
-//   vtkWarningMacro("Sorry - ZoomToExtents not implemented");
-//   this->InvokeEvent(ZoomCompleteEvent);
-// }
 
 //-----------------------------------------------------------------------------
 void vtkInteractorStyleGeoMap::SetMap(vtkMap *map)

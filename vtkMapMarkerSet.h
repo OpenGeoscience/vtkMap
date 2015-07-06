@@ -56,8 +56,8 @@ public:
   // Threshold distance to use when creating clusters.
   // The value is in display units (pixels).
   // Default value is 80 pixels.
-  vtkSetMacro(ClusterDistance, double);
-  vtkGetMacro(ClusterDistance, double);
+  vtkSetMacro(ClusterDistance, int);
+  vtkGetMacro(ClusterDistance, int);
 
   // Description:
   // Max scale factor to apply to cluster markers, default is 2.0
@@ -151,7 +151,7 @@ public:
 
   // Description:
   // Threshold distance when combining markers/clusters
-  double ClusterDistance;
+  int ClusterDistance;
 
   // Description:
   // Stores colors for standard display and selection
@@ -161,7 +161,7 @@ public:
 
   // Computes clustering distance in gcs coordinates
   double ComputeDistanceThreshold2(double latitude, double longitude,
-                                   double clusteringDistance) const;
+                                   int clusteringDistance) const;
 
   // Find closest node within distance threshold squared
   ClusteringNode *FindClosestNode(ClusteringNode *node, int zoomLevel,

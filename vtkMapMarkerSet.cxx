@@ -98,7 +98,7 @@ vtkMapMarkerSet::vtkMapMarkerSet() : vtkPolydataFeature()
   this->ZCoord = 0.1;
   this->PolyData = vtkPolyData::New();
   this->Clustering = false;
-  this->ClusterDistance = 80.0;
+  this->ClusterDistance = 80;
   this->MaxClusterScaleFactor = 2.0;
 
   // Initialize color table
@@ -750,8 +750,19 @@ vtkIdType vtkMapMarkerSet::GetMarkerId(vtkIdType displayId)
 //----------------------------------------------------------------------------
 double vtkMapMarkerSet::
 ComputeDistanceThreshold2(double latitude, double longitude,
-                          double clusteringDistance) const
+                          int clusteringDistance) const
 {
+  if (!this->Layer->GetMap()->GetPerspectiveProjection())
+    {
+    // For orthographic projection, the scaling is trivial.
+    // At level 0, world coordinates range is 360.0
+    // At level 0, map tile is 256 pixels.
+    // Convert clusteringDistance to that scale:
+    double scale = 360.0 * clusteringDistance / 256.0;
+    return scale * scale;
+    }
+
+
   // Get display coordinates for input point
   double inputLatLonCoords[2] = {latitude, longitude};
   double inputDisplayCoords[3];
