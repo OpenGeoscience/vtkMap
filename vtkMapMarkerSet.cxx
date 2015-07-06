@@ -98,7 +98,7 @@ vtkMapMarkerSet::vtkMapMarkerSet() : vtkPolydataFeature()
   this->ZCoord = 0.1;
   this->PolyData = vtkPolyData::New();
   this->Clustering = false;
-  this->ClusterDistance = 80.0;
+  this->ClusterDistance = 80;
   this->MaxClusterScaleFactor = 2.0;
 
   // Initialize color table
@@ -750,7 +750,7 @@ vtkIdType vtkMapMarkerSet::GetMarkerId(vtkIdType displayId)
 //----------------------------------------------------------------------------
 double vtkMapMarkerSet::
 ComputeDistanceThreshold2(double latitude, double longitude,
-                          double clusteringDistance) const
+                          int clusteringDistance) const
 {
   if (!this->Layer->GetMap()->GetPerspectiveProjection())
     {
