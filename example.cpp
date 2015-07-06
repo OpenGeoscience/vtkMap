@@ -133,6 +133,7 @@ int main(int argc, char *argv[])
   bool showHelp = false;
   bool perspective = false;
   bool rubberBandSelection = false;
+  bool rubberBandZoom = false;
   bool singleThreaded = false;
   int zoomLevel = 2;
   std::vector<double> centerLatLon;
@@ -159,6 +160,9 @@ int main(int argc, char *argv[])
                   &clusteringOff, "turn clustering off");
   arg.AddArgument("-p", vtksys::CommandLineArguments::NO_ARGUMENT,
                   &perspective, "use perspective projection");
+  arg.AddArgument("-q", vtksys::CommandLineArguments::NO_ARGUMENT,
+                  &rubberBandZoom,
+                  "set interactor to rubberband zoom mode");
   arg.AddArgument("-r", vtksys::CommandLineArguments::NO_ARGUMENT,
                   &rubberBandSelection,
                   "set interactor to rubberband selection mode");
@@ -235,6 +239,10 @@ int main(int argc, char *argv[])
   if (rubberBandSelection)
     {
     mapStyle->SetRubberBandModeToSelection();
+    }
+  else if (rubberBandZoom)
+    {
+    mapStyle->SetRubberBandModeToZoom();
     }
   intr->SetInteractorStyle(style);
 

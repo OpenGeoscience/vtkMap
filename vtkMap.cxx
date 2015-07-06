@@ -176,51 +176,61 @@ void vtkMap::SetVisibleBounds(double latLngCoords[4])
   worldCoords[3] = vtkMercator::lat2y(validCoords[2]);
 
   // Compute size as the larger of delta lon/lat
-  double deltaLon = fabs(worldCoords[2] - worldCoords[0]);
-  if (deltaLon > 180.0)
+  double dx = fabs(worldCoords[2] - worldCoords[0]);
+  if (dx > 180.0)
     {
     // If > 180, then points wrap around the 180th meridian
     // Adjust things to be > 0
-    deltaLon = 360.0 - deltaLon;
+    dx = 360.0 - dx;
     worldCoords[0] += worldCoords[0] < 0.0 ? 360.0 : 0;
     worldCoords[2] += worldCoords[2] < 0.0 ? 360.0 : 0;
     }
-  double deltaLat = fabs(worldCoords[3] - worldCoords[1]);
-  double deltaLat2 = 2.0 * deltaLat;
-  double delta = deltaLon > deltaLat2 ? deltaLon : deltaLat2;
+  double dy = fabs(worldCoords[3] - worldCoords[1]);
+  double delta = dx > dy ? dx : dy;
 
   // Compute zoom level
   double maxDelta = 360.0;
   double maxZoom = 20;
   int zoom = 0;
-  for (zoom=0; delta < maxDelta && zoom < maxZoom; zoom++)
+  double scaledDelta = delta;
+  for (zoom=0; scaledDelta < maxDelta && zoom < maxZoom; zoom++)
     {
-    delta *= 2.0;
+    scaledDelta *= 2.0;
     }
-  zoom--;
+  // Adjust for perspective vs. orthographic
+  if (zoom > 0)
+    {
+    zoom -= this->PerspectiveProjection ? 1 : 0;
+    }
 
   // Compute center
   double center[2];
-  center[0] = 0.5 * (latLngCoords[0] + latLngCoords[2]);
-  if (center[0] > 180.0)
-    {
-    center[0] -= 360.0;
-    }
-  center[1] = 0.5 * (latLngCoords[1] + latLngCoords[3]);
+  center[0] = 0.5 * (validCoords[0] + validCoords[2]);
+  center[1] = 0.5 * (validCoords[1] + validCoords[3]);
 
   this->SetCenter(center);
   this->SetZoom(zoom);
 
-  // Update camera if initialized
+  // If initialized, update camera distance
   if (this->Renderer)
     {
-    double x = this->Center[1];
-    double y = vtkMercator::lat2y(this->Center[0]);
-    double distance =
-      computeCameraDistance(this->Renderer->GetActiveCamera(), this->Zoom);
-    this->Renderer->GetActiveCamera()->SetPosition(x, y, distance);
-    this->Renderer->GetActiveCamera()->SetFocalPoint(x, y, 0.0);
+      double x = this->Center[1];
+      double y = vtkMercator::lat2y(this->Center[0]);
+
+      double cameraCoords[3] = {0.0, 0.0, 1.0};
+      this->Renderer->GetActiveCamera()->GetPosition(cameraCoords);
+      double z = cameraCoords[2];
+
+      if (this->PerspectiveProjection)
+        {
+        z = computeCameraDistance(
+          this->Renderer->GetActiveCamera(), this->Zoom);
+        }
+
+      this->Renderer->GetActiveCamera()->SetPosition(x, y, z);
+      this->Renderer->GetActiveCamera()->SetFocalPoint(x, y, 0.0);
     }
+  this->Modified();
 }
 
 //----------------------------------------------------------------------------
@@ -578,7 +588,7 @@ void vtkMap::ComputeWorldCoords(double displayCoords[2], double z,
                                 double worldCoords[3])
 {
   // Get renderer's DisplayToWorld point
-  double rendererCoords[4];
+  double rendererCoords[4] = {0.0, 0.0, 0.0, 1.0};
   this->Renderer->SetDisplayPoint(displayCoords[0], displayCoords[1], 0.0);
   this->Renderer->DisplayToWorld();
   this->Renderer->GetWorldPoint(rendererCoords);
@@ -589,24 +599,35 @@ void vtkMap::ComputeWorldCoords(double displayCoords[2], double z,
     rendererCoords[2] /= rendererCoords[3];
     }
 
-  // Get camera point
-  double cameraCoords[3];
-  vtkCamera *camera = this->Renderer->GetActiveCamera();
-  camera->GetPosition(cameraCoords);
+  if (this->PerspectiveProjection)
+    {
+    // Project to z
 
-  // Compute line-of-sight vector from camera to renderer point
-  double losVector[3];
-  vtkMath::Subtract(rendererCoords, cameraCoords, losVector);
+    // Get camera point
+    double cameraCoords[3];
+    vtkCamera *camera = this->Renderer->GetActiveCamera();
+    camera->GetPosition(cameraCoords);
 
-  // Set magnitude of vector's z coordinate to 1.0
-  vtkMath::MultiplyScalar(losVector, fabs(1.0/losVector[2]));
+    // Compute line-of-sight vector from camera to renderer point
+    double losVector[3];
+    vtkMath::Subtract(rendererCoords, cameraCoords, losVector);
 
-  // Project line-of-sight vector from camera to specified z
-  double deltaZ = cameraCoords[2] - z;
-  vtkMath::MultiplyScalar(losVector, deltaZ);
-  worldCoords[0] = cameraCoords[0] + losVector[0];
-  worldCoords[1] = cameraCoords[1] + losVector[1];
-  worldCoords[2] = z;
+    // Set magnitude of vector's z coordinate to 1.0
+    vtkMath::MultiplyScalar(losVector, fabs(1.0/losVector[2]));
+
+    // Project line-of-sight vector from camera to specified z
+    double deltaZ = cameraCoords[2] - z;
+    vtkMath::MultiplyScalar(losVector, deltaZ);
+    worldCoords[0] = cameraCoords[0] + losVector[0];
+    worldCoords[1] = cameraCoords[1] + losVector[1];
+    worldCoords[2] = z;
+    }
+  else
+    {
+    worldCoords[0] = rendererCoords[0];
+    worldCoords[1] = rendererCoords[1];
+    worldCoords[2] = z;
+    }
 }
 
 //----------------------------------------------------------------------------
