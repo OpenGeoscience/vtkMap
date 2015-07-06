@@ -131,9 +131,10 @@ int main(int argc, char *argv[])
   std::string inputFile;
   int clusteringOff = false;
   bool showHelp = false;
+  bool perspective = false;
   bool rubberBandSelection = false;
   bool singleThreaded = false;
-  int zoomLevel = -1;
+  int zoomLevel = 2;
   std::vector<double> centerLatLon;
   std::string tileExtension = "png";
   std::string tileServer;
@@ -156,6 +157,8 @@ int main(int argc, char *argv[])
                   &tileServer, "map-tile server (tile.openstreetmaps.org)");
   arg.AddArgument("-o", vtksys::CommandLineArguments::NO_ARGUMENT,
                   &clusteringOff, "turn clustering off");
+  arg.AddArgument("-p", vtksys::CommandLineArguments::NO_ARGUMENT,
+                  &perspective, "use perspective projection");
   arg.AddArgument("-r", vtksys::CommandLineArguments::NO_ARGUMENT,
                   &rubberBandSelection,
                   "set interactor to rubberband selection mode");
@@ -194,10 +197,13 @@ int main(int argc, char *argv[])
     map->SetVisibleBounds(latLngCoords);
     }
 
-  if (zoomLevel > 0)
-    {
-    map->SetZoom(zoomLevel);
-    }
+  map->SetPerspectiveProjection(perspective);
+
+  // Adjust zoom level to perspective vs orthographic projection
+  // Internally, perspective is zoomed in one extra level
+  // Do the same here for perspective.
+  zoomLevel += perspective ? 0 : 1;
+  map->SetZoom(zoomLevel);
 
   vtkOsmLayer *osmLayer;
   if (singleThreaded)

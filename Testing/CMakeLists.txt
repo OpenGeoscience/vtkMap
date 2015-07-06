@@ -6,7 +6,6 @@ set (TEST_NAMES
   TestMapClustering
   TestMultiThreadedOsmLayer
   TestOsmLayer
-  TestParallelProjection
   TestRasterReprojectionFilter
 )
 

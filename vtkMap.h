@@ -68,6 +68,14 @@ public:
   vtkInteractorStyle *GetInteractorStyle();
 
   // Description:
+  // Get/Set the camera model to use perspective projection.
+  // You must set this BEFORE calling Draw() for the first time.
+  // The default is off, which uses orthographic (parallel) projection.
+  vtkSetMacro(PerspectiveProjection, bool);
+  vtkGetMacro(PerspectiveProjection, bool);
+  vtkBooleanMacro(PerspectiveProjection, bool);
+
+  // Description:
   // Get/Set the detailing level
   vtkGetMacro(Zoom, int)
   vtkSetMacro(Zoom, int)
@@ -164,6 +172,9 @@ protected:
   // Description:
   // The interactor style used by the map
   vtkInteractorStyleGeoMap* InteractorStyle;
+
+  // Description:
+  bool PerspectiveProjection;
 
   // Description:
   // Set Zoom level, which determines the level of detailing
