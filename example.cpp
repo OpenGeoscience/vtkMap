@@ -34,10 +34,19 @@ public:
     {
       switch (event)
         {
-        case vtkInteractorStyleGeoMap::DisplayCompleteEvent:
+        case vtkInteractorStyleGeoMap::DisplayClickCompleteEvent:
           {
           double *latLonCoords = static_cast<double*>(data);
-          std::cout << "Selected coordinates: \n"
+          std::cout << "Point coordinates: \n"
+                    << "  " << latLonCoords[0] << ", " << latLonCoords[1]
+                    << std::endl;
+          }
+          break;
+
+        case vtkInteractorStyleGeoMap::DisplayDrawCompleteEvent:
+          {
+          double *latLonCoords = static_cast<double*>(data);
+          std::cout << "Rectangle coordinates: \n"
                     << "  " << latLonCoords[0] << ", " << latLonCoords[1]
                     << "\n  " << latLonCoords[2] << ", " << latLonCoords[3]
                     << std::endl;
@@ -132,6 +141,7 @@ int main(int argc, char *argv[])
   int clusteringOff = false;
   bool showHelp = false;
   bool perspective = false;
+  bool rubberBandDisplayOnly = false;
   bool rubberBandSelection = false;
   bool rubberBandZoom = false;
   bool singleThreaded = false;
@@ -150,6 +160,9 @@ int main(int argc, char *argv[])
                   &showHelp, "show help message");
   arg.AddArgument("-a", vtksys::CommandLineArguments::SPACE_ARGUMENT,
                   &tileServerAttribution, "map-tile server attribution");
+  arg.AddArgument("-d", vtksys::CommandLineArguments::NO_ARGUMENT,
+                  &rubberBandDisplayOnly,
+                  "set interactor to rubberband-draw mode");
   arg.AddArgument("-e", vtksys::CommandLineArguments::SPACE_ARGUMENT,
                   &tileExtension, "map-tile file extension (jpg, png, etc.)");
   arg.AddArgument("-c", vtksys::CommandLineArguments::MULTI_ARGUMENT,
@@ -236,7 +249,12 @@ int main(int argc, char *argv[])
   vtkInteractorStyle *style = map->GetInteractorStyle();
   vtkInteractorStyleGeoMap *mapStyle =
     vtkInteractorStyleGeoMap::SafeDownCast(style);
-  if (rubberBandSelection)
+
+  if (rubberBandDisplayOnly)
+    {
+    mapStyle->SetRubberBandModeToDisplayOnly();
+    }
+  else if (rubberBandSelection)
     {
     mapStyle->SetRubberBandModeToSelection();
     }
@@ -300,7 +318,9 @@ int main(int argc, char *argv[])
   // Set callbacks
   vtkNew<PickCallback> pickCallback;
   pickCallback->SetMap(map.GetPointer());
-  style->AddObserver(vtkInteractorStyleGeoMap::DisplayCompleteEvent,
+  style->AddObserver(vtkInteractorStyleGeoMap::DisplayClickCompleteEvent,
+                    pickCallback.GetPointer());
+  style->AddObserver(vtkInteractorStyleGeoMap::DisplayDrawCompleteEvent,
                     pickCallback.GetPointer());
   style->AddObserver(vtkInteractorStyleGeoMap::SelectionCompleteEvent,
                     pickCallback.GetPointer());

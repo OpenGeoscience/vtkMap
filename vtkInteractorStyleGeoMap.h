@@ -36,7 +36,8 @@ public:
   enum Commands
     {
     SelectionCompleteEvent = vtkCommand::UserEvent + 1,
-    DisplayCompleteEvent,
+    DisplayClickCompleteEvent,   // DisplayOnlyMode && mouse click
+    DisplayDrawCompleteEvent,    // DisplayOnlyMode && rectangle draw
     ZoomCompleteEvent
     };
 

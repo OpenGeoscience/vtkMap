@@ -238,8 +238,8 @@ void vtkInteractorStyleGeoMap::OnLeftButtonUp()
   // Display-only mode
   else if (this->RubberBandMode == vtkInteractorStyleGeoMap::DisplayOnlyMode)
     {
-    this->InvokeEvent(vtkInteractorStyleGeoMap::DisplayCompleteEvent,
-                      latLonCoords);
+    int command = moved ? DisplayDrawCompleteEvent : DisplayClickCompleteEvent;
+    this->InvokeEvent(command, latLonCoords);
     }
 
   // Selection mode
