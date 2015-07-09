@@ -464,7 +464,7 @@ void vtkInteractorStyleGeoMap::OnMouseWheelBackward()
         // That way, the zoom point remains stationary
         double losVector[3];  // line-of-sight vector, from camera to zoomCoords
         vtkMath::Subtract(cameraCoords, zoomCoords, losVector);
-        vtkMath::Add(zoomCoords, losVector, nextCameraCoords);  // HACK!
+        vtkMath::Add(cameraCoords, losVector, nextCameraCoords);
         nextCameraCoords[2] = camZ;
         camera->SetPosition(nextCameraCoords);
         }

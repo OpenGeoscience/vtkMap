@@ -169,6 +169,10 @@ int TestGDALRaster(int argc, char *argv[])
     colorTable->SetTableRange(range[0], range[1]);
     colorTable->SetValueRange(0.5, 0.5);
     colorTable->Build();
+
+    colorTable->SetBelowRangeColor(0.0, 0.0, 0.0, 0.0);
+    colorTable->UseBelowRangeColorOn();
+
     //std::cout << "Table " << colorTable->GetNumberOfTableValues()
     //          << " colors" << std::endl;
     prop->SetLookupTable(colorTable.GetPointer());
