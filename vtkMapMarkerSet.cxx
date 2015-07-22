@@ -163,6 +163,12 @@ vtkMapMarkerSet::~vtkMapMarkerSet()
 }
 
 //----------------------------------------------------------------------------
+void vtkMapMarkerSet::SetColor(double rgba[4])
+{
+  this->ColorTable->SetTableValue(0, rgba);
+}
+
+//----------------------------------------------------------------------------
 int vtkMapMarkerSet::GetNumberOfMarkers()
 {
   return this->Internals->NumberOfMarkers;

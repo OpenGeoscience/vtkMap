@@ -45,6 +45,10 @@ public:
   vtkGetMacro(ZCoord, double);
 
   // Description:
+  // Set/get the RGBA color assigned to the markers
+  void SetColor(double rgba[4]);
+
+  // Description:
   // Set/get whether to apply hierarchical clustering to map markers.
   // The default is off, and once turned on, behavior is undefined if
   // clustering is turned off.
