@@ -167,24 +167,27 @@ PickArea(vtkRenderer *renderer, int displayCoords[4],
       if (markerFeature)
         {
         markerCount++;
+        continue;
         }
-      else
+
+      vtkPolydataFeature *polyFeature = vtkPolydataFeature::SafeDownCast(feature);
+      if (polyFeature)
         {
-        // Not a raster feature, not a marker feature
-        // By default, check for cell ids
         this->PickPolyDataCells(
           prop, areaPicker->GetFrustum(), cellIdList.GetPointer());
         if (cellIdList->GetNumberOfIds() > 0)
           {
           selection->AddFeature(feature, cellIdList.GetPointer());
           }
-        else
-          {
-          selection->AddFeature(feature);
-          }
-        prop->PickableOff();
-        nonMarkerProps.insert(prop);
+        continue;
         }
+
+      // (else)
+      // Not a raster, marker, or polydata feature
+      // So call the default method
+      feature->PickItems(renderer, displayCoords, selection);
+      prop->PickableOff();
+      nonMarkerProps.insert(prop);
       }  // for (props)
 
     if (markerCount > 0)
