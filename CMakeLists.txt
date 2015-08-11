@@ -93,7 +93,8 @@ set (HEADERS
     vtkOsmLayer.h
     vtkPolydataFeature.h
     vtkRasterFeature.h
-    vtkRasterReprojectionFilter.cxx
+    vtkRasterReprojectionFilter.h
+    vtkTeardropSource.h
     ${CMAKE_CURRENT_BINARY_DIR}/vtkmap_export.h
     )
 
