@@ -129,6 +129,11 @@ public:
   // Also returns -1 for invalid display id.
   vtkIdType GetMarkerId(vtkIdType displayId);
 
+  // Description:
+  // For debug, writes out the set of cluster nodes
+  // ascending from given marker
+  void PrintClusterPath(ostream &os, int markerId);
+
  protected:
   vtkMapMarkerSet();
   ~vtkMapMarkerSet();

@@ -42,6 +42,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iostream>
+#include <iomanip>
 #include <vector>
 
 const int NumberOfClusterLevels = 20;
@@ -754,6 +756,35 @@ vtkIdType vtkMapMarkerSet::GetMarkerId(vtkIdType displayId)
 }
 
 //----------------------------------------------------------------------------
+void vtkMapMarkerSet:: PrintClusterPath(ostream &os, int markerId)
+{
+  // Gather up nodes in a list (bottom to top)
+  std::vector<ClusteringNode*> nodeList;
+  ClusteringNode *markerNode = this->Internals->MarkerNodes[markerId];
+  nodeList.push_back(markerNode);
+  ClusteringNode *parent = markerNode->Parent;
+  while (parent)
+    {
+    nodeList.push_back(parent);
+    parent = parent->Parent;
+    }
+
+  // Write the list top to bottom (reverse order)
+  os << "Level, NodeId, MarkerId, NumberOfVisibleMarkers" << '\n';
+  std::vector<ClusteringNode*>::reverse_iterator iter = nodeList.rbegin();
+  for (; iter != nodeList.rend(); ++iter)
+    {
+    ClusteringNode *node = *iter;
+    os << std::setw(2) << node->Level
+       << "  " << std::setw(5) << node->NodeId
+       << "  " << std::setw(5) << node->MarkerId
+       << "  " << std::setw(4) << node->NumberOfVisibleMarkers
+       << '\n';
+    }
+
+}
+
+//----------------------------------------------------------------------------
 double vtkMapMarkerSet::
 ComputeDistanceThreshold2(double latitude, double longitude,
                           int clusteringDistance) const
@@ -880,6 +911,7 @@ MergeNodes(ClusteringNode *node, ClusteringNode *mergingNode,
     node->gcsCoords[i] = numerator/denominator;
     }
   node->NumberOfMarkers = numMarkers;
+  node->NumberOfVisibleMarkers += mergingNode->NumberOfVisibleMarkers;
   node->MarkerId  = -1;
 
   // Update links to/from children of merging node
