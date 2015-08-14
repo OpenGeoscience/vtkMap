@@ -38,6 +38,16 @@ public:
 
   // Second std:: map for cluster components in map marker sets
   std::map<vtkFeature*, vtkIdList*> ClusterIdMap;
+
+  // Helper method to append one list to another
+  void AppendList(vtkIdList *source, vtkIdList *dest)
+  {
+    for (vtkIdType i=0; i<source->GetNumberOfIds(); ++i)
+      {
+      vtkIdType id = source->GetId(i);
+      dest->InsertNextId(id);
+      }
+  }
 };
 
 //-----------------------------------------------------------------------------
@@ -162,9 +172,22 @@ void vtkGeoMapSelection::AddFeature(vtkFeature *feature, vtkIdList *cellIds)
 {
   // For polydata features (which have cells)
   this->SelectedFeatures->AddItem(feature);
-  vtkIdList *idsCopy = vtkIdList::New();
-  idsCopy->DeepCopy(cellIds);
-  this->Internal->ComponentIdMap[feature] = idsCopy;
+  std::map<vtkFeature*, vtkIdList*>::iterator finder;
+
+  // Update cell id list
+  vtkIdList *idList = NULL;
+  finder = this->Internal->ComponentIdMap.find(feature);
+  if (finder == this->Internal->ComponentIdMap.end())
+    {
+    idList = vtkIdList::New();
+    idList->DeepCopy(cellIds);
+    this->Internal->ComponentIdMap[feature] = idList;
+    }
+  else
+    {
+    idList = finder->second;
+    this->Internal->AppendList(cellIds, idList);
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -173,12 +196,35 @@ AddFeature(vtkFeature *feature, vtkIdList *markerIds, vtkIdList *clusterIds)
 {
   // For map marker features, which have markers & clusters
   this->SelectedFeatures->AddItem(feature);
+  std::map<vtkFeature*, vtkIdList*>::iterator finder;
 
-  vtkIdList *markerIdsCopy = vtkIdList::New();
-  markerIdsCopy->DeepCopy(markerIds);
-  this->Internal->ComponentIdMap[feature] = markerIdsCopy;
+  // Update marker ids stored for this feature
+  vtkIdList *markerIdStore = NULL;
+  finder = this->Internal->ComponentIdMap.find(feature);
+  if (finder == this->Internal->ComponentIdMap.end())
+    {
+    markerIdStore = vtkIdList::New();
+    markerIdStore->DeepCopy(markerIds);
+    this->Internal->ComponentIdMap[feature] = markerIdStore;
+    }
+  else
+    {
+    markerIdStore = finder->second;
+    this->Internal->AppendList(markerIds, markerIdStore);
+    }
 
-  vtkIdList *clusterIdsCopy = vtkIdList::New();
-  clusterIdsCopy->DeepCopy(clusterIds);
-  this->Internal->ClusterIdMap[feature] = clusterIdsCopy;
+  // Update cluster ids stored for this feature
+  vtkIdList *clusterIdStore = NULL;
+  finder = this->Internal->ClusterIdMap.find(feature);
+  if (finder == this->Internal->ClusterIdMap.end())
+    {
+    clusterIdStore = vtkIdList::New();
+    clusterIdStore->DeepCopy(clusterIds);
+    this->Internal->ClusterIdMap[feature] = clusterIdStore;
+    }
+  else
+    {
+    clusterIdStore = finder->second;
+    this->Internal->AppendList(clusterIds, clusterIdStore);
+    }
 }
