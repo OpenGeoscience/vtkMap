@@ -567,7 +567,7 @@ void vtkMap::ComputeLatLngCoords(double displayCoords[2], double elevation,
   // Clip to "valid" coords
   latLngCoords[0] = vtkMercator::validLatitude(latitude);
   latLngCoords[1] = vtkMercator::validLongitude(longitude);
-  latLngCoords[3] = elevation;
+  latLngCoords[2] = elevation;
 }
 
 //----------------------------------------------------------------------------

@@ -351,7 +351,6 @@ void vtkGeoMapFeatureSelector::PickMarkers(
       vtkMapMarkerSet *markerFeature = vtkMapMarkerSet::SafeDownCast(feature);
       if (!markerFeature)
         {
-        vtkWarningMacro("feature is not a marker feature");
         continue;
         }
 

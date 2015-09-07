@@ -123,7 +123,7 @@ GetMapMarkerIds(vtkFeature *feature, vtkIdList *markerIdList,
 
   // Repeat for clusters
   iter = this->Internal->ClusterIdMap.find(feature);
-  if (iter != this->Internal->ComponentIdMap.end())
+  if (iter != this->Internal->ClusterIdMap.end())
     {
     clusterIdList->DeepCopy(iter->second);
     }
