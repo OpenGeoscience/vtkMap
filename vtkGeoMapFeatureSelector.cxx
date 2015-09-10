@@ -330,6 +330,12 @@ void vtkGeoMapFeatureSelector::PickMarkers(
   while (!done)
     {
     hwSelection = hwSelector->Select();
+    if (!hwSelection)  // null if grahpics < 24 bit
+      {
+      done = true;
+      break;
+      }
+    else if (hwSelection->GetNumberOfNodes() < 1)
     if (hwSelection->GetNumberOfNodes() < 1)
       {
       hwSelection->Delete();
