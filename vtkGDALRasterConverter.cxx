@@ -268,13 +268,6 @@ CopyToGDAL(vtkImageData *input, GDALDataset *output)
       StaticCopyToGDAL(vtkDABegin, vtkDAEnd, vtkDAValueType(), array, output));
     }
 
-  // Check for point visibility array
-  vtkUniformGrid *uniformGrid = vtkUniformGrid::SafeDownCast(input);
-  if (uniformGrid && uniformGrid->GetPointBlanking())
-    {
-    vtkDebugMacro("Apply Point Blanking");
-    }
-
   // Finis
   return true;
 }
