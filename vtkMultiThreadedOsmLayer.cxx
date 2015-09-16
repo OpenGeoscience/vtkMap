@@ -16,7 +16,7 @@
 #include "vtkMultiThreadedOsmLayer.h"
 #include "vtkMapTile.h"
 
-#include <vtkAtomicInt.h>
+#include <vtkAtomic.h>
 #include <vtkCallbackCommand.h>
 #include <vtkConditionVariable.h>
 #include <vtkMultiThreader.h>
@@ -45,11 +45,11 @@ public:
   int BackgroundThreadId;
   bool DownloadMode;  // sets RequestThreader behavior
 
-  vtkAtomicInt<vtkTypeInt32> ThreadingEnabled;
+  vtkAtomic<vtkTypeInt32> ThreadingEnabled;
   vtkConditionVariable *ThreadingCondition;
 
   std::stack<TileSpecList> ScheduledTiles;
-  vtkAtomicInt<vtkTypeInt32> ScheduledStackSize;
+  vtkAtomic<vtkTypeInt32> ScheduledStackSize;
   vtkMutexLock *ScheduledTilesLock;
 
   TileSpecList NewTiles;

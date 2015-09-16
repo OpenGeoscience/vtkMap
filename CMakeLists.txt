@@ -13,6 +13,7 @@ set (VTK_REQUIRED_COMPONENTS
     vtkFiltersTexture
     vtkInteractionStyle
     vtkIOGDAL
+    vtkIOGeoJSON
     vtkjsoncpp
     vtkRenderingCore
     vtkRenderingOpenGL
@@ -38,14 +39,6 @@ include(${VTK_USE_FILE})
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
 include(GenerateExportHeader)
-
-# Specify vtkDataSetReaders components
-# Main repo is https://github.com/OpenGeoscience/vtkDataSetReaders
-set(READERS_INCLUDE_DIRECTORY "" CACHE PATH "Location of vtkDataSetReaders header files")
-include_directories()
-set(READERS_LIB_DIRECTORY "" CACHE PATH "Location of vtkDataSetReaders library")
-set(READERS_LIBRARIES vtkDataSetReaders)
-link_directories(${READERS_LIB_DIRECTORY})
 
 # Specify GDAL components (used by vtkGDALRasterReprojection)
 find_package(GDAL REQUIRED)
@@ -105,7 +98,6 @@ add_library(vtkMap ${SOURCES})
 target_link_libraries(vtkMap
                       LINK_PUBLIC
                         ${VTK_LIBRARIES}
-                        ${READERS_LIBRARIES}
                       LINK_PRIVATE
                         ${CURL_LIBRARIES}
                         ${GDAL_LIBRARY}
@@ -117,7 +109,6 @@ target_include_directories(vtkMap
                            PRIVATE
                              ${CURL_INCLUDE_DIRS}
                              ${GDAL_INCLUDE_DIRS}
-                             ${READERS_INCLUDE_DIRECTORY}
                           )
 
 #setup export header
