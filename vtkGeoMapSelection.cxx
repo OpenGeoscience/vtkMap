@@ -171,20 +171,24 @@ void vtkGeoMapSelection::AddFeature(vtkFeature *feature)
 void vtkGeoMapSelection::AddFeature(vtkFeature *feature, vtkIdList *cellIds)
 {
   // For polydata features (which have cells)
-  this->SelectedFeatures->AddItem(feature);
+  // Find cellId list for this feature
   std::map<vtkFeature*, vtkIdList*>::iterator finder;
-
-  // Update cell id list
   vtkIdList *idList = NULL;
   finder = this->Internal->ComponentIdMap.find(feature);
   if (finder == this->Internal->ComponentIdMap.end())
     {
+    // Not found, so:
+    // * Update SelectedFeatures list
+    // * Instantiate cell-id list
+    this->SelectedFeatures->AddItem(feature);
     idList = vtkIdList::New();
     idList->DeepCopy(cellIds);
     this->Internal->ComponentIdMap[feature] = idList;
     }
   else
     {
+    // Update cell-id list
+    // Note this logic does NOT check for duplicate cell ids
     idList = finder->second;
     this->Internal->AppendList(cellIds, idList);
     }
