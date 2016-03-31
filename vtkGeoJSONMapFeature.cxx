@@ -53,7 +53,7 @@ void vtkGeoJSONMapFeature::Init()
 {
   // Parse InputString to generate vtkPolyData
   vtkNew<vtkGeoJSONReader> reader;
-  reader->SetInputModeToString();
+  reader->StringInputModeOn();
   reader->SetStringInput(this->InputString);
   reader->TriangulatePolygonsOn();
   reader->Update();

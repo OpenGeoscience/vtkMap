@@ -6,8 +6,9 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 option(BUILD_SHARED_LIBS "Build vtkMap with shared libraries" ON)
 
-
 # Specify VTK components
+set (VTK_RENDERING_BACKEND "OpenGL2"
+     CACHE STRING "Specify OpenGL2 (default) or OpenGL (legacy)")
 set (VTK_REQUIRED_COMPONENTS
     vtkCommonCore
     vtkFiltersTexture
@@ -16,7 +17,7 @@ set (VTK_REQUIRED_COMPONENTS
     vtkIOGeoJSON
     vtkjsoncpp
     vtkRenderingCore
-    vtkRenderingOpenGL
+    vtkRendering${VTK_RENDERING_BACKEND}
 
     # For testing:
     vtkIOXML
@@ -133,6 +134,10 @@ install(TARGETS vtkMap
         ARCHIVE DESTINATION lib
         )
 install (FILES ${HEADERS} DESTINATION include)
+
+# Unset flags for executables that are built downstream
+set(CMAKE_CXX_VISIBILITY_PRESET)
+set(CMAKE_VISIBILITY_INLINES_HIDDEN)
 
 #example does not need to installed
 add_executable(example example.cpp)
