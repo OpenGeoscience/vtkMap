@@ -431,9 +431,11 @@ bool vtkMapMarkerSet::SetMarkerSelection(int markerId, bool selected)
     return false;
     }
 
+  ClusteringNode *node = this->Internals->MarkerNodes[markerId];
+  node->NumberOfSelectedMarkers = selected ? 1 : 0;
+
   // Recursively update ancestor ClusteringNoe instances
   int delta = selected ? 1 : -1;
-  ClusteringNode *node = this->Internals->MarkerNodes[markerId];
   ClusteringNode *parent = node->Parent;
   while (parent)
     {
