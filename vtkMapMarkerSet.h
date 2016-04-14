@@ -49,6 +49,15 @@ public:
   void SetColor(double rgba[4]);
 
   // Description:
+  // Set/get the Z offset value, in world coordinates, assigned
+  // to each marker in the current selected set.
+  // This can be used to prevent selected markers from being
+  // obscured by other (non-selected) markers.
+  // The default is 0.0
+  vtkSetMacro(SelectedZOffset, double);
+  vtkGetMacro(SelectedZOffset, double);
+
+  // Description:
   // Set/get whether to apply hierarchical clustering to map markers.
   // The default is off, and once turned on, behavior is undefined if
   // clustering is turned off.
@@ -141,6 +150,10 @@ public:
   // Description:
   // Z Coordinate of this map feature
   double ZCoord;
+
+  // Description:
+  // Offset to apply to Z coordinate of markers in the selected state
+  double SelectedZOffset;
 
   // Description:
   // Indicates that internal logic & pipeline have been initialized

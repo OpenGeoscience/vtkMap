@@ -671,7 +671,14 @@ void vtkMapMarkerSet::Update()
   for (iter = nodeSet.begin(); iter != nodeSet.end(); iter++)
     {
     ClusteringNode *node = *iter;
-    points->InsertNextPoint(node->gcsCoords);
+    if (!node->NumberOfVisibleMarkers)
+      {
+      continue;
+      }
+
+    double z = node->gcsCoords[2] +
+      (node->NumberOfSelectedMarkers ? this->SelectedZOffset : 0.0);
+    points->InsertNextPoint(node->gcsCoords[0], node->gcsCoords[1], z);
     this->Internals->CurrentNodes.push_back(node);
     if (node->NumberOfMarkers == 1)  // point marker
       {
