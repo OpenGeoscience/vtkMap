@@ -89,6 +89,10 @@ public:
   vtkIdType AddMarker(double latitude, double longitude);
 
   // Description:
+  // Remove marker from map, returns boolean indicating success
+  bool DeleteMarker(vtkIdType markerId);
+
+  // Description:
   // Set marker visibility
   // Note that you MUST REDRAW after changing visibility
   bool SetMarkerVisibility(int markerId, bool visible);

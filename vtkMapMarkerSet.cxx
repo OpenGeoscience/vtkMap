@@ -380,6 +380,76 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
 }
 
 //----------------------------------------------------------------------------
+bool vtkMapMarkerSet::DeleteMarker(vtkIdType markerId)
+{
+  ClusteringNode *markerNode = this->Internals->MarkerNodes[markerId];
+
+  // Check if marker has already been removed
+  if (!markerNode)
+    {
+    return true;
+    }
+
+  // Recursively update ancestors (ClusteringNode instances)
+  int deltaVisible = this->Internals->MarkerVisible[markerId] ? 1 : 0;
+  int deltaSelected = this->Internals->MarkerSelected[markerId] ? 1 : 0;
+  ClusteringNode *node = markerNode;
+  ClusteringNode *parent = node->Parent;
+  while (parent)
+    {
+    // Erase node if it is empty
+    if (node->NumberOfMarkers < 1)
+      {
+      vtkDebugMacro("Deleting node " << node->NodeId << " level " << node->Level);
+      parent->Children.erase(node);
+      int level = node->Level;
+      std::set<ClusteringNode*> nodeSet = this->Internals->NodeTable[level];
+      nodeSet.erase(node);
+      this->Internals->NodeTable[level] = nodeSet;
+      delete node;
+      }
+
+    if (parent->NumberOfMarkers > 1)
+      {
+      // Update gcsCoords
+      double denom = static_cast<double>(parent->NumberOfMarkers - 1);
+      for (int i=0; i<3; ++i)
+        {
+        double num = (parent->NumberOfMarkers * parent->gcsCoords[i]) -
+          markerNode->gcsCoords[i];
+        parent->gcsCoords[i] = num / denom;
+        }
+      }
+
+    parent->NumberOfMarkers -= 1;
+    if (parent->NumberOfMarkers == 1)
+      {
+      // Get MarkerId from remaining node
+      std::set<ClusteringNode*>::iterator iter = parent->Children.begin();
+      ClusteringNode *extantNode = *iter;
+      parent->MarkerId = extantNode->MarkerId;
+      }
+    parent->NumberOfVisibleMarkers -= deltaVisible;
+    parent->NumberOfSelectedMarkers -= deltaSelected;
+
+    // Setup next iteration
+    node = parent;
+    parent = parent->Parent;
+    }
+
+  // Update Internals and delete marker itself
+  this->Internals->NumberOfMarkers -= 1;
+  this->Internals->AllNodes[markerId] = 0;
+  this->Internals->MarkerNodes[markerId] = 0;
+
+  vtkDebugMacro("Deleting marker " << markerNode->NodeId);
+  delete markerNode;
+
+  this->Internals->MarkersChanged = true;
+  return true;
+}
+
+//----------------------------------------------------------------------------
 bool vtkMapMarkerSet::SetMarkerVisibility(int markerId, bool visible)
 {
   // std::cout << "Set marker id " << markerId
@@ -396,9 +466,16 @@ bool vtkMapMarkerSet::SetMarkerVisibility(int markerId, bool visible)
     return false;
     }
 
+  // Check that node wasn't deleted
+  ClusteringNode *node = this->Internals->MarkerNodes[markerId];
+  if (!node)
+    {
+    std::cerr << "WARNING: Marker " << markerId << " was deleted" << std::endl;
+    return false;
+    }
+
   // Recursively update ancestor ClusteringNode instances
   int delta = visible ? 1 : -1;
-  ClusteringNode *node = this->Internals->MarkerNodes[markerId];
   ClusteringNode *parent = node->Parent;
   while (parent)
     {
@@ -432,6 +509,12 @@ bool vtkMapMarkerSet::SetMarkerSelection(int markerId, bool selected)
     }
 
   ClusteringNode *node = this->Internals->MarkerNodes[markerId];
+  if (!node)
+    {
+    std::cerr << "WARNING: Marker " << markerId << " was deleted" << std::endl;
+    return false;
+    }
+
   node->NumberOfSelectedMarkers = selected ? 1 : 0;
 
   // Recursively update ancestor ClusteringNoe instances
@@ -460,7 +543,13 @@ GetClusterChildren(vtkIdType clusterId, vtkIdList *childMarkerIds,
     return;
     }
 
+  // Check if node has been deleted
   ClusteringNode *node = this->Internals->AllNodes[clusterId];
+  if (!node)
+    {
+    return;
+    }
+
   std::set<ClusteringNode*>::iterator childIter = node->Children.begin();
   for (; childIter != node->Children.end(); childIter++)
     {
@@ -482,7 +571,13 @@ GetAllMarkerIds(vtkIdType clusterId, vtkIdList *markerIds)
 {
   markerIds->Reset();
   // Check if input id is marker
-  if (this->Internals->AllNodes[clusterId]->NumberOfMarkers == 1)
+  ClusteringNode *node = this->Internals->AllNodes[clusterId];
+  if (!node)
+    {
+    return;
+    }
+
+  if (node->NumberOfMarkers == 1)
     {
     markerIds->InsertNextId(clusterId);
     return;
@@ -770,6 +865,12 @@ void vtkMapMarkerSet:: PrintClusterPath(ostream &os, int markerId)
   // Gather up nodes in a list (bottom to top)
   std::vector<ClusteringNode*> nodeList;
   ClusteringNode *markerNode = this->Internals->MarkerNodes[markerId];
+  if (!markerNode)
+    {
+    std::cerr << "WARNING: Marker " << markerId << " was deleted" << std::endl;
+    return;
+    }
+
   nodeList.push_back(markerNode);
   ClusteringNode *parent = markerNode->Parent;
   while (parent)

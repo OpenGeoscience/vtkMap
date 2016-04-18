@@ -46,6 +46,7 @@ int main(int argc, char* argv[])
  // Setup command line arguments
   std::string inputFile;
   int clusteringOff = false;
+  bool debugMode = false;
   bool showHelp = false;
   int zoomLevel = 10;
   std::vector<double> centerLatLon;
@@ -59,6 +60,8 @@ int main(int argc, char* argv[])
                   &showHelp, "show help message");
   arg.AddArgument("-c", vtksys::CommandLineArguments::MULTI_ARGUMENT,
                   &centerLatLon, "initial center (latitude longitude)");
+  arg.AddArgument("-d", vtksys::CommandLineArguments::NO_ARGUMENT,
+                  &debugMode, "sets vtkMapMarkerSet::DebugOn()");
   arg.AddArgument("-i", vtksys::CommandLineArguments::SPACE_ARGUMENT,
                   &inputFile, "input file with \"latitude, longitude\" pairs");
   arg.AddArgument("-o", vtksys::CommandLineArguments::NO_ARGUMENT,
@@ -143,6 +146,7 @@ int main(int argc, char* argv[])
     }
 
   vtkNew<vtkMapMarkerSet> markerSet;
+  markerSet->SetDebug(debugMode);
   bool clusteringOn = !clusteringOff;
   markerSet->SetClustering(clusteringOn);
   featureLayer->AddFeature(markerSet.GetPointer());
