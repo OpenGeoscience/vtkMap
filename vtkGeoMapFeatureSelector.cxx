@@ -21,6 +21,7 @@
 
 #include <vtkAbstractArray.h>
 #include <vtkActor.h>
+#include <vtkAreaPicker.h>
 #include <vtkCellData.h>
 #include <vtkExtractSelectedFrustum.h>
 #include <vtkHardwareSelector.h>
@@ -34,7 +35,6 @@
 #include <vtkPolyData.h>
 #include <vtkProp.h>
 #include <vtkProp3DCollection.h>
-#include <vtkRenderedAreaPicker.h>
 #include <vtkRenderWindow.h>
 #include <vtkSelection.h>
 #include <vtkSelectionNode.h>
@@ -119,7 +119,7 @@ PickArea(vtkRenderer *renderer, int displayCoords[4],
   selection->Clear();
 
   // Use rendered-area picker to minimize hits on marker features
-  vtkNew<vtkRenderedAreaPicker> areaPicker;
+  vtkNew<vtkAreaPicker> areaPicker;
   int result = areaPicker->AreaPick(
     displayCoords[0], displayCoords[1],
     displayCoords[2], displayCoords[3],
