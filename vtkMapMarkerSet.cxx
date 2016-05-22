@@ -474,6 +474,8 @@ bool vtkMapMarkerSet::SetMarkerVisibility(int markerId, bool visible)
     return false;
     }
 
+  // Update marker's node
+  node->NumberOfVisibleMarkers = visible ? 1 : 0;
   // Recursively update ancestor ClusteringNode instances
   int delta = visible ? 1 : -1;
   ClusteringNode *parent = node->Parent;
