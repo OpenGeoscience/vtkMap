@@ -79,11 +79,11 @@ GetPolyDataCellIds(vtkFeature *feature, vtkIdList *idList) const
   idList->Reset();
 
   // Skip feature types that we know don't apply
-  if (feature->GetClassName() == "vtkMapMarkerSet")
+  if (feature->IsA("vtkMapMarkerSet"))
     {
     return false;
     }
-  if (feature->GetClassName() == "vtkRasterFeature")
+  if (feature->IsA("vtkRasterFeature"))
     {
     return false;
     }

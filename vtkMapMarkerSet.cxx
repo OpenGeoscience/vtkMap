@@ -98,6 +98,7 @@ vtkMapMarkerSet::vtkMapMarkerSet() : vtkPolydataFeature()
 {
   this->Initialized = false;
   this->ZCoord = 0.1;
+  this->SelectedZOffset = 0.0;
   this->PolyData = vtkPolyData::New();
   this->Clustering = false;
   this->ClusterDistance = 80;
