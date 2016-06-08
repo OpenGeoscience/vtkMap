@@ -105,6 +105,9 @@ void vtkFeatureLayer::RemoveFeature(vtkFeature* feature)
     return;
     }
 
+  // Notify the map first
+  this->Map->ReleaseFeature(feature);
+
   feature->CleanUp();
   typedef std::vector< vtkFeature* >::iterator iter;
   iter found_iter =  std::find(this->Impl->Features.begin(),
@@ -116,9 +119,6 @@ void vtkFeatureLayer::RemoveFeature(vtkFeature* feature)
   //now resize the array to not hold the empty feature
   this->Impl->Features.erase( std::remove(this->Impl->Features.begin(),
                               this->Impl->Features.end(), feature ));
-
-  // Notify the map
-  this->Map->FeatureRemoved(feature);
 }
 
 //----------------------------------------------------------------------------

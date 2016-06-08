@@ -122,7 +122,7 @@ public:
   // Description:
   // Update internal logic when feature is removed.
   // This method should only be called by vtkFeatureLayer
-  void FeatureRemoved(vtkFeature *feature);
+  void ReleaseFeature(vtkFeature *feature);
 
   // Description:
   // Returns map features at specified display coordinates

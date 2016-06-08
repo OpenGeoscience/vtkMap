@@ -539,7 +539,7 @@ void vtkMap::FeatureAdded(vtkFeature *feature)
 }
 
 //----------------------------------------------------------------------------
-void vtkMap::FeatureRemoved(vtkFeature *feature)
+void vtkMap::ReleaseFeature(vtkFeature *feature)
 {
   this->FeatureSelector->RemoveFeature(feature);
 }
