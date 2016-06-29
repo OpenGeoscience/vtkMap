@@ -115,8 +115,8 @@ void vtkInteractorStyleGeoMap::OnLeftButtonDown()
 
     colorArray->SetNumberOfComponents(4);
     colorArray->SetName("Colors");
-    colorArray->InsertNextTupleValue(this->EdgeColor);
-    colorArray->InsertNextTupleValue(this->OverlayColor);
+    colorArray->InsertNextTypedTuple(this->EdgeColor);
+    colorArray->InsertNextTypedTuple(this->OverlayColor);
 
     PD->GetCellData()->SetScalars(colorArray);
     PD->SetPoints(this->RubberBandPoints);

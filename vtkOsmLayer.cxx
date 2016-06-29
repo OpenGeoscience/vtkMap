@@ -412,45 +412,23 @@ InitializeTiles(std::vector<vtkMapTile*>& tiles,
   tileSpecs.clear();
 }
 
-
 //----------------------------------------------------------------------------
 // Updates display to incorporate all new tiles
 void vtkOsmLayer::RenderTiles(std::vector<vtkMapTile*>& tiles)
 {
   if (tiles.size() > 0)
     {
-    // Remove the old tiles first
+    // Remove old tiles
     std::vector<vtkMapTile*>::iterator itr = this->CachedTiles.begin();
     for (; itr != this->CachedTiles.end(); ++itr)
       {
       this->Renderer->RemoveActor((*itr)->GetActor());
       }
 
-    vtkPropCollection* props = this->Renderer->GetViewProps();
-
-    props->InitTraversal();
-    vtkProp* prop = props->GetNextProp();
-    std::vector<vtkProp*> otherProps;
-    while (prop)
-      {
-      otherProps.push_back(prop);
-      prop = props->GetNextProp();
-      }
-
-    this->Renderer->RemoveAllViewProps();
-
-    std::sort(tiles.begin(), tiles.end(), sortTiles());
+    // Add new tiles
     for (std::size_t i = 0; i < tiles.size(); ++i)
       {
-      // Add tile to the renderer
       this->Renderer->AddActor(tiles[i]->GetActor());
-      }
-
-    std::vector<vtkProp*>::iterator itr2 = otherProps.begin();
-    while (itr2 != otherProps.end())
-      {
-      this->Renderer->AddViewProp(*itr2);
-      ++itr2;
       }
 
     tiles.clear();
