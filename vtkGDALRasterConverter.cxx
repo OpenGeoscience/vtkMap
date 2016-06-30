@@ -19,7 +19,9 @@
 #include <vtkDataArrayIteratorMacro.h>
 #include <vtkDoubleArray.h>
 #include <vtkImageData.h>
+#include <vtkLookupTable.h>
 #include <vtkMath.h>
+#include <vtkNew.h>
 #include <vtkObjectFactory.h>
 #include <vtkPointData.h>
 #include <vtkUniformGrid.h>
@@ -119,6 +121,56 @@ CopyToVTK(GDALDataset *dataset,
         }
       }
 
+    // Check for color table
+    if (band->GetColorInterpretation() == GCI_PaletteIndex)
+      {
+      GDALColorTable *gdalTable = band->GetColorTable();
+      if (gdalTable->GetPaletteInterpretation() != GPI_RGB)
+        {
+        std::cerr << "Color table palette type not supported "
+                  << gdalTable->GetPaletteInterpretation() << std::endl;
+        continue;
+        }
+
+      vtkNew<vtkLookupTable> colorTable;
+      char **categoryNames = band->GetCategoryNames();
+
+      colorTable->IndexedLookupOn();
+      int numEntries = gdalTable->GetColorEntryCount();
+      colorTable->SetNumberOfTableValues(numEntries);
+      std::stringstream ss;
+      for (int i=0; i< numEntries; ++i)
+        {
+        const GDALColorEntry *gdalEntry = gdalTable->GetColorEntry(i);
+        double r = static_cast<double>(gdalEntry->c1) / 255.0;
+        double g = static_cast<double>(gdalEntry->c2) / 255.0;
+        double b = static_cast<double>(gdalEntry->c3) / 255.0;
+        double a = static_cast<double>(gdalEntry->c4) / 255.0;
+        colorTable->SetTableValue(i, r, g, b, a);
+
+        // Copy category name to lookup table annotation
+        if (categoryNames)
+          {
+          // Only use non-empty names
+          if (strlen(categoryNames[i]) > 0)
+            {
+            colorTable->SetAnnotation(vtkVariant(i), categoryNames[i]);
+            }
+          }
+        else
+          {
+          // Create default annotation
+          ss.str("");
+          ss.clear();
+          ss << "Category " << i;
+          colorTable->SetAnnotation(vtkVariant(i), ss.str());
+          }
+        }
+
+      //colorTable->Print(std::cout);
+      array->SetLookupTable(colorTable.GetPointer());
+      }
+
     }
   delete [] buffer;
 }
@@ -153,6 +205,26 @@ template<class Iterator, typename VTK_TYPE>
 void StaticCopyToGDAL(Iterator begin, Iterator end, VTK_TYPE typeVar,
                 vtkDataArray *vtkData, GDALDataset *gdalData)
 {
+  // If data includes a lookup table, copy that
+  GDALColorTable *gdalColorTable = NULL;
+  vtkLookupTable *inputColorTable = vtkData->GetLookupTable();
+  if (inputColorTable)
+    {
+    gdalColorTable = new GDALColorTable;
+    vtkIdType tableSize = inputColorTable->GetNumberOfTableValues();
+    double inputColor[4] = {0.0, 0.0, 0.0, 1.0};
+    GDALColorEntry gdalColor;
+    for (vtkIdType i = 0; i<tableSize; ++i)
+      {
+      inputColorTable->GetTableValue(i, inputColor);
+      gdalColor.c1 = static_cast<short>(inputColor[0] * 255.0);
+      gdalColor.c2 = static_cast<short>(inputColor[1] * 255.0);
+      gdalColor.c3 = static_cast<short>(inputColor[2] * 255.0);
+      gdalColor.c4 = static_cast<short>(inputColor[3] * 255.0);
+      gdalColorTable->SetColorEntry(i, &gdalColor);
+      }
+    }
+
   // Create local buffer
   int stride = vtkData->GetNumberOfComponents();
   int numElements = vtkData->GetNumberOfTuples();
@@ -164,6 +236,11 @@ void StaticCopyToGDAL(Iterator begin, Iterator end, VTK_TYPE typeVar,
   for (int i=0; i<stride; i++)
     {
     GDALRasterBand *band = gdalData->GetRasterBand(i+1);
+    if (gdalColorTable)
+      {
+      band->SetColorTable(gdalColorTable);
+      band->SetColorInterpretation(GCI_PaletteIndex);
+      }
 
     // Copy from iterator to buffer
     Iterator iter = begin;
@@ -201,6 +278,7 @@ void StaticCopyToGDAL(Iterator begin, Iterator end, VTK_TYPE typeVar,
                                 xSize, ySize, gdalDataType, 0, 0);
     }
 
+  delete gdalColorTable;
   delete [] buffer;
 }
 
@@ -388,6 +466,28 @@ CreateGDALDataset(int xDim, int yDim, int vtkDataType, int numberOfBands)
   GDALDataset *dataset = driver->Create("", xDim, yDim, numberOfBands,
                                         gdalType, NULL);
   return dataset;
+}
+
+//----------------------------------------------------------------------------
+void vtkGDALRasterConverter::
+CopyBandInfo(GDALDataset *src, GDALDataset *dest)
+{
+  // Copy color interpretation and color table info
+  int numSrcBands = src->GetRasterCount();
+  for (int i=0; i<numSrcBands; i++)
+    {
+    int index = i+1;
+    GDALRasterBand *srcBand = src->GetRasterBand(index);
+    GDALRasterBand *destBand = dest->GetRasterBand(index);
+    destBand->SetColorInterpretation(srcBand->GetColorInterpretation());
+
+    GDALColorTable *colorTable = srcBand->GetColorTable();
+    if (colorTable)
+      {
+      destBand->SetColorTable(colorTable);
+      }
+    }
+
 }
 
 //----------------------------------------------------------------------------

@@ -51,6 +51,10 @@ public:
   // using GDALClose().
   GDALDataset *CreateGDALDataset(vtkImageData *data, const char *mapProjection);
 
+  // Description:
+  // Copies color interpretation and color tables
+  void CopyBandInfo(GDALDataset *src, GDALDataset *dest);
+
   // Description
   // Create vtkUniformGrid to match GDALDataset.
   // The calling code must call the Delete() method

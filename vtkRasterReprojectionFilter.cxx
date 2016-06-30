@@ -190,6 +190,7 @@ RequestData(vtkInformation * vtkNotUsed(request),
   GDALDataset *outputGDAL =
     this->Internal->GDALConverter->CreateGDALDataset(this->OutputDimensions[0],
       this->OutputDimensions[1], vtkDataType, rasterCount);
+  this->Internal->GDALConverter->CopyBandInfo(inputGDAL, outputGDAL);
   this->Internal->GDALConverter->SetGDALProjection(
     outputGDAL, this->OutputProjection);
   outputGDAL->SetGeoTransform(this->Internal->OutputImageGeoTransform);

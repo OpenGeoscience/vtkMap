@@ -27,6 +27,7 @@
 #include <vtkLookupTable.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
+#include <vtkPointData.h>
 #include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
@@ -141,6 +142,9 @@ int TestGDALRaster(int argc, char *argv[])
   feature->GetActor()->GetProperty()->SetOpacity(0.5);
   featureLayer->AddFeature(feature.GetPointer());
 
+  vtkLookupTable *colorTable =
+    image->GetPointData()->GetScalars()->GetLookupTable();
+
   // Setup color mapping
   vtkImageProperty *prop = feature->GetActor()->GetProperty();
   double window = range[1] - range[0];
@@ -162,20 +166,26 @@ int TestGDALRaster(int argc, char *argv[])
     //colorFunction->Print(std::cout);
     prop->SetLookupTable(colorFunction.GetPointer());
     }
+  else if (colorTable)
+    {
+    colorTable->SetBelowRangeColor(0.0, 0.0, 0.0, 0.0);
+    colorTable->UseBelowRangeColorOn();
+    prop->SetLookupTable(colorTable);
+    }
   else
     {
     std::cout << "Using default color lookup table" << std::endl;
-    vtkNew<vtkLookupTable> colorTable;
-    colorTable->SetTableRange(range[0], range[1]);
-    colorTable->SetValueRange(0.5, 0.5);
-    colorTable->Build();
+    vtkNew<vtkLookupTable> defaultColorTable;
+    defaultColorTable->SetTableRange(range[0], range[1]);
+    defaultColorTable->SetValueRange(0.5, 0.5);
+    defaultColorTable->Build();
 
-    colorTable->SetBelowRangeColor(0.0, 0.0, 0.0, 0.0);
-    colorTable->UseBelowRangeColorOn();
+    defaultColorTable->SetBelowRangeColor(0.0, 0.0, 0.0, 0.0);
+    defaultColorTable->UseBelowRangeColorOn();
 
-    //std::cout << "Table " << colorTable->GetNumberOfTableValues()
+    //std::cout << "Table " << defaultColorTable->GetNumberOfTableValues()
     //          << " colors" << std::endl;
-    prop->SetLookupTable(colorTable.GetPointer());
+    prop->SetLookupTable(defaultColorTable.GetPointer());
     }
 
   // Set up display
