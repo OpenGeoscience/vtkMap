@@ -18,6 +18,7 @@
 #include <vtkObjectFactory.h>
 
 // GDAL Includes
+#undef LT_OBJDIR // fixes compiler warning (collision w/vtkIOStream.h)
 #include <gdal_alg.h>
 #include <gdal_priv.h>
 #include <gdalwarper.h>
@@ -109,8 +110,33 @@ Reproject(GDALDataset *input, GDALDataset *output)
     case 6:  algorithm = GRA_Mode;             break;
     }
 
-  GDALReprojectImage(input, input->GetProjectionRef(),
-                     output, output->GetProjectionRef(),
-                     algorithm, 0, this->MaxError, NULL, NULL, NULL);
+  GDALProgressFunc progressFcn = GDALTermProgress;
+  void *progressArg = NULL;
+  double memoryLimit = 0.0;  // use default
+  GDALWarpOptions *warpOptions = GDALCreateWarpOptions();
+
+  warpOptions->hSrcDS = input;
+  warpOptions->hDstDS = output;
+  warpOptions->nBandCount = 0;  // all bands
+  warpOptions->pfnProgress = GDALTermProgress;
+
+  warpOptions->pTransformerArg = GDALCreateGenImgProjTransformer(
+    input, GDALGetProjectionRef(input),
+    output, GDALGetProjectionRef(output),
+    false, 0.0, 1);
+  warpOptions->pfnTransformer = GDALGenImgProjTransform;
+
+  // Set multithreaded option, even though it does not seem to work
+  char **stringWarpOptions = NULL;
+  stringWarpOptions = CSLSetNameValue(
+    stringWarpOptions, "NUM_THREADS", "ALL_CPUS");
+  warpOptions->papszWarpOptions = stringWarpOptions;
+
+  CPLErr err = GDALReprojectImage(
+    input, input->GetProjectionRef(),
+    output, output->GetProjectionRef(),
+    algorithm, memoryLimit, this->MaxError, progressFcn, progressArg, warpOptions);
+  //std::cout << "warp returned: " << err << std::endl;
+
   return true;
 }

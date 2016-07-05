@@ -27,12 +27,19 @@
 #include <vtkUniformGrid.h>
 
 // GDAL includes
+#undef LT_OBJDIR // fixes compiler warning (collision w/vtkIOStream.h)
 #include <gdal_priv.h>
 #include <ogr_spatialref.h>
 
 // STD includes
 #include <iostream>
 #include <sstream>
+
+// Preprocessor directive enable/disable row inversion (y-flip)
+// Although vtkImageData and GDALDataset have different origin position,
+// reprojection of NLCD imagery only "works" if row inversion is not
+// applied when converting between formats.
+#define INVERT_ROWS 0
 
 vtkStandardNewMacro(vtkGDALRasterConverter)
 
@@ -104,10 +111,14 @@ CopyToVTK(GDALDataset *dataset,
     // Traverse by gdal row & column to make y-inversion easier
     for (int row=0, index=0; row < ySize; row++)
       {
+#if INVERT_ROWS
       // GDAL data starts at top-left, vtk at bottom-left
       // So need to invert in the y direction
-      int invertedRow = ySize - row - 1;
-      int offset = invertedRow * xSize;
+      int targetRow = ySize - row - 1;
+#else
+      int targetRow = row;
+#endif
+      int offset = targetRow * xSize;
       for (int col=0; col < xSize; col++)
         {
         array->SetComponent(offset + col, i, buffer[index]);
@@ -255,10 +266,14 @@ void StaticCopyToGDAL(Iterator begin, Iterator end, VTK_TYPE typeVar,
     // Traverse by gdal row & column to make inversion easier
     for (int row=0; row < ySize; row++)
       {
+#if INVERT_ROWS
       // GDAL data starts at top-left, vtk at bottom-left
       // So need to invert in the y direction
-      int invertedRow = ySize - row - 1;
-      int offset = invertedRow * xSize;
+      int targetRow = ySize - row - 1;
+#else
+      int targetRow = row;
+#endif
+      int offset = targetRow * xSize;
       for (int col=0; col < xSize; col++)
         {
         buffer[offset + col] = *iter;

@@ -168,6 +168,7 @@ int TestGDALRaster(int argc, char *argv[])
     }
   else if (colorTable)
     {
+    colorTable->SetTableValue(0, 0.0, 0.0, 0.0, 0.0);
     colorTable->SetBelowRangeColor(0.0, 0.0, 0.0, 0.0);
     colorTable->UseBelowRangeColorOn();
     prop->SetLookupTable(colorTable);

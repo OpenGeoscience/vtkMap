@@ -31,7 +31,9 @@
 #include <vtkStreamingDemandDrivenPipeline.h>
 #include <vtkUniformGrid.h>
 #include <vtkXMLImageDataWriter.h>
+
 // GDAL includes
+#undef LT_OBJDIR // fixes compiler warning (collision w/vtkIOStream.h)
 #include <gdal_priv.h>
 
 // std includes

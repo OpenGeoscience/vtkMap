@@ -24,6 +24,7 @@
 #include <vtkUniformGrid.h>
 #include <vtkXMLImageDataWriter.h>
 
+#undef LT_OBJDIR // fixes compiler warning (collision w/vtkIOStream.h)
 #include <gdal_priv.h>
 
 #include <iostream>
