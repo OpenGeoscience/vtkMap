@@ -386,8 +386,8 @@ InitializeTiles(std::vector<vtkMapTile*>& tiles,
     // Set the image key
     oss.str("");
     oss << spec.ZoomRowCol[0]
-        << spec.ZoomRowCol[1]
-        << spec.ZoomRowCol[2]
+        << "-" << spec.ZoomRowCol[1]
+        << "-" << spec.ZoomRowCol[2]
         << "." << this->MapTileExtension;
     tile->SetImageKey(oss.str());
 
