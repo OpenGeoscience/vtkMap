@@ -160,7 +160,9 @@ void vtkMapTile::InitializeDownload(const char *cacheDirectory)
   // If not, download
   while(!this->IsImageDownloaded(this->ImageFile.c_str()))
     {
-    std::cerr << "Downloading " << this->ImageSource.c_str() << std::endl;
+    std::cerr << "Downloading " << this->ImageSource.c_str()
+              << " to " << this->ImageFile
+              << std::endl;
     this->DownloadImage(this->ImageSource.c_str(), this->ImageFile.c_str());
     }
 }

@@ -28,6 +28,7 @@
 #include <vtkRenderer.h>
 
 #include <map>
+#include <sstream>
 #include <vector>
 
 class vtkTextActor;
@@ -79,6 +80,12 @@ protected:
 
   void AddTileToCache(int zoom, int x, int y, vtkMapTile* tile);
   vtkMapTile* GetCachedTile(int zoom, int x, int y);
+
+  // Construct paths for local & remote tile access
+  // A stringstream is passed in for performance reasons
+  void MakeFileSystemPath(
+    vtkMapTileSpecInternal& tileSpec, std::stringstream& ss);
+  void MakeUrl(vtkMapTileSpecInternal& tileSpec, std::stringstream& ss);
 
 protected:
   char *MapTileExtension;

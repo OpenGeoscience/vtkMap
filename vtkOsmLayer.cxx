@@ -392,12 +392,7 @@ InitializeTiles(std::vector<vtkMapTile*>& tiles,
     tile->SetImageKey(oss.str());
 
     // Set tile texture source
-    oss.str("");
-    oss << "http://" << this->MapTileServer
-        << "/" << spec.ZoomRowCol[0]
-        << "/" << spec.ZoomRowCol[1]
-        << "/" << spec.ZoomRowCol[2]
-        << "." << this->MapTileExtension;
+    this->MakeUrl(spec, oss);
     tile->SetImageSource(oss.str());
 
     // Initialize the tile and add to the cache
@@ -453,4 +448,28 @@ vtkMapTile *vtkOsmLayer::GetCachedTile(int zoom, int x, int y)
     }
 
   return this->CachedTilesMap[zoom][x][y];
+}
+
+//----------------------------------------------------------------------------
+void vtkOsmLayer::MakeFileSystemPath(
+  vtkMapTileSpecInternal& tileSpec, std::stringstream& ss)
+{
+  ss.str("");
+  ss << this->GetCacheDirectory() << "/"
+     << tileSpec.ZoomRowCol[0]
+     << "-" << tileSpec.ZoomRowCol[1]
+     << "-" << tileSpec.ZoomRowCol[2]
+     << "." << this->MapTileExtension;
+}
+
+//----------------------------------------------------------------------------
+void vtkOsmLayer::MakeUrl(
+  vtkMapTileSpecInternal& tileSpec, std::stringstream& ss)
+{
+  ss.str("");
+  ss << "http://" << this->MapTileServer
+     << "/" << tileSpec.ZoomRowCol[0]
+     << "/" << tileSpec.ZoomRowCol[1]
+     << "/" << tileSpec.ZoomRowCol[2]
+     << "." << this->MapTileExtension;;
 }
