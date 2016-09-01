@@ -35,10 +35,10 @@ public:
   vtkTypeMacro (vtkMapTile, vtkFeature)
 
   // Description:
-  // Get/Set Bing Maps QuadKey corresponding to the tile
-  void SetImageKey(const std::string& key)
+  // Set path to image on local file system
+  void SetFileSystemPath(const std::string& path)
     {
-    this->ImageKey = key;
+    this->ImageFile = path;
     }
 
   void  SetImageSource(const std::string& imgSrc) {this->ImageSource= imgSrc;}
@@ -86,7 +86,9 @@ protected:
   vtkMapTile();
   ~vtkMapTile();
 
-  void Build(const char* cacheDirectory);
+  // Description:
+  // Construct the textured geometry for the tile
+  void Build();
 
   // Description:
   // Check if the corresponding image is downloaded
@@ -97,15 +99,13 @@ protected:
   void DownloadImage(const char* url, const char* outfilename);
 
   // Description:
-  // Generate url of tile and output file from QuadKey, and download the texture
-  // if not already downloaded.
-  void InitializeDownload(const char *cacheDirectory);
+  // Download the texture (image) if not already downloaded.
+  void InitializeDownload();
 
   // Description:
-  // Storing the Quadkey
+  // Storing the remote and local paths
   std::string ImageSource;
   std::string ImageFile;
-  std::string ImageKey;
 
   vtkPlaneSource* Plane;
   vtkTextureMapToPlane* TexturePlane;

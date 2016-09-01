@@ -91,7 +91,7 @@ vtkMap::vtkMap()
 
   // Set default storage directory to ~/.vtkmap
   std::string fullPath =
-    vtksys::SystemTools::CollapseFullPath(".vtkmap", "~/");
+    vtksys::SystemTools::CollapseFullPath(".vtkmap/tiles", "~/");
   this->SetStorageDirectory(fullPath.c_str());
 }
 

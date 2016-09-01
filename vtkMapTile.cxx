@@ -74,7 +74,7 @@ vtkMapTile::~vtkMapTile()
 }
 
 //----------------------------------------------------------------------------
-void vtkMapTile::Build(const char* cacheDirectory)
+void vtkMapTile::Build()
 {
   this->Plane = vtkPlaneSource::New();
   this->Plane->SetPoint1(this->Corners[2], this->Corners[1], 0.0);
@@ -83,7 +83,7 @@ void vtkMapTile::Build(const char* cacheDirectory)
   this->Plane->SetNormal(0, 0, 1);
 
   this->TexturePlane = vtkTextureMapToPlane::New();
-  this->InitializeDownload(cacheDirectory);
+  this->InitializeDownload();
 
   // Read the image which will be the texture
   vtkImageReader2 *imageReader = NULL;
@@ -151,16 +151,15 @@ bool vtkMapTile::IsVisible()
 }
 
 //----------------------------------------------------------------------------
-void vtkMapTile::InitializeDownload(const char *cacheDirectory)
+void vtkMapTile::InitializeDownload()
 {
-  // Generate destination file name
-  this->ImageFile = std::string(cacheDirectory) + "/" + this->ImageKey;
-
-  // Check if texture already exists.
+  // Check if image file already exists.
   // If not, download
   while(!this->IsImageDownloaded(this->ImageFile.c_str()))
     {
-    std::cerr << "Downloading " << this->ImageSource.c_str() << std::endl;
+    std::cerr << "Downloading " << this->ImageSource.c_str()
+              << " to " << this->ImageFile
+              << std::endl;
     this->DownloadImage(this->ImageSource.c_str(), this->ImageFile.c_str());
     }
 }
@@ -234,8 +233,7 @@ void vtkMapTile::Init()
 {
   if (this->GetMTime() > this->BuildTime.GetMTime())
     {
-    vtkOsmLayer *osmLayer = vtkOsmLayer::SafeDownCast(this->Layer);
-    this->Build(osmLayer->GetCacheDirectory());
+    this->Build();
     }
 }
 
