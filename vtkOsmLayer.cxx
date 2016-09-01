@@ -383,15 +383,9 @@ InitializeTiles(std::vector<vtkMapTile*>& tiles,
     tile->SetLayer(this);
     tile->SetCorners(spec.Corners);
 
-    // Set the image key
-    oss.str("");
-    oss << spec.ZoomRowCol[0]
-        << "-" << spec.ZoomRowCol[1]
-        << "-" << spec.ZoomRowCol[2]
-        << "." << this->MapTileExtension;
-    tile->SetImageKey(oss.str());
-
-    // Set tile texture source
+    // Set the local & remote paths
+    this->MakeFileSystemPath(spec, oss);
+    tile->SetFileSystemPath(oss.str());
     this->MakeUrl(spec, oss);
     tile->SetImageSource(oss.str());
 

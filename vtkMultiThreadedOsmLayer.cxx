@@ -251,20 +251,23 @@ void vtkMultiThreadedOsmLayer::RequestThreadExecute(int threadId)
   // Process all tile specs
   std::vector<vtkMapTileSpecInternal>::iterator tileSpecIter =
     tileSpecs.begin();
+  std::string filename;
+  std::string url;
   for (; tileSpecIter != tileSpecs.end(); tileSpecIter++)
     {
     vtkMapTileSpecInternal& spec = *tileSpecIter;
     this->MakeFileSystemPath(spec, oss);
-    std::string filename = oss.str();
+    filename = oss.str();
+    url.clear();
 
     if (this->Internals->DownloadMode)
       {
       // If DownloadMode, perform http request
       this->MakeUrl(spec, oss);
-      std::string url = oss.str();
+      url = oss.str();
       if (this->DownloadImageFile(url, filename))
         {
-        this->CreateTile(spec);
+        this->CreateTile(spec, filename, url);
         }
       }
     else
@@ -272,7 +275,9 @@ void vtkMultiThreadedOsmLayer::RequestThreadExecute(int threadId)
       // If *not* DownloadMode, check for image file in cache
       if (vtksys::SystemTools::FileExists(filename.c_str(), true))
         {
-        this->CreateTile(spec);
+        this->MakeUrl(spec, oss);
+        url = oss.str();
+        this->CreateTile(spec, filename, url);
         }
       }
     }  // for
@@ -407,25 +412,17 @@ DownloadImageFile(std::string url, std::string filename)
 }
 
 //----------------------------------------------------------------------------
-vtkMapTile *vtkMultiThreadedOsmLayer::
-CreateTile(vtkMapTileSpecInternal& spec)
+vtkMapTile *vtkMultiThreadedOsmLayer::CreateTile(
+  vtkMapTileSpecInternal& spec,
+  const std::string& localPath,
+  const std::string& remoteUrl)
 {
   std::stringstream oss;
 
   vtkMapTile *tile = vtkMapTile::New();
   tile->SetCorners(spec.Corners);
-
-  // Set the image key
-  oss.str("");
-  oss << spec.ZoomRowCol[0]
-      << "-" << spec.ZoomRowCol[1]
-      << "-" << spec.ZoomRowCol[2]
-      << "." << this->MapTileExtension;
-  tile->SetImageKey(oss.str());
-
-  // Set tile texture source
-  this->MakeUrl(spec, oss);
-  tile->SetImageSource(oss.str());
+  tile->SetFileSystemPath(localPath);
+  tile->SetImageSource(remoteUrl);
 
   // Don't call tile->Init() here; must do that in the foreground thread
   spec.Tile = tile;
