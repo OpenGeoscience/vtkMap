@@ -660,6 +660,9 @@ void vtkMapMarkerSet::Init()
 
   // Use teardrop shape for individual markers
   vtkNew<vtkTeardropSource> markerGlyphSource;
+  markerGlyphSource->SetResolution(6);
+  markerGlyphSource->FrontSideOnlyOn();
+  markerGlyphSource->ProjectToXYPlaneOn();
   // Rotate to point downward (parallel to y axis)
   vtkNew<vtkTransformFilter> rotateMarker;
   rotateMarker->SetInputConnection(markerGlyphSource->GetOutputPort());
