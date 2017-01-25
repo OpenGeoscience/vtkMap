@@ -15,15 +15,16 @@
 
 #include "qtWeatherStations.h"
 #include "ui_qtWeatherStations.h"
+#include "vtkGeoMapSelection.h"
 #include "vtkMap.h"
 #include "vtkMapMarkerSet.h"
-#include "vtkMapPickResult.h"
 #include "vtkOsmLayer.h"
 #include <QVTKWidget.h>
 #include <vtkCallbackCommand.h>
-#include <vtkInteractorStyleImage.h>
+#include <vtkIdList.h>
+#include <vtkInteractorStyleGeoMap.h>
 #include <vtkNew.h>
-#include <vtkPicker.h>
+#include <vtkObject.h>
 #include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
@@ -60,33 +61,21 @@ class MapCallback : public vtkCallbackCommand
 public:
   MapCallback(qtWeatherStations *app) : App(app) {}
 
-  virtual void Execute(vtkObject *caller, unsigned long eventId, void *callData)
+  virtual void Execute(vtkObject *caller, unsigned long eventId, void *data)
   {
-    vtkRenderWindowInteractor *interactor =
-      vtkRenderWindowInteractor::SafeDownCast(caller);
-
     switch (eventId)
       {
-      case vtkCommand::MouseWheelForwardEvent:
-      case vtkCommand::MouseWheelBackwardEvent:
-        // Redraw for zoom events
-        this->App->drawMap();
-        break;
-
-      case vtkCommand::ModifiedEvent:
-        // Update markers for interactor-modified events
-        this->App->updateMap();
-        break;
-
-      case vtkCommand::LeftButtonPressEvent:
-        {
-        int *pos = interactor->GetEventPosition();
-        this->App->pickMarker(pos);
-        }
-        break;
+      case vtkInteractorStyleGeoMap::SelectionCompleteEvent:
+          {
+          vtkObject *object = static_cast<vtkObject*>(data);
+          vtkGeoMapSelection *selection = vtkGeoMapSelection::SafeDownCast(object);
+          this->App->displaySelectionInfo(selection);
+          }
+          break;
 
       default:
-        //std::cout << "Mouse event " << vtkCommand::GetStringFromEventId(eventId) << std::endl;
+        std::cout << "Mouse event "
+                  << vtkCommand::GetStringFromEventId(eventId) << std::endl;
         break;
       }
   }
@@ -125,21 +114,29 @@ qtWeatherStations::qtWeatherStations(QWidget *parent)
   this->Map->SetCenter(42.849604, -73.758345);  // KHQ coords
   this->Map->SetZoom(5);
 
-  this->Map->GetMapMarkerSet()->ClusteringOn();
+  // Initialize map marker set
+  vtkNew<vtkFeatureLayer> markerLayer;
+  markerLayer->SetName("markers");
+  this->Map->AddLayer(markerLayer.GetPointer());
+
+  this->MapMarkers = vtkMapMarkerSet::New();
+  this->MapMarkers->ClusteringOn();
+  markerLayer->AddFeature(this->MapMarkers);
 
   vtkNew<vtkRenderWindow> mapRenderWindow;
   mapRenderWindow->AddRenderer(this->Renderer);
   this->MapWidget->SetRenderWindow(mapRenderWindow.GetPointer());
 
-  vtkRenderWindowInteractor *intr = this->MapWidget->GetInteractor();
-  intr->SetInteractorStyle(this->Map->GetInteractorStyle());
-  intr->SetPicker(this->Map->GetPicker());
+  vtkRenderWindowInteractor *intr = mapRenderWindow->GetInteractor();
+  vtkInteractorStyle *style = this->Map->GetInteractorStyle();
+  intr->SetInteractorStyle(style);
   intr->Initialize();
+  //intr->Start();
 
-  // Pass *all* callbacks to MapCallback instance
+  // Watch for selection callback from map
   this->InteractorCallback = new MapCallback(this);
-  intr->AddObserver(vtkCommand::AnyEvent, this->InteractorCallback);
-  intr->Start();
+  style->AddObserver(vtkInteractorStyleGeoMap::SelectionCompleteEvent,
+                     this->InteractorCallback);
 
   // Connect UI controls
   QObject::connect(this->UI->ResetButton, SIGNAL(clicked()),
@@ -158,6 +155,10 @@ qtWeatherStations::~qtWeatherStations()
   if (this->Map)
     {
     this->Map->Delete();
+    }
+  if (this->MapMarkers)
+    {
+    this->MapMarkers->Delete();
     }
   if (this->Renderer)
     {
@@ -193,7 +194,6 @@ void qtWeatherStations::showStations()
   this->UI->StationText->setText("Retrieving station data.");
   // Todo is there any way to update StationText (QTextEdit) *now* ???
 
-  this->Map->GetMapMarkerSet()->RemoveMarkers();
   this->StationMap.clear();
 
   // Request weather station data
@@ -349,11 +349,10 @@ void qtWeatherStations::
 DisplayStationMarkers(std::vector<StationReport> stationList)
 {
   // Create map markers for each station
-  vtkMapMarkerSet *markerLayer = this->Map->GetMapMarkerSet();
   for (int i=0; i<stationList.size(); ++i)
     {
     StationReport station = stationList[i];
-    vtkIdType id = markerLayer->AddMarker(station.latitude, station.longitude);
+    vtkIdType id = this->MapMarkers->AddMarker(station.latitude, station.longitude);
     if (id >= 0)
       this->StationMap[id] = station;
     }
@@ -398,37 +397,66 @@ vtkRenderer *qtWeatherStations::getRenderer() const
 }
 
 // ------------------------------------------------------------
-// Handles left-click event
-void qtWeatherStations::pickMarker(int displayCoords[2])
+void qtWeatherStations::
+displaySelectionInfo(vtkGeoMapSelection *selection) const
 {
-  std::stringstream ss;
-  vtkNew<vtkMapPickResult> pickResult;
-  this->Map->PickPoint(displayCoords, pickResult.GetPointer());
-
-  switch (pickResult->GetMapFeatureType())
+  vtkCollection *collection = selection->GetSelectedFeatures();
+  std::cout << "Selected collection size: "
+            << collection->GetNumberOfItems() << std::endl;
+  if (collection->GetNumberOfItems() < 1)
     {
-    case VTK_MAP_FEATURE_MARKER:
-      {
-      std::map<vtkIdType, StationReport>::iterator stationIter =
-        this->StationMap.find(pickResult->GetMapFeatureId());
-      if (stationIter != this->StationMap.end())
-        {
-        StationReport station = stationIter->second;
-        ss << "Station: " << station.name << "\n"
-           << "Current Temp: " << std::setiosflags(std::ios_base::fixed)
-           << std::setprecision(1) << station.temperature << "F";
-        QMessageBox::information(this->MapWidget, "Marker clicked",
-                                 QString::fromStdString(ss.str()));
-        }
-      }
-      break;
-
-    case VTK_MAP_FEATURE_CLUSTER:
-      ss << "Cluster of " << pickResult->GetNumberOfMarkers() << " stations.";
-      QMessageBox::information(this->MapWidget, "Cluster clicked",
-                               QString::fromStdString(ss.str()));
-      break;
+    return;
     }
+
+  // Display "first" thing selected
+  vtkObject *firstObject = collection->GetItemAsObject(0);
+  vtkMapMarkerSet *markerSet = vtkMapMarkerSet::SafeDownCast(firstObject);
+  if (!markerSet)
+    {
+    std::cout << "First selected item type " << firstObject->GetClassName()
+              << ", which was not expected." << std::endl;
+    return;
+    }
+
+  std::stringstream ss;
+  vtkNew<vtkIdList> markerIds;
+  vtkNew<vtkIdList> clusterIds;
+  selection->GetMapMarkerIds(markerSet, markerIds.GetPointer(),
+                             clusterIds.GetPointer());
+  std::cout << "Selection marker count: " << markerIds->GetNumberOfIds()
+            << ", cluster count " << clusterIds->GetNumberOfIds()
+            << std::endl;
+
+  // Single marker case
+  if (markerIds->GetNumberOfIds() == 1)
+    {
+    vtkIdType markerId = markerIds->GetId(0);
+    std::map<vtkIdType, StationReport>::const_iterator stationIter =
+      this->StationMap.find(markerId);
+    if (stationIter != this->StationMap.end())
+      {
+      StationReport station = stationIter->second;
+      ss.str("");
+      ss << "Station: " << station.name << "\n"
+         << "Current Temp: " << std::setiosflags(std::ios_base::fixed)
+         << std::setprecision(1) << station.temperature << "F";
+      QMessageBox::information(this->MapWidget, "Marker clicked",
+                               QString::fromStdString(ss.str()));
+      }  // if (station)
+    }  // if (1 marker)
+
+  // Single cluster case
+  if (clusterIds->GetNumberOfIds() == 1)
+    {
+    vtkIdType clusterId = clusterIds->GetId(0);
+    vtkNew<vtkIdList> allMarkerIds;
+    this->MapMarkers->GetAllMarkerIds(clusterId, allMarkerIds.GetPointer());
+    ss.str("");
+    ss << "Cluster of " << allMarkerIds->GetNumberOfIds() << " stations.";
+    QMessageBox::information(this->MapWidget, "Cluster clicked",
+                             QString::fromStdString(ss.str()));
+    }
+
 }
 
 // ------------------------------------------------------------

@@ -31,6 +31,7 @@
 
 #include "vtkOsmLayer.h"
 #include "vtkMapTileSpecInternal.h"
+#include <string>
 #include <vector>
 
 class vtkMapTile;
@@ -74,7 +75,10 @@ protected:
 
   // Description:
   // Instantiate and initialize vtkMapTile
-  vtkMapTile *CreateTile(vtkMapTileSpecInternal& spec);
+  vtkMapTile *CreateTile(
+    vtkMapTileSpecInternal& spec,
+    const std::string& localPath,
+    const std::string& remoteUrl);
 
   // Description:
   // Assign tile specs evenly across request threads

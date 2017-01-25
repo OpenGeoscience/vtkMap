@@ -13,24 +13,19 @@
 =========================================================================*/
 
 #include "vtkMap.h"
-
-#include "vtkInteractorStyleMap.h"
+#include "vtkGeoMapFeatureSelector.h"
+#include "vtkGeoMapSelection.h"
+#include "vtkInteractorStyleGeoMap.h"
 #include "vtkLayer.h"
-#include "vtkMapMarkerSet.h"
 #include "vtkMapTile.h"
 #include "vtkMercator.h"
 
 // VTK Includes
-#include <vtkActor2D.h>
 #include <vtkCallbackCommand.h>
 #include <vtkCamera.h>
-#include <vtkImageInPlaceFilter.h>
+#include <vtkCollection.h>
 #include <vtkMath.h>
-#include <vtkMatrix4x4.h>
 #include <vtkObjectFactory.h>
-#include <vtkPlaneSource.h>
-#include <vtkPointPicker.h>
-#include <vtkPoints.h>
 #include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
@@ -58,13 +53,13 @@ int computeZoomLevel(vtkCamera* cam)
   double* pos = cam->GetPosition();
   double width = pos[2] * sin(vtkMath::RadiansFromDegrees(cam->GetViewAngle()));
 
-  for (int i = 0; i < 20; ++i) {
-    if (width >= (360.0 / std::pow( 2.0, i))) {
-      /// We are forcing the minimum zoom level to 2 so that we can get
-      /// high res imagery even at the zoom level 0 distance
+  for (int i = 0; i < 20; ++i)
+    {
+    if (width >= (360.0 / (std::pow(2.0, i) * 1.001)))
+      {
       return i;
+      }
     }
-  }
   return 0;
 }
 
@@ -82,12 +77,12 @@ vtkMap::vtkMap()
 {
   this->StorageDirectory = NULL;
   this->Renderer = NULL;
-  this->InteractorStyle = vtkInteractorStyleMap::New();
+  this->FeatureSelector = vtkGeoMapFeatureSelector::New();
+  this->InteractorStyle = vtkInteractorStyleGeoMap::New();
   this->InteractorStyle->SetMap(this);
-  this->Picker = vtkPointPicker::New();
+  this->PerspectiveProjection = false;
   this->Zoom = 1;
   this->Center[0] = this->Center[1] = 0.0;
-  this->MapMarkerSet = vtkMapMarkerSet::New();
   this->Initialized = false;
   this->BaseLayer = NULL;
   this->PollingCallbackCommand = NULL;
@@ -96,24 +91,20 @@ vtkMap::vtkMap()
 
   // Set default storage directory to ~/.vtkmap
   std::string fullPath =
-    vtksys::SystemTools::CollapseFullPath(".vtkmap", "~/");
+    vtksys::SystemTools::CollapseFullPath(".vtkmap/tiles", "~/");
   this->SetStorageDirectory(fullPath.c_str());
 }
 
 //----------------------------------------------------------------------------
 vtkMap::~vtkMap()
 {
+  if (this->FeatureSelector)
+    {
+    this->FeatureSelector->Delete();
+    }
   if (this->InteractorStyle)
     {
     this->InteractorStyle->Delete();
-    }
-  if (this->MapMarkerSet)
-    {
-    this->MapMarkerSet->Delete();
-    }
-  if (this->Picker)
-    {
-    this->Picker->Delete();
     }
   if (this->PollingCallbackCommand)
     {
@@ -170,58 +161,76 @@ vtkInteractorStyle *vtkMap::GetInteractorStyle()
 //----------------------------------------------------------------------------
 void vtkMap::SetVisibleBounds(double latLngCoords[4])
 {
+  // Clip input coords to max lat/lon supported by web mercator (for now)
+  double validCoords[4];
+  validCoords[0] = vtkMercator::validLatitude(latLngCoords[0]);
+  validCoords[1] = vtkMercator::validLongitude(latLngCoords[1]);
+  validCoords[2] = vtkMercator::validLatitude(latLngCoords[2]);
+  validCoords[3] = vtkMercator::validLongitude(latLngCoords[3]);
+
   // Convert to gcs coordinates
   double worldCoords[4];
-  worldCoords[0] = latLngCoords[1];
-  worldCoords[1] = vtkMercator::lat2y(latLngCoords[0]);
-  worldCoords[2] = latLngCoords[3];
-  worldCoords[3] = vtkMercator::lat2y(latLngCoords[2]);
+  worldCoords[0] = validCoords[1];
+  worldCoords[1] = vtkMercator::lat2y(validCoords[0]);
+  worldCoords[2] = validCoords[3];
+  worldCoords[3] = vtkMercator::lat2y(validCoords[2]);
 
   // Compute size as the larger of delta lon/lat
-  double deltaLon = fabs(worldCoords[2] - worldCoords[0]);
-  if (deltaLon > 180.0)
+  double dx = fabs(worldCoords[2] - worldCoords[0]);
+  if (dx > 180.0)
     {
     // If > 180, then points wrap around the 180th meridian
     // Adjust things to be > 0
-    deltaLon = 360.0 - deltaLon;
+    dx = 360.0 - dx;
     worldCoords[0] += worldCoords[0] < 0.0 ? 360.0 : 0;
     worldCoords[2] += worldCoords[2] < 0.0 ? 360.0 : 0;
     }
-  double deltaLat = fabs(worldCoords[3] - worldCoords[1]);
-  double delta = deltaLon > deltaLat ? deltaLon : deltaLat;
+  double dy = fabs(worldCoords[3] - worldCoords[1]);
+  double delta = dx > dy ? dx : dy;
 
   // Compute zoom level
   double maxDelta = 360.0;
   double maxZoom = 20;
   int zoom = 0;
-  for (zoom=0; delta < maxDelta && zoom < maxZoom; zoom++)
+  double scaledDelta = delta;
+  for (zoom=0; scaledDelta < maxDelta && zoom < maxZoom; zoom++)
     {
-    delta *= 2.0;
+    scaledDelta *= 2.0;
     }
-  zoom--;
+  // Adjust for perspective vs. orthographic
+  if (zoom > 0)
+    {
+    zoom -= this->PerspectiveProjection ? 1 : 0;
+    }
 
   // Compute center
   double center[2];
-  center[0] = 0.5 * (latLngCoords[0] + latLngCoords[2]);
-  if (center[0] > 180.0)
-    {
-    center[0] -= 360.0;
-    }
-  center[1] = 0.5 * (latLngCoords[1] + latLngCoords[3]);
+  center[0] = 0.5 * (validCoords[0] + validCoords[2]);
+  center[1] = 0.5 * (validCoords[1] + validCoords[3]);
 
   this->SetCenter(center);
   this->SetZoom(zoom);
 
-  // Update camera if initialized
+  // If initialized, update camera distance
   if (this->Renderer)
     {
-    double x = this->Center[1];
-    double y = vtkMercator::lat2y(this->Center[0]);
-    double distance =
-      computeCameraDistance(this->Renderer->GetActiveCamera(), this->Zoom);
-    this->Renderer->GetActiveCamera()->SetPosition(x, y, distance);
-    this->Renderer->GetActiveCamera()->SetFocalPoint(x, y, 0.0);
+      double x = this->Center[1];
+      double y = vtkMercator::lat2y(this->Center[0]);
+
+      double cameraCoords[3] = {0.0, 0.0, 1.0};
+      this->Renderer->GetActiveCamera()->GetPosition(cameraCoords);
+      double z = cameraCoords[2];
+
+      if (this->PerspectiveProjection)
+        {
+        z = computeCameraDistance(
+          this->Renderer->GetActiveCamera(), this->Zoom);
+        }
+
+      this->Renderer->GetActiveCamera()->SetPosition(x, y, z);
+      this->Renderer->GetActiveCamera()->SetFocalPoint(x, y, 0.0);
     }
+  this->Modified();
 }
 
 //----------------------------------------------------------------------------
@@ -234,21 +243,27 @@ void vtkMap::GetVisibleBounds(double latLngCoords[4])
 
   double displayCoords[2];
   double worldCoords[3];
+  double latitude;
+  double longitude;
 
   // Convert origin to world coords
   displayCoords[0] = 0.0;
   displayCoords[1] = 0.0;
   this->ComputeWorldCoords(displayCoords, 0.0, worldCoords);
-  latLngCoords[0] = vtkMercator::y2lat(worldCoords[1]);
-  latLngCoords[1] = worldCoords[0];
+  latitude = vtkMercator::y2lat(worldCoords[1]);
+  longitude = worldCoords[0];
+  latLngCoords[0] = vtkMercator::validLatitude(latitude);
+  latLngCoords[1] = vtkMercator::validLongitude(longitude);
 
   // Convert opposite corner to world coords
   int *sizeCoords = this->Renderer->GetRenderWindow()->GetSize();
   displayCoords[0] = sizeCoords[0];
   displayCoords[1] = sizeCoords[1];
   this->ComputeWorldCoords(displayCoords, 0.0, worldCoords);
-  latLngCoords[2] = vtkMercator::y2lat(worldCoords[1]);
-  latLngCoords[3] = worldCoords[0];
+  latitude = vtkMercator::y2lat(worldCoords[1]);
+  longitude = worldCoords[0];
+  latLngCoords[2] = vtkMercator::validLatitude(latitude);
+  latLngCoords[3] = vtkMercator::validLongitude(longitude);
 }
 
 //----------------------------------------------------------------------------
@@ -353,6 +368,22 @@ void vtkMap::RemoveLayer(vtkLayer* layer)
     return;
     }
 
+  // Remove any features from feature selector
+  vtkFeatureLayer *featureLayer = vtkFeatureLayer::SafeDownCast(layer);
+  if (featureLayer)
+    {
+    vtkCollection *features = featureLayer->GetFeatures();
+    for (int i=0; i<features->GetNumberOfItems(); i++)
+      {
+      vtkObject *item = features->GetItemAsObject(i);
+      vtkFeature *feature = vtkFeature::SafeDownCast(item);
+      if (feature)
+        {
+        this->FeatureSelector->RemoveFeature(feature);
+        }
+      }
+    }
+
   this->Layers.erase(std::remove(this->Layers.begin(),
                                  this->Layers.end(), layer));
 }
@@ -361,6 +392,11 @@ void vtkMap::RemoveLayer(vtkLayer* layer)
 vtkLayer *vtkMap::FindLayer(const char *name)
 {
   vtkLayer *result = NULL;  // return value
+
+  if (this->BaseLayer && this->BaseLayer->GetName() == name)
+    {
+    return this->BaseLayer;
+    }
 
   std::vector<vtkLayer*>::iterator it = this->Layers.begin();
   for (; it != this->Layers.end(); it++)
@@ -385,7 +421,26 @@ void vtkMap::Update()
     }
 
   // Compute the zoom level here
-  this->SetZoom(computeZoomLevel(this->Renderer->GetActiveCamera()));
+  if (this->PerspectiveProjection)
+    {
+    this->SetZoom(computeZoomLevel(this->Renderer->GetActiveCamera()));
+    //std::cout << "vtkMap::Update() set Zoom to " << this->Zoom << std::endl;
+    }
+  else
+    {
+    vtkCamera *camera = this->Renderer->GetActiveCamera();
+    camera->ParallelProjectionOn();
+
+    // Camera parallel scale == 1/2 the viewport height in world coords.
+    // Each tile is 360 / 2**zoom in world coords
+    // Each tile is 256 (pixels) in display coords
+    int *renSize = this->Renderer->GetSize();
+    //std::cout << "renSize " << renSize[0] << ", " << renSize[1] << std::endl;
+    int zoomLevelFactor = 1 << this->Zoom;
+    double parallelScale = 0.5 * (renSize[1] * 360.0 / zoomLevelFactor) / 256.0;
+    //std::cout << "SetParallelScale " << parallelScale << std::endl;
+    camera->SetParallelScale(parallelScale);
+    }
 
   // Update the base layer first
   this->BaseLayer->Update();
@@ -394,8 +449,6 @@ void vtkMap::Update()
     {
     this->Layers[i]->Update();
     }
-
-  this->MapMarkerSet->Update(this->Zoom);
 }
 
 //----------------------------------------------------------------------------
@@ -404,7 +457,10 @@ void vtkMap::Draw()
   if (!this->Initialized && this->Renderer)
     {
     this->Initialized = true;
-    this->MapMarkerSet->SetRenderer(this->Renderer);
+
+    // Set camera projection
+    bool parallel = !this->PerspectiveProjection;
+    this->Renderer->GetActiveCamera()->SetParallelProjection(parallel);
 
     // Make sure storage directory specified
     if (!this->StorageDirectory ||
@@ -456,7 +512,6 @@ void vtkMap::Draw()
         }
       }
 
-
     // Initialize graphics
     double x = this->Center[1];
     double y = vtkMercator::lat2y(this->Center[0]);
@@ -464,6 +519,7 @@ void vtkMap::Draw()
       computeCameraDistance(this->Renderer->GetActiveCamera(), this->Zoom);
     this->Renderer->GetActiveCamera()->SetPosition(x, y, distance);
     this->Renderer->GetActiveCamera()->SetFocalPoint(x, y, 0.0);
+    this->Renderer->SetBackground(1.0, 1.0, 1.0);
     this->Renderer->GetRenderWindow()->Render();
     }
   this->Update();
@@ -477,6 +533,18 @@ vtkMap::AsyncState vtkMap::GetAsyncState()
 }
 
 //----------------------------------------------------------------------------
+void vtkMap::FeatureAdded(vtkFeature *feature)
+{
+  this->FeatureSelector->AddFeature(feature);
+}
+
+//----------------------------------------------------------------------------
+void vtkMap::ReleaseFeature(vtkFeature *feature)
+{
+  this->FeatureSelector->RemoveFeature(feature);
+}
+
+//----------------------------------------------------------------------------
 double vtkMap::Clip(double n, double minValue, double maxValue)
 {
   double max = n > minValue ? n : minValue;
@@ -485,10 +553,34 @@ double vtkMap::Clip(double n, double minValue, double maxValue)
 }
 
 //----------------------------------------------------------------------------
-void vtkMap::PickPoint(int displayCoords[2], vtkMapPickResult* result)
+void vtkMap::ComputeLatLngCoords(double displayCoords[2], double elevation,
+                                 double latLngCoords[3])
 {
-  this->MapMarkerSet->PickPoint(this->Renderer, this->Picker, displayCoords,
-      result);
+  // Compute GCS coordinates
+  double worldCoords[3] = {0.0, 0.0, 0.0};
+  this->ComputeWorldCoords(displayCoords, elevation, worldCoords);
+
+  // Convert to lat-lon
+  double latitude = vtkMercator::y2lat(worldCoords[1]);
+  double longitude = worldCoords[0];
+
+  // Clip to "valid" coords
+  latLngCoords[0] = vtkMercator::validLatitude(latitude);
+  latLngCoords[1] = vtkMercator::validLongitude(longitude);
+  latLngCoords[2] = elevation;
+}
+
+//----------------------------------------------------------------------------
+void vtkMap::PickPoint(int displayCoords[2], vtkGeoMapSelection* result)
+{
+  this->FeatureSelector->PickPoint(this->Renderer, displayCoords, result);
+
+}
+
+//----------------------------------------------------------------------------
+void vtkMap::PickArea(int displayCoords[4], vtkGeoMapSelection* result)
+{
+  this->FeatureSelector->PickArea(this->Renderer, displayCoords, result);
 }
 
 //----------------------------------------------------------------------------
@@ -496,7 +588,7 @@ void vtkMap::ComputeWorldCoords(double displayCoords[2], double z,
                                 double worldCoords[3])
 {
   // Get renderer's DisplayToWorld point
-  double rendererCoords[4];
+  double rendererCoords[4] = {0.0, 0.0, 0.0, 1.0};
   this->Renderer->SetDisplayPoint(displayCoords[0], displayCoords[1], 0.0);
   this->Renderer->DisplayToWorld();
   this->Renderer->GetWorldPoint(rendererCoords);
@@ -507,24 +599,46 @@ void vtkMap::ComputeWorldCoords(double displayCoords[2], double z,
     rendererCoords[2] /= rendererCoords[3];
     }
 
-  // Get camera point
-  double cameraCoords[3];
-  vtkCamera *camera = this->Renderer->GetActiveCamera();
-  camera->GetPosition(cameraCoords);
+  if (this->PerspectiveProjection)
+    {
+    // Project to z
 
-  // Compute line-of-sight vector from camera to renderer point
-  double losVector[3];
-  vtkMath::Subtract(rendererCoords, cameraCoords, losVector);
+    // Get camera point
+    double cameraCoords[3];
+    vtkCamera *camera = this->Renderer->GetActiveCamera();
+    camera->GetPosition(cameraCoords);
 
-  // Set magnitude of vector's z coordinate to 1.0
-  vtkMath::MultiplyScalar(losVector, fabs(1.0/losVector[2]));
+    // Compute line-of-sight vector from camera to renderer point
+    double losVector[3];
+    vtkMath::Subtract(rendererCoords, cameraCoords, losVector);
 
-  // Project line-of-sight vector from camera to specified z
-  double deltaZ = cameraCoords[2] - z;
-  vtkMath::MultiplyScalar(losVector, deltaZ);
-  worldCoords[0] = cameraCoords[0] + losVector[0];
-  worldCoords[1] = cameraCoords[1] + losVector[1];
-  worldCoords[2] = z;
+    // Set magnitude of vector's z coordinate to 1.0
+    vtkMath::MultiplyScalar(losVector, fabs(1.0/losVector[2]));
+
+    // Project line-of-sight vector from camera to specified z
+    double deltaZ = cameraCoords[2] - z;
+    vtkMath::MultiplyScalar(losVector, deltaZ);
+    worldCoords[0] = cameraCoords[0] + losVector[0];
+    worldCoords[1] = cameraCoords[1] + losVector[1];
+    worldCoords[2] = z;
+    }
+  else
+    {
+    worldCoords[0] = rendererCoords[0];
+    worldCoords[1] = rendererCoords[1];
+    worldCoords[2] = z;
+    }
+}
+
+//----------------------------------------------------------------------------
+void vtkMap::ComputeDisplayCoords(double latLngCoords[2], double elevation,
+                                  double displayCoords[3])
+{
+  double x = latLngCoords[1];
+  double y = vtkMercator::lat2y(latLngCoords[0]);
+  this->Renderer->SetWorldPoint(x, y, elevation, 1.0);
+  this->Renderer->WorldToDisplay();
+  this->Renderer->GetDisplayPoint(displayCoords);
 }
 
 //----------------------------------------------------------------------------
@@ -551,74 +665,4 @@ void vtkMap::PollingCallback()
     {
     this->Draw();
     }
-}
-
-//----------------------------------------------------------------------------
-vtkPoints* vtkMap::gcsToDisplay(vtkPoints* points, std::string srcProjection)
-{
-  if (!srcProjection.empty())
-   {
-   vtkErrorMacro("Does not handle projections other than latlon");
-   }
-  int noOfPoints = static_cast<int>(points->GetNumberOfPoints());
-  double inPoint[3];
-  double outPoint[3];
-  vtkPoints* newPoints = vtkPoints::New(VTK_DOUBLE);
-  newPoints->SetNumberOfPoints(noOfPoints);
-  double latitude, longitude;
-  double x, y;
-  for (int i = 0; i < noOfPoints; ++i)
-    {
-    points->GetPoint(i, inPoint);
-    latitude = inPoint[0];
-    longitude = inPoint[1];
-    x = longitude;
-    y = vtkMercator::lat2y(latitude);
-
-    inPoint[0] = vtkMercator::lat2y(inPoint[0]);
-    //this->Renderer->SetWorldPoint(inPoint[1], inPoint[0], inPoint[2], 1.0);
-    this->Renderer->SetWorldPoint(x, y, inPoint[2], 1.0);
-    this->Renderer->WorldToDisplay();
-    this->Renderer->GetDisplayPoint(outPoint);
-    newPoints->SetPoint(i, outPoint);
-    }
-
-  return newPoints;
-}
-
-//----------------------------------------------------------------------------
-vtkPoints* vtkMap::displayToGcs(vtkPoints* points)
-{
-  double inPoint[3];
-  double outPoint[3];
-  int noOfPoints = static_cast<int>(points->GetNumberOfPoints());
-  vtkPoints* newPoints = vtkPoints::New(VTK_DOUBLE);
-  newPoints->SetNumberOfPoints(noOfPoints);
-  double wCoords[4];
-  for (int i = 0; i < noOfPoints; ++i)
-    {
-    points->GetPoint(i, inPoint);
-    this->Renderer->SetDisplayPoint(inPoint[0], inPoint[1], inPoint[2]);
-    this->Renderer->DisplayToWorld();
-    this->Renderer->GetWorldPoint(wCoords);
-
-    if (wCoords[3] != 0.0)
-      {
-      wCoords[0] /= wCoords[3];
-      wCoords[1] /= wCoords[3];
-      wCoords[2] /= wCoords[3];
-      wCoords[3] = 1.0;
-      }
-
-    double latitude = vtkMercator::y2lat(wCoords[1]);
-    double longitude = wCoords[0];
-
-    outPoint[0] = latitude;
-    outPoint[1] = longitude;
-    outPoint[2] = 0.0;
-
-    newPoints->SetPoint(i, outPoint);
-    }
-
-  return newPoints;
 }

@@ -23,6 +23,7 @@
 #include <vtkPointData.h>
 #include <vtkPoints.h>
 #include <vtkPolyData.h>
+#include <vtkPolyDataWriter.h>
 #include <vtkStreamingDemandDrivenPipeline.h>
 #include <vtkTransform.h>
 #include <vtkNew.h>
@@ -45,6 +46,8 @@ vtkTeardropSource::vtkTeardropSource(int res)
   this->TipStrength = 0.25;
   this->HeadStrength = 0.25;
   this->HeadRadius = 0.25;
+  this->FrontSideOnly = false;
+  this->ProjectToXYPlane = false;
 
   this->OutputPointsPrecision = DOUBLE_PRECISION;
 
@@ -64,20 +67,8 @@ int vtkTeardropSource::RequestData(
   vtkPolyData *output = vtkPolyData::SafeDownCast(
     outInfo->Get(vtkDataObject::DATA_OBJECT()));
 
-  double angle;
-
   // Todo handle multiple pieces
-
   vtkDebugMacro("TeardropSource Executing");
-
-  if (this->Resolution)
-    {
-    angle = 2.0 * vtkMath::Pi()/this->Resolution;
-    }
-  else
-    {
-    angle = 2.0 * vtkMath::Pi()/6;
-    }
 
   vtkPoints *tailPath = vtkPoints::New(VTK_DOUBLE);
   vtkNew<vtkDoubleArray> tailNormals;
@@ -151,6 +142,8 @@ void vtkTeardropSource::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "TipStrength: " << this->TipStrength << "\n";
   os << indent << "HeadStrength: " << this->HeadStrength << "\n";
   os << indent << "HeadRadius: " << this->HeadRadius << "\n";
+  os << indent << "FrontSideOnly: " << this->FrontSideOnly << "\n";
+  os << indent << "ProjectToXYPlane: " << this->ProjectToXYPlane << "\n";
   os << indent << "Output Points Precision: " << this->OutputPointsPrecision << "\n";
 }
 
@@ -300,10 +293,20 @@ ComputePolyData(vtkPoints *path, vtkDoubleArray *pathNormals, vtkPolyData *outpu
   int pointId = 1;
   int firstId = 1;
   int deltaPointIds = path->GetNumberOfPoints() - 2;
-  std::cout << "deltaPointIds: " << deltaPointIds << std::endl;
+  //std::cout << "deltaPointIds: " << deltaPointIds << std::endl;
+  double maxAngle = 2.0 * vtkMath::Pi();
+  if (this->FrontSideOnly)
+    {
+    // For FrontSideOnly, increase angle so that 180 degrees is covered
+    // by 1 more step than Resolution, because last profile connects to first,
+    // which we omit for FrontSideOnly.
+    maxAngle = vtkMath::Pi() * static_cast<double>(this->Resolution + 1) /
+      static_cast<double>(this->Resolution);
+    }
+
   for (int i=0; i<this->Resolution; i++)
     {
-    theta = i * 2.0*vtkMath::Pi() / this->Resolution;
+    theta = i * maxAngle / this->Resolution;
     double cosTheta = cos(theta);
     double sinTheta = sin(theta);
 
@@ -313,7 +316,8 @@ ComputePolyData(vtkPoints *path, vtkDoubleArray *pathNormals, vtkPolyData *outpu
       path->GetPoint(j, pathCoords);
       outputCoords[0] = pathCoords[0];  // x
       outputCoords[1] = pathCoords[1] * cosTheta;  // y
-      outputCoords[2] = pathCoords[1] * sinTheta;  // z
+      outputCoords[2] = this->ProjectToXYPlane ?  // z
+        0.0 : pathCoords[1] * sinTheta;
       outputPts->SetPoint(pointId, outputCoords);
 
       pathNormals->GetTuple(j, pathNormal);
@@ -324,6 +328,13 @@ ComputePolyData(vtkPoints *path, vtkDoubleArray *pathNormals, vtkPolyData *outpu
       outputNormals->SetTuple(pointId, outputNormal);
 
       pointId++;
+      }
+
+    if (this->FrontSideOnly && i == (this->Resolution - 1))
+      {
+      // For FrontSideOnly, do not connect last set of points back
+      // to first set. Instead break here.
+      break;
       }
 
     // Triangle at bottom
@@ -374,7 +385,15 @@ ComputePolyData(vtkPoints *path, vtkDoubleArray *pathNormals, vtkPolyData *outpu
   outputPolys->Delete();
 
   //outputPolys->Print(std::cout);
-  std::cout << std::endl;
+
+  // vtkNew<vtkPolyDataWriter> writer;
+  // const char *filename = "teardrop.vtk";
+  // writer->SetFileName(filename);
+  // writer->SetInputData(output);
+  // writer->Write();
+  // std::cout << "Wrote " << filename << std::endl;
+
+  //std::cout << std::endl;
 }
 
 

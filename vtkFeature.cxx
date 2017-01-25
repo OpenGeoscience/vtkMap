@@ -54,3 +54,20 @@ bool vtkFeature::IsVisible()
   // Visible only if both layer and feature visibility flags are set
   return this->Layer->GetVisibility() && this->Visibility;
 }
+
+//----------------------------------------------------------------------------
+vtkProp *vtkFeature::PickProp()
+{
+  return NULL;
+}
+
+//----------------------------------------------------------------------------
+void vtkFeature::PickItems(
+  vtkRenderer *renderer,
+  int displayCoords[4],
+  vtkGeoMapSelection *selection)
+{
+  vtkWarningMacro(
+    "vtkFeature::PickItems() called -- should be overridden in "
+    << this->GetClassName());
+}

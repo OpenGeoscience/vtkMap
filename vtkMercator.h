@@ -16,7 +16,10 @@
 #ifndef __vtkMercator_h
 #define __vtkMercator_h
 
+#include <vtkObject.h>
 #include <cmath>
+
+#define WEB_MERCATOR_EXTENT 20037508.34
 
 class vtkMercator : vtkObject
 {
@@ -75,6 +78,55 @@ public:
   static double lat2y(double a)
   {
     return 180.0 / m_pi() * log(tan(m_pi() / 4.0 + a * (m_pi() / 180.0) / 2.0));
+  }
+
+  //----------------------------------------------------------------------------
+  // Clips input value to valid latitude
+  static double validLatitude(double lat)
+  {
+    // Truncated value from y2lat(90):
+    const double MAX_LATITUDE = 66.513;
+    if (lat > MAX_LATITUDE)
+      {
+      return MAX_LATITUDE;
+      }
+    else if (lat < -MAX_LATITUDE)
+      {
+      return -MAX_LATITUDE;
+      }
+
+    return lat;
+  }
+
+  //----------------------------------------------------------------------------
+  // Clips input value to valid latitude
+  static double validLongitude(double lon)
+  {
+    const double MAX_LONGITUDE = 179.999;
+    if (lon > MAX_LONGITUDE)
+      {
+      return MAX_LONGITUDE;
+      }
+    else if (lon < -MAX_LONGITUDE)
+      {
+      return -MAX_LONGITUDE;
+      }
+
+    return lon;
+  }
+
+  //----------------------------------------------------------------------------
+  // Convert coodinate from web-mercator (EPSG:3857) to VTK map coordinates
+  static double web2vtk(double webMercatorCoord)
+  {
+    return 180.0 * webMercatorCoord / WEB_MERCATOR_EXTENT;
+  }
+
+  //----------------------------------------------------------------------------
+  // Convert coodinate from VTK map coordinates to web-mercator (EPSG:3857)
+  static double vtk2web(double vtkCoord)
+  {
+    return vtkCoord / 180.0 * WEB_MERCATOR_EXTENT;
   }
 
 protected:

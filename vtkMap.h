@@ -23,15 +23,13 @@
 
 #include "vtkmap_export.h"
 
-class vtkActor;
 class vtkCallbackCommand;
+class vtkFeature;
+class vtkGeoMapFeatureSelector;
+class vtkGeoMapSelection;
 class vtkInteractorStyle;
-class vtkInteractorStyleMap;
+class vtkInteractorStyleGeoMap;
 class vtkLayer;
-class vtkMapMarkerSet;
-class vtkMapPickResult;
-class vtkPicker;
-class vtkPoints;
 class vtkRenderer;
 
 #include <map>
@@ -66,17 +64,16 @@ public:
   // Description:
   // Get/Set the interactor style for the map renderer
   // Note these are asymmetric on purpose
-  vtkSetMacro(InteractorStyle, vtkInteractorStyleMap*)
+  vtkSetMacro(InteractorStyle, vtkInteractorStyleGeoMap*)
   vtkInteractorStyle *GetInteractorStyle();
 
   // Description:
-  // Get the map marker layer
-  vtkGetMacro(MapMarkerSet, vtkMapMarkerSet*);
-
-  // Description:
-  // Get/Set the picker used for picking map markers
-  vtkGetMacro(Picker, vtkPicker*)
-  vtkSetMacro(Picker, vtkPicker*)
+  // Get/Set the camera model to use perspective projection.
+  // You must set this BEFORE calling Draw() for the first time.
+  // The default is off, which uses orthographic (parallel) projection.
+  vtkSetMacro(PerspectiveProjection, bool);
+  vtkGetMacro(PerspectiveProjection, bool);
+  vtkBooleanMacro(PerspectiveProjection, bool);
 
   // Description:
   // Get/Set the detailing level
@@ -118,8 +115,23 @@ public:
   void Draw();
 
   // Description:
-  // Returns info at specified display coordinates
-  void PickPoint(int displayCoords[2], vtkMapPickResult* result);
+  // Update internal logic when feature is added.
+  // This method should only be called by vtkFeatureLayer
+  void FeatureAdded(vtkFeature *feature);
+
+  // Description:
+  // Update internal logic when feature is removed.
+  // This method should only be called by vtkFeatureLayer
+  void ReleaseFeature(vtkFeature *feature);
+
+  // Description:
+  // Returns map features at specified display coordinates
+  void PickPoint(int displayCoords[2], vtkGeoMapSelection* result);
+
+  // Description:
+  // Returns map features at specified area (bounding box
+  // in display coordinates)
+  void PickArea(int displayCoords[4], vtkGeoMapSelection *selection);
 
   // Description:
   // Periodically poll asynchronous layers
@@ -130,19 +142,17 @@ public:
   enum AsyncState GetAsyncState();
 
   // Description:
-  // Transform from map coordiantes to display coordinates
-  // gcsToDisplay(points, "EPSG:3882")
-  // This method assumes plate carree projection if the source projection is
-  // empty. In case of plate carree projection, the point is supposed to be in
-  // [latitude, longitude, elevation] format.
-  vtkPoints* gcsToDisplay(vtkPoints* points, std::string srcProjection="");
+  // Compute lat-lon coordinates for given display coordinates
+  // and elevation. The latLngCoords[] is updated with
+  // [latitude, longitude, elevation].
+  void ComputeLatLngCoords(double displayCoords[2], double elevation,
+                           double latLngCoords[3]);
 
   // Description:
-  // Transform from display coordinates to map coordinates
-  // If the map projection is EPSG 4326 or EPSG 3857, then returned
-  // points will have the following format: [latitude, longitude, elevation]
-  vtkPoints* displayToGcs(vtkPoints* points);
-
+  // Compute display coordinates for given lat/lon/elevation.
+  // For internal debug/test use
+  void ComputeDisplayCoords(double lanLngCoords[2], double elevation,
+                            double displayCoords[3]);
 protected:
   vtkMap();
   ~vtkMap();
@@ -161,11 +171,10 @@ protected:
 
   // Description:
   // The interactor style used by the map
-  vtkInteractorStyleMap* InteractorStyle;
+  vtkInteractorStyleGeoMap* InteractorStyle;
 
   // Description:
-  // The picker used for picking map markers
-  vtkPicker* Picker;
+  bool PerspectiveProjection;
 
   // Description:
   // Set Zoom level, which determines the level of detailing
@@ -179,10 +188,6 @@ protected:
   // Directory for caching map files
   char* StorageDirectory;
 
-  // Description:
-  // The map marker manager
-  vtkMapMarkerSet *MapMarkerSet;
-
 protected:
   bool Initialized;
 
@@ -194,6 +199,10 @@ protected:
   // Description:
   // List of layers attached to the map
   std::vector<vtkLayer*> Layers;
+
+  // Description:
+  // Helper class for selection
+  vtkGeoMapFeatureSelector *FeatureSelector;
 
   // Description:
   // Callback method for polling timer

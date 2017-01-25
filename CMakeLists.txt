@@ -6,15 +6,24 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 option(BUILD_SHARED_LIBS "Build vtkMap with shared libraries" ON)
 
-
 # Specify VTK components
+set (VTK_RENDERING_BACKEND "OpenGL2"
+     CACHE STRING "Specify OpenGL2 (default) or OpenGL (legacy)")
 set (VTK_REQUIRED_COMPONENTS
     vtkCommonCore
     vtkFiltersTexture
     vtkInteractionStyle
+    vtkIOGDAL
+    vtkIOGeoJSON
+    vtkIOLegacy
     vtkjsoncpp
     vtkRenderingCore
-    vtkRenderingOpenGL
+    vtkRendering${VTK_RENDERING_BACKEND}
+
+    # For testing:
+    vtkIOXML
+    vtkImagingStatistics
+    vtkInteractionImage
 )
 
 option(BUILD_QT_APPS "Build Qt applications (source files in Qt subdirectory)" OFF)
@@ -33,28 +42,30 @@ set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
 include(GenerateExportHeader)
 
-# Specify vtkDataSetReaders components
-# Main repo is https://github.com/OpenGeoscience/vtkDataSetReaders
-set(READERS_INCLUDE_DIRECTORY "" CACHE PATH "Location of vtkDataSetReaders header files")
-include_directories()
-set(READERS_LIB_DIRECTORY "" CACHE PATH "Location of vtkDataSetReaders library")
-set(READERS_LIBRARIES vtkDataSetReaders)
-link_directories(${READERS_LIB_DIRECTORY})
+# Specify GDAL components (used by vtkGDALRasterReprojection)
+find_package(GDAL REQUIRED)
+mark_as_advanced(GDAL_INCLUDE_DIR GDAL_LIBRARY)
+
 
 # Specify source files
 set (SOURCES
     vtkFeature.cxx
     vtkFeatureLayer.cxx
+    vtkGDALRasterConverter.cxx
+    vtkGDALRasterReprojection.cxx
     vtkGeoJSONMapFeature.cxx
-    vtkInteractorStyleMap.cxx
+    vtkGeoMapFeatureSelector.cxx
+    vtkGeoMapSelection.cxx
+    vtkInteractorStyleGeoMap.cxx
     vtkMapMarkerSet.cxx
-    vtkMapPickResult.cxx
     vtkMapTile.cxx
     vtkMap.cxx
     vtkMultiThreadedOsmLayer.cxx
     vtkLayer.cxx
     vtkOsmLayer.cxx
     vtkPolydataFeature.cxx
+    vtkRasterFeature.cxx
+    vtkRasterReprojectionFilter.cxx
     vtkTeardropSource.cxx
     )
 
@@ -62,16 +73,23 @@ set (SOURCES
 set (HEADERS
     vtkFeature.h
     vtkFeatureLayer.h
-    vtkInteractorStyleMap.h
+    vtkGDALRasterConverter.h
+    vtkGDALRasterReprojection.h
+    vtkGeoMapFeatureSelector.h
+    vtkGeoMapSelection.h
+    vtkInteractorStyleGeoMap.h
     vtkMapMarkerSet.h
-    vtkMapPickResult.h
     vtkMapTile.h
     vtkMapTileSpecInternal.h
     vtkMap.h
+    vtkMercator.h
     vtkLayer.h
     vtkMultiThreadedOsmLayer.h
     vtkOsmLayer.h
     vtkPolydataFeature.h
+    vtkRasterFeature.h
+    vtkRasterReprojectionFilter.h
+    vtkTeardropSource.h
     ${CMAKE_CURRENT_BINARY_DIR}/vtkmap_export.h
     )
 
@@ -82,9 +100,9 @@ add_library(vtkMap ${SOURCES})
 target_link_libraries(vtkMap
                       LINK_PUBLIC
                         ${VTK_LIBRARIES}
-                        ${READERS_LIBRARIES}
                       LINK_PRIVATE
                         ${CURL_LIBRARIES}
+                        ${GDAL_LIBRARY}
                       )
 
 target_include_directories(vtkMap
@@ -92,7 +110,7 @@ target_include_directories(vtkMap
                              ${CMAKE_CURRENT_BINARY_DIR}
                            PRIVATE
                              ${CURL_INCLUDE_DIRS}
-                             ${READERS_INCLUDE_DIRECTORY}
+                             ${GDAL_INCLUDE_DIRS}
                           )
 
 #setup export header
@@ -117,6 +135,10 @@ install(TARGETS vtkMap
         ARCHIVE DESTINATION lib
         )
 install (FILES ${HEADERS} DESTINATION include)
+
+# Unset flags for executables that are built downstream
+set(CMAKE_CXX_VISIBILITY_PRESET)
+set(CMAKE_VISIBILITY_INLINES_HIDDEN)
 
 #example does not need to installed
 add_executable(example example.cpp)

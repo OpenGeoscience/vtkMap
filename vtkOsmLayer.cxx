@@ -19,8 +19,11 @@
 
 #include <vtkObjectFactory.h>
 #include <vtksys/SystemTools.hxx>
+#include <vtkTextActor.h>
+#include <vtkTextProperty.h>
 
 #include <algorithm>
+#include <cstring>  // strdup
 #include <iomanip>
 #include <iterator>
 #include <math.h>
@@ -41,20 +44,120 @@ struct sortTiles
 vtkOsmLayer::vtkOsmLayer() : vtkFeatureLayer()
 {
   this->BaseOn();
+  this->MapTileServer = strdup("tile.openstreetmap.org");
+  this->MapTileExtension = strdup("png");
+  this->MapTileAttribution = strdup("(c) OpenStreetMap contributors");
+  this->AttributionActor = NULL;
   this->CacheDirectory = NULL;
 }
 
 //----------------------------------------------------------------------------
 vtkOsmLayer::~vtkOsmLayer()
 {
+  if (this->AttributionActor)
+    {
+    this->AttributionActor->Delete();
+    }
   this->RemoveTiles();
-  delete [] this->CacheDirectory;
+  free(this->CacheDirectory);
+  free(this->MapTileAttribution);
+  free(this->MapTileExtension);
+  free(this->MapTileServer);
 }
 
 //----------------------------------------------------------------------------
 void vtkOsmLayer::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
+}
+
+//----------------------------------------------------------------------------
+void vtkOsmLayer::
+SetMapTileServer(const char *server, const char *attribution,
+                 const char *extension)
+{
+  if (!this->Map)
+    {
+    vtkWarningMacro("Cannot set map-tile server before adding layer to vtkMap");
+    return;
+    }
+
+  // Set cache directory
+  // Do *not* use SystemTools::JoinPath(), because it omits the first slash
+  std::string fullPath = this->Map->GetStorageDirectory() + std::string("/")
+    + server;
+
+  // Create directory if it doesn't already exist
+  if(!vtksys::SystemTools::FileIsDirectory(fullPath.c_str()))
+    {
+    if (vtksys::SystemTools::MakeDirectory(fullPath.c_str()))
+      {
+      std::cerr << "Created map-tile cache directory "
+                << fullPath << std::endl;
+      }
+    else
+      {
+      vtkErrorMacro("Unable to create directory for map-tile cache: "
+                    << fullPath);
+      return;
+      }
+    }
+
+  // Clear tile cached and update internals
+  // Remove tiles from renderer before calling RemoveTiles()
+  std::vector<vtkMapTile*>::iterator iter = this->CachedTiles.begin();
+  for (; iter != this->CachedTiles.end(); iter++)
+    {
+    vtkMapTile *tile = *iter;
+    this->Renderer->RemoveActor(tile->GetActor());
+    }
+  this->RemoveTiles();
+
+  this->MapTileExtension = strdup(extension);
+  this->MapTileServer = strdup(server);
+  this->MapTileAttribution = strdup(attribution);
+  this->CacheDirectory = strdup(fullPath.c_str());
+
+  if (this->AttributionActor)
+    {
+    this->AttributionActor->SetInput(this->MapTileAttribution);
+    this->Modified();
+    }
+}
+
+//----------------------------------------------------------------------------
+void vtkOsmLayer::Update()
+{
+  if (!this->Map)
+    {
+    return;
+    }
+
+  if (!this->CacheDirectory)
+    {
+    this->SetMapTileServer(
+      this->MapTileServer, this->MapTileAttribution, this->MapTileExtension);
+    }
+
+  if (!this->AttributionActor && this->MapTileAttribution)
+    {
+    this->AttributionActor = vtkTextActor::New();
+    this->AttributionActor->SetInput(this->MapTileAttribution);
+    this->AttributionActor->SetDisplayPosition(10, 0);
+    vtkTextProperty *textProperty = this->AttributionActor->GetTextProperty();
+    textProperty->SetFontSize(12);
+    textProperty->SetFontFamilyToArial();
+    textProperty->SetJustificationToLeft();
+    textProperty->SetColor(0, 0, 0);
+    // Background properties available in vtk 6.2
+    //textProperty->SetBackgroundColor(1, 1, 1);
+    //textProperty->SetBackgroundOpacity(1.0);
+    this->Map->GetRenderer()->AddActor2D(this->AttributionActor);
+    }
+
+  this->AddTiles();
+
+  this->Superclass::Update();
 }
 
 //----------------------------------------------------------------------------
@@ -79,29 +182,10 @@ void vtkOsmLayer::SetCacheSubDirectory(const char *relativePath)
   // Create directory if it doesn't already exist
   if(!vtksys::SystemTools::FileIsDirectory(fullPath.c_str()))
     {
-    std::cerr << "Creating osm tile cache " << fullPath << std::endl;
+    std::cerr << "Creating tile cache directory" << fullPath << std::endl;
     vtksys::SystemTools::MakeDirectory(fullPath.c_str());
     }
-  this->SetCacheDirectory(fullPath.c_str());
-}
-
-//----------------------------------------------------------------------------
-void vtkOsmLayer::Update()
-{
-  if (!this->Map)
-    {
-    return;
-    }
-
-  if (!this->CacheDirectory)
-    {
-    // Note this calls the public "Sub" directory method
-    this->SetCacheSubDirectory("osm");
-    }
-
-  this->AddTiles();
-
-  this->Superclass::Update();
+  this->CacheDirectory = strdup(fullPath.c_str());
 }
 
 //----------------------------------------------------------------------------
@@ -166,10 +250,13 @@ SelectTiles(std::vector<vtkMapTile*>& tiles,
 
   //std::cerr << "Before bottomLeft " << bottomLeft[0] << " " << bottomLeft[1] << std::endl;
 
-  bottomLeft[0] = std::max(bottomLeft[0], -180.0);
-  bottomLeft[0] = std::min(bottomLeft[0],  180.0);
-  bottomLeft[1] = std::max(bottomLeft[1], -180.0);
-  bottomLeft[1] = std::min(bottomLeft[1],  180.0);
+  if (this->Map->GetPerspectiveProjection())
+    {
+    bottomLeft[0] = std::max(bottomLeft[0], -180.0);
+    bottomLeft[0] = std::min(bottomLeft[0],  180.0);
+    bottomLeft[1] = std::max(bottomLeft[1], -180.0);
+    bottomLeft[1] = std::min(bottomLeft[1],  180.0);
+    }
 
   this->Renderer->SetDisplayPoint(tile_llx + width,
                                   tile_lly + height,
@@ -184,12 +271,16 @@ SelectTiles(std::vector<vtkMapTile*>& tiles,
     topRight[2] /= topRight[3];
     }
 
-  topRight[0] = std::max(topRight[0], -180.0);
-  topRight[0] = std::min(topRight[0],  180.0);
-  topRight[1] = std::max(topRight[1], -180.0);
-  topRight[1] = std::min(topRight[1],  180.0);
+  if (this->Map->GetPerspectiveProjection())
+    {
+    topRight[0] = std::max(topRight[0], -180.0);
+    topRight[0] = std::min(topRight[0],  180.0);
+    topRight[1] = std::max(topRight[1], -180.0);
+    topRight[1] = std::min(topRight[1],  180.0);
+    }
 
-  int zoomLevel = this->Map->GetZoom() + 1;
+  int zoomLevel = this->Map->GetZoom();
+  zoomLevel += this->Map->GetPerspectiveProjection() ? 1 : 0;
   int zoomLevelFactor = 1 << zoomLevel; // Zoom levels are interpreted as powers of two.
 
   int tile1x = vtkMercator::long2tilex(bottomLeft[0], zoomLevel);
@@ -292,20 +383,10 @@ InitializeTiles(std::vector<vtkMapTile*>& tiles,
     tile->SetLayer(this);
     tile->SetCorners(spec.Corners);
 
-    // Set the image key
-    oss.str("");
-    oss << spec.ZoomRowCol[0]
-        << spec.ZoomRowCol[1]
-        << spec.ZoomRowCol[2];
-    tile->SetImageKey(oss.str());
-
-    // Set tile texture source
-    oss.str("");
-    oss << "http://tile.openstreetmap.org"
-        << "/" << spec.ZoomRowCol[0]
-        << "/" << spec.ZoomRowCol[1]
-        << "/" << spec.ZoomRowCol[2]
-        << ".png";
+    // Set the local & remote paths
+    this->MakeFileSystemPath(spec, oss);
+    tile->SetFileSystemPath(oss.str());
+    this->MakeUrl(spec, oss);
     tile->SetImageSource(oss.str());
 
     // Initialize the tile and add to the cache
@@ -320,45 +401,23 @@ InitializeTiles(std::vector<vtkMapTile*>& tiles,
   tileSpecs.clear();
 }
 
-
 //----------------------------------------------------------------------------
 // Updates display to incorporate all new tiles
 void vtkOsmLayer::RenderTiles(std::vector<vtkMapTile*>& tiles)
 {
   if (tiles.size() > 0)
     {
-    // Remove the old tiles first
+    // Remove old tiles
     std::vector<vtkMapTile*>::iterator itr = this->CachedTiles.begin();
     for (; itr != this->CachedTiles.end(); ++itr)
       {
       this->Renderer->RemoveActor((*itr)->GetActor());
       }
 
-    vtkPropCollection* props = this->Renderer->GetViewProps();
-
-    props->InitTraversal();
-    vtkProp* prop = props->GetNextProp();
-    std::vector<vtkProp*> otherProps;
-    while (prop)
-      {
-      otherProps.push_back(prop);
-      prop = props->GetNextProp();
-      }
-
-    this->Renderer->RemoveAllViewProps();
-
-    std::sort(tiles.begin(), tiles.end(), sortTiles());
+    // Add new tiles
     for (std::size_t i = 0; i < tiles.size(); ++i)
       {
-      // Add tile to the renderer
       this->Renderer->AddActor(tiles[i]->GetActor());
-      }
-
-    std::vector<vtkProp*>::iterator itr2 = otherProps.begin();
-    while (itr2 != otherProps.end())
-      {
-      this->Renderer->AddViewProp(*itr2);
-      ++itr2;
       }
 
     tiles.clear();
@@ -383,4 +442,28 @@ vtkMapTile *vtkOsmLayer::GetCachedTile(int zoom, int x, int y)
     }
 
   return this->CachedTilesMap[zoom][x][y];
+}
+
+//----------------------------------------------------------------------------
+void vtkOsmLayer::MakeFileSystemPath(
+  vtkMapTileSpecInternal& tileSpec, std::stringstream& ss)
+{
+  ss.str("");
+  ss << this->GetCacheDirectory() << "/"
+     << tileSpec.ZoomRowCol[0]
+     << "-" << tileSpec.ZoomRowCol[1]
+     << "-" << tileSpec.ZoomRowCol[2]
+     << "." << this->MapTileExtension;
+}
+
+//----------------------------------------------------------------------------
+void vtkOsmLayer::MakeUrl(
+  vtkMapTileSpecInternal& tileSpec, std::stringstream& ss)
+{
+  ss.str("");
+  ss << "http://" << this->MapTileServer
+     << "/" << tileSpec.ZoomRowCol[0]
+     << "/" << tileSpec.ZoomRowCol[1]
+     << "/" << tileSpec.ZoomRowCol[2]
+     << "." << this->MapTileExtension;;
 }

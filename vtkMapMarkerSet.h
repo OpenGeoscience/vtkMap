@@ -18,29 +18,44 @@
 #ifndef __vtkMapMarkerSet_h
 #define __vtkMapMarkerSet_h
 
-#include <vtkObject.h>
+#include "vtkPolydataFeature.h"
 #include "vtkmap_export.h"
 #include <set>
 
 class vtkActor;
-class vtkMapClusteredMarkerSet;
-class vtkMapPickResult;
+class vtkIdList;
+class vtkLookupTable;
 class vtkMapper;
-class vtkPicker;
 class vtkPolyDataMapper;
 class vtkPolyData;
 class vtkRenderer;
 
-class VTKMAP_EXPORT vtkMapMarkerSet : public vtkObject
+class VTKMAP_EXPORT vtkMapMarkerSet : public vtkPolydataFeature
 {
 public:
   static vtkMapMarkerSet *New();
   virtual void PrintSelf(ostream &os, vtkIndent indent);
-  vtkTypeMacro(vtkMapMarkerSet, vtkObject);
+  vtkTypeMacro(vtkMapMarkerSet, vtkPolydataFeature);
 
   // Description:
-  // Set the renderer in which map markers will be added
-  vtkSetMacro(Renderer, vtkRenderer *);
+  // Set/get the Z value, in world coordinates, to assign each marker.
+  // This value is intended to be set once, before adding markers.
+  // The default is 0.1
+  vtkSetMacro(ZCoord, double);
+  vtkGetMacro(ZCoord, double);
+
+  // Description:
+  // Set/get the RGBA color assigned to the markers
+  void SetColor(double rgba[4]);
+
+  // Description:
+  // Set/get the Z offset value, in world coordinates, assigned
+  // to each marker in the current selected set.
+  // This can be used to prevent selected markers from being
+  // obscured by other (non-selected) markers.
+  // The default is 0.0
+  vtkSetMacro(SelectedZOffset, double);
+  vtkGetMacro(SelectedZOffset, double);
 
   // Description:
   // Set/get whether to apply hierarchical clustering to map markers.
@@ -51,6 +66,13 @@ public:
   vtkBooleanMacro(Clustering, bool);
 
   // Description:
+  // Threshold distance to use when creating clusters.
+  // The value is in display units (pixels).
+  // Default value is 80 pixels.
+  vtkSetMacro(ClusterDistance, int);
+  vtkGetMacro(ClusterDistance, int);
+
+  // Description:
   // Max scale factor to apply to cluster markers, default is 2.0
   // The scale function is 2nd order model: y = k*x^2 / (x^2 + b).
   // Coefficient k sets the max scale factor, i.e., y(inf) = k
@@ -59,27 +81,83 @@ public:
   vtkGetMacro(MaxClusterScaleFactor, double);
 
   // Description:
+  // Get number of markers
+  int GetNumberOfMarkers();
+
+  // Description:
   // Add marker to map, returns id
   vtkIdType AddMarker(double latitude, double longitude);
 
   // Description:
-  // Removes all map markers
-  void RemoveMarkers();
+  // Remove marker from map, returns boolean indicating success
+  bool DeleteMarker(vtkIdType markerId);
+
+  // Description:
+  // Set marker visibility
+  // Note that you MUST REDRAW after changing visibility
+  bool SetMarkerVisibility(int markerId, bool visible);
+  bool GetMarkerVisibility(int markerId) const;
+
+  // Description:
+  // Select or unselect marker
+  // Note that you MUST REDRAW after changing selection
+  bool SetMarkerSelection(int markerId, bool selected);
+
+  // Description:
+  // Return descendent ids for given cluster id.
+  // This is inteneded for traversing selected clusters.
+  void GetClusterChildren(vtkIdType clusterId, vtkIdList *childMarkerIds,
+                          vtkIdList *childClusterIds);
+
+  // Description:
+  // Return all marker ids descending from given cluster id
+  void GetAllMarkerIds(vtkIdType clusterId, vtkIdList *markerIds);
+
+  // Description:
+  // Override
+  virtual void Init();
 
   // Description:
   // Update the marker geometry to draw the map
-  void Update(int zoomLevel);
+  //void Update(int zoomLevel);
+  virtual void Update();
 
   // Description:
-  // Returns id of marker at specified display coordinates
-  void PickPoint(vtkRenderer *renderer, vtkPicker *picker,
-           int displayCoords[2], vtkMapPickResult *result);
+  // Override
+  virtual void Cleanup();
+
+  // Description:
+  // Return cluster id for display id at current zoom level.
+  // The cluster id is a unique, persistent id assigned
+  // to each display element, whether it represents a single
+  // marker or a cluster. As such, cluster ids are different
+  // for each zoom level.
+  // Returns -1 for invalid display id
+  vtkIdType GetClusterId(vtkIdType displayId);
+
+  // Description:
+  // Return marker id for display id at current zoom level.
+  // Marker ids are independent of zoom level.
+  // If the display id represents a cluster, returns -1.
+  // Also returns -1 for invalid display id.
+  vtkIdType GetMarkerId(vtkIdType displayId);
+
+  // Description:
+  // For debug, writes out the set of cluster nodes
+  // ascending from given marker
+  void PrintClusterPath(ostream &os, int markerId);
 
  protected:
   vtkMapMarkerSet();
   ~vtkMapMarkerSet();
 
-  void InitializeRenderingPipeline();
+  // Description:
+  // Z Coordinate of this map feature
+  double ZCoord;
+
+  // Description:
+  // Offset to apply to Z coordinate of markers in the selected state
+  double SelectedZOffset;
 
   // Description:
   // Indicates that internal logic & pipeline have been initialized
@@ -94,18 +172,36 @@ public:
   double MaxClusterScaleFactor;
 
   // Description:
-  // The renderer used to draw maps
-  vtkRenderer* Renderer;
-
+  // Geometry representation; gets updated each zoom-level change
   vtkPolyData *PolyData;
-  vtkPolyDataMapper *Mapper;
-  vtkActor *Actor;
+
+  // Description:
+  // Threshold distance when combining markers/clusters
+  int ClusterDistance;
+
+  // Description:
+  // Stores colors for standard display and selection
+  vtkLookupTable *ColorTable;
 
   class ClusteringNode;
+
+  // Computes clustering distance in gcs coordinates
+  double ComputeDistanceThreshold2(double latitude, double longitude,
+                                   int clusteringDistance) const;
+
+  // Find closest node within distance threshold squared
   ClusteringNode *FindClosestNode(ClusteringNode *node, int zoomLevel,
-                                  double distanceThreshold);
+                                  double distanceThreshold2);
   void MergeNodes(ClusteringNode *node, ClusteringNode *mergingNode,
                   std::set<ClusteringNode*>& parentsToMerge, int level);
+
+  void GetMarkerIdsRecursive(vtkIdType clusterId, vtkIdList *markerIds);
+
+  // Description:
+  // Generates next color for actor (which can be overridden, of course)
+  void ComputeNextColor(double color[3]);
+  static unsigned int NextMarkerHue;
+  double SelectionHue;
 
  private:
   class MapMarkerSetInternals;

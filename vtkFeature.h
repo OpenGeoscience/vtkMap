@@ -24,6 +24,8 @@
 #include "vtkmap_export.h"
 #include "vtkFeatureLayer.h"
 
+class vtkProp;
+
 #include <string>
 
 class VTKMAP_EXPORT vtkFeature : public vtkObject
@@ -76,6 +78,19 @@ public:
   // which is the boolean product of the feature's visibiltiy
   // and the layer's visibility flags.
   bool IsVisible();
+
+  // Description:
+  // Return vtkProp that represents feature in picking operations.
+  // Default is none.
+  virtual vtkProp *PickProp();
+
+  // Description:
+  // Pick all feature items at designated display coordinates.
+  // For external features to override.
+  virtual void PickItems(
+    vtkRenderer *renderer,
+    int displayCoords[4],
+    vtkGeoMapSelection *selection);
 
 protected:
   vtkFeature();
