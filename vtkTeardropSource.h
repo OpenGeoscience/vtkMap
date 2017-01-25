@@ -65,6 +65,22 @@ public:
   vtkGetMacro(Resolution,int);
 
   // Description:
+  // Set/get option to only generate the front-side surfaces
+  // (z coordinates >= 0). Intended for use with 2D/map applications.
+  // Default is OFF.
+  vtkSetMacro(FrontSideOnly,bool);
+  vtkGetMacro(FrontSideOnly,bool);
+  vtkBooleanMacro(FrontSideOnly, bool);
+
+  // Description:
+  // Set/get option to project points onto the xy plane (i.e., set z = 0).
+  // Does NOT modify point normals.
+  // Intended for use with 2D/map applications. Default is OFF.
+  vtkSetMacro(ProjectToXYPlane,bool);
+  vtkGetMacro(ProjectToXYPlane,bool);
+  vtkBooleanMacro(ProjectToXYPlane, bool);
+
+  // Description:
   // Set/get the desired precision for the output points.
   // vtkAlgorithm::SINGLE_PRECISION - Output single-precision floating point.
   // vtkAlgorithm::DOUBLE_PRECISION - Output double-precision floating point.
@@ -82,6 +98,8 @@ protected:
   double HeadStrength;
   double HeadRadius;
   int Resolution;
+  bool FrontSideOnly;
+  bool ProjectToXYPlane;
   int OutputPointsPrecision;
 
 private:

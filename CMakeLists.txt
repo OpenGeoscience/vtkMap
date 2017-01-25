@@ -15,6 +15,7 @@ set (VTK_REQUIRED_COMPONENTS
     vtkInteractionStyle
     vtkIOGDAL
     vtkIOGeoJSON
+    vtkIOLegacy
     vtkjsoncpp
     vtkRenderingCore
     vtkRendering${VTK_RENDERING_BACKEND}

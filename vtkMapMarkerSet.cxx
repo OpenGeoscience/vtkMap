@@ -21,6 +21,8 @@
 #include <vtkDataArray.h>
 #include <vtkDistanceToCamera.h>
 #include <vtkDoubleArray.h>
+#include <vtkExtractPolyDataGeometry.h>
+#include <vtkFloatArray.h>
 #include <vtkIdList.h>
 #include <vtkIdTypeArray.h>
 #include <vtkGlyph3DMapper.h>
@@ -28,15 +30,17 @@
 #include <vtkMath.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
+#include <vtkPlane.h>
 #include <vtkPointData.h>
 #include <vtkPoints.h>
 #include <vtkPolyData.h>
 #include <vtkPolyDataMapper.h>
+#include <vtkPolyDataWriter.h>
 #include <vtkProperty.h>
 #include <vtkRenderer.h>
 #include <vtkSphereSource.h>
 #include <vtkTransform.h>
-#include <vtkTransformFilter.h>
+#include <vtkTransformPolyDataFilter.h>
 #include <vtkUnsignedCharArray.h>
 #include <vtkUnsignedIntArray.h>
 
@@ -660,8 +664,11 @@ void vtkMapMarkerSet::Init()
 
   // Use teardrop shape for individual markers
   vtkNew<vtkTeardropSource> markerGlyphSource;
+  markerGlyphSource->SetResolution(6);
+  markerGlyphSource->FrontSideOnlyOn();
+  markerGlyphSource->ProjectToXYPlaneOn();
   // Rotate to point downward (parallel to y axis)
-  vtkNew<vtkTransformFilter> rotateMarker;
+  vtkNew<vtkTransformPolyDataFilter> rotateMarker;
   rotateMarker->SetInputConnection(markerGlyphSource->GetOutputPort());
   vtkNew<vtkTransform> transform;
   transform->RotateZ(90.0);
@@ -672,6 +679,58 @@ void vtkMapMarkerSet::Init()
   clusterGlyphSource->SetPhiResolution(20);
   clusterGlyphSource->SetThetaResolution(20);
   clusterGlyphSource->SetRadius(0.25);
+  clusterGlyphSource->SetOutputPointsPrecision(vtkAlgorithm::SINGLE_PRECISION);
+
+  // Interim logic to project cluster marker onto XY plane
+  // Long-term plan is to implement a more general marker-geometry code
+
+  // Extract the hemisphere about the XY plane
+  vtkNew<vtkExtractPolyDataGeometry> extractFilter;
+  vtkNew<vtkPlane> xyPlane;
+  xyPlane->SetOrigin(0.0, 0.0, -0.001);
+  xyPlane->SetNormal(0.0, 0.0, 1.0);
+  extractFilter->SetImplicitFunction(xyPlane.GetPointer());
+  extractFilter->SetInputConnection(clusterGlyphSource->GetOutputPort());
+  extractFilter->ExtractInsideOff();
+  extractFilter->ExtractBoundaryCellsOff();
+  extractFilter->PassPointsOff();
+
+  // Update the filter so that we can get and save the point normals
+  extractFilter->Update();
+  vtkPolyData *extractedGlyph = extractFilter->GetOutput();
+  vtkNew<vtkFloatArray> originalNormals;
+  originalNormals->DeepCopy(extractedGlyph->GetPointData()->GetNormals());
+
+  // vtkNew<vtkPolyDataWriter> ewriter;
+  // const char *efilename = "extractedglyph.vtk";
+  // ewriter->SetFileName(efilename);
+  // ewriter->SetInputData(extractFilter->GetOutput());
+  // ewriter->Write();
+  // std::cout << "Wrote " << efilename << std::endl;
+
+  // Project onto XY plane by using transform with z-scale of 0
+  vtkNew<vtkTransform> projectTransform;
+  projectTransform->Scale(1.0, 1.0, 0.0);
+
+  // Remove normals since they get transformed by the filter (which we don't want)
+  extractedGlyph->GetPointData()->SetNormals(NULL);
+
+  vtkNew<vtkTransformPolyDataFilter> projectFilter;
+  projectFilter->SetTransform(projectTransform.GetPointer());
+  projectFilter->SetInputData(extractedGlyph);
+
+  // Run the projection filter so that we can restore point normals
+  projectFilter->Update();
+  vtkPolyData *projectedGlyph = projectFilter->GetOutput();
+  projectedGlyph->GetPointData()->SetNormals(originalNormals.GetPointer());
+
+  // vtkNew<vtkPolyDataWriter> pwriter;
+  // const char *pfilename = "projectedglyph.vtk";
+  // pwriter->SetFileName(pfilename);
+  // pwriter->SetInputData(projectedGlyph);
+  // pwriter->Write();
+  // std::cout << "Wrote " << pfilename << std::endl;
+
 
   // Switch in our mapper, and do NOT call Superclass::Init()
   this->GetActor()->SetMapper(this->Internals->GlyphMapper);
@@ -679,7 +738,7 @@ void vtkMapMarkerSet::Init()
 
   // Set up glyph mapper inputs
   this->Internals->GlyphMapper->SetSourceConnection(0, rotateMarker->GetOutputPort());
-  this->Internals->GlyphMapper->SetSourceConnection(1, clusterGlyphSource->GetOutputPort());
+  this->Internals->GlyphMapper->SetSourceData(1, projectedGlyph);
   this->Internals->GlyphMapper->SetInputConnection(dFilter->GetOutputPort());
 
   // Select glyph type by "MarkerType" array
