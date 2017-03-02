@@ -14,7 +14,7 @@
 
 #include "vtkMapMarkerSet.h"
 #include "vtkMercator.h"
-#include "vtkTeardropSource.h"
+#include "pointMarkerPolyData.h"
 
 #include <vtkActor.h>
 #include <vtkBitArray.h>
@@ -35,10 +35,11 @@
 #include <vtkPoints.h>
 #include <vtkPolyData.h>
 #include <vtkPolyDataMapper.h>
+#include <vtkPolyDataReader.h>
 #include <vtkPolyDataWriter.h>
 #include <vtkProperty.h>
+#include <vtkRegularPolygonSource.h>
 #include <vtkRenderer.h>
-#include <vtkSphereSource.h>
 #include <vtkTransform.h>
 #include <vtkTransformPolyDataFilter.h>
 #include <vtkUnsignedCharArray.h>
@@ -55,6 +56,21 @@ unsigned int vtkMapMarkerSet::NextMarkerHue = 0;
 #define MARKER_TYPE 0
 #define CLUSTER_TYPE 1
 #define SQRT_TWO sqrt(2.0)
+
+//----------------------------------------------------------------------------
+namespace
+{
+  // Hard-code color palette to match leaflet-awesome markers
+  double palette[][3] = {
+    {0.84, 0.24, 0.16},  // red
+    {0.96, 0.59, 0.19},  // orange
+    {0.45, 0.69, 0.15},  // green
+    {0.22, 0.67, 0.87},  // blue
+    {0.82, 0.32, 0.73}   // violet
+  };
+  std::size_t paletteSize = sizeof(palette)/sizeof(double[3]);
+  std::size_t paletteIndex = 0;
+}  // namespace
 
 //----------------------------------------------------------------------------
 // Internal class for cluster tree nodes
@@ -662,83 +678,24 @@ void vtkMapMarkerSet::Init()
       0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "MarkerScale");
     }
 
-  // Use teardrop shape for individual markers
-  vtkNew<vtkTeardropSource> markerGlyphSource;
-  markerGlyphSource->SetResolution(6);
-  markerGlyphSource->FrontSideOnlyOn();
-  markerGlyphSource->ProjectToXYPlaneOn();
-  // Rotate to point downward (parallel to y axis)
-  vtkNew<vtkTransformPolyDataFilter> rotateMarker;
-  rotateMarker->SetInputConnection(markerGlyphSource->GetOutputPort());
-  vtkNew<vtkTransform> transform;
-  transform->RotateZ(90.0);
-  rotateMarker->SetTransform(transform.GetPointer());
+  // Load point marker geometry
+  vtkNew<vtkPolyDataReader> pointMarkerReader;
+  pointMarkerReader->ReadFromInputStringOn();
+  pointMarkerReader->SetInputString(pointMarkerPolyData);
 
-  // Use sphere for cluster markers
-  vtkNew<vtkSphereSource> clusterGlyphSource;
-  clusterGlyphSource->SetPhiResolution(20);
-  clusterGlyphSource->SetThetaResolution(20);
-  clusterGlyphSource->SetRadius(0.25);
-  clusterGlyphSource->SetOutputPointsPrecision(vtkAlgorithm::SINGLE_PRECISION);
-
-  // Interim logic to project cluster marker onto XY plane
-  // Long-term plan is to implement a more general marker-geometry code
-
-  // Extract the hemisphere about the XY plane
-  vtkNew<vtkExtractPolyDataGeometry> extractFilter;
-  vtkNew<vtkPlane> xyPlane;
-  xyPlane->SetOrigin(0.0, 0.0, -0.001);
-  xyPlane->SetNormal(0.0, 0.0, 1.0);
-  extractFilter->SetImplicitFunction(xyPlane.GetPointer());
-  extractFilter->SetInputConnection(clusterGlyphSource->GetOutputPort());
-  extractFilter->ExtractInsideOff();
-  extractFilter->ExtractBoundaryCellsOff();
-  extractFilter->PassPointsOff();
-
-  // Update the filter so that we can get and save the point normals
-  extractFilter->Update();
-  vtkPolyData *extractedGlyph = extractFilter->GetOutput();
-  vtkNew<vtkFloatArray> originalNormals;
-  originalNormals->DeepCopy(extractedGlyph->GetPointData()->GetNormals());
-
-  // vtkNew<vtkPolyDataWriter> ewriter;
-  // const char *efilename = "extractedglyph.vtk";
-  // ewriter->SetFileName(efilename);
-  // ewriter->SetInputData(extractFilter->GetOutput());
-  // ewriter->Write();
-  // std::cout << "Wrote " << efilename << std::endl;
-
-  // Project onto XY plane by using transform with z-scale of 0
-  vtkNew<vtkTransform> projectTransform;
-  projectTransform->Scale(1.0, 1.0, 0.0);
-
-  // Remove normals since they get transformed by the filter (which we don't want)
-  extractedGlyph->GetPointData()->SetNormals(NULL);
-
-  vtkNew<vtkTransformPolyDataFilter> projectFilter;
-  projectFilter->SetTransform(projectTransform.GetPointer());
-  projectFilter->SetInputData(extractedGlyph);
-
-  // Run the projection filter so that we can restore point normals
-  projectFilter->Update();
-  vtkPolyData *projectedGlyph = projectFilter->GetOutput();
-  projectedGlyph->GetPointData()->SetNormals(originalNormals.GetPointer());
-
-  // vtkNew<vtkPolyDataWriter> pwriter;
-  // const char *pfilename = "projectedglyph.vtk";
-  // pwriter->SetFileName(pfilename);
-  // pwriter->SetInputData(projectedGlyph);
-  // pwriter->Write();
-  // std::cout << "Wrote " << pfilename << std::endl;
-
+  // Use regular polygon for cluster marker
+  vtkNew<vtkRegularPolygonSource> clusterMarkerSource;
+  clusterMarkerSource->SetNumberOfSides(18);
+  clusterMarkerSource->SetRadius(0.25);
+  clusterMarkerSource->SetOutputPointsPrecision(vtkAlgorithm::SINGLE_PRECISION);
 
   // Switch in our mapper, and do NOT call Superclass::Init()
   this->GetActor()->SetMapper(this->Internals->GlyphMapper);
   this->Layer->GetRenderer()->AddActor(this->Actor);
 
   // Set up glyph mapper inputs
-  this->Internals->GlyphMapper->SetSourceConnection(0, rotateMarker->GetOutputPort());
-  this->Internals->GlyphMapper->SetSourceData(1, projectedGlyph);
+  this->Internals->GlyphMapper->SetSourceConnection(0, pointMarkerReader->GetOutputPort());
+  this->Internals->GlyphMapper->SetSourceConnection(1, clusterMarkerSource->GetOutputPort());
   this->Internals->GlyphMapper->SetInputConnection(dFilter->GetOutputPort());
 
   // Select glyph type by "MarkerType" array
@@ -1134,50 +1091,11 @@ MergeNodes(ClusteringNode *node, ClusteringNode *mergingNode,
 //----------------------------------------------------------------------------
 void vtkMapMarkerSet::ComputeNextColor(double color[3])
 {
-  // Generate "next" hue using logic adapted from
-  // http://ridiculousfish.com/blog/posts/colors.html
-
-  unsigned int bitCount = 6;  // 2^6 == 64 colors
-  double hue;
-
-  // Use loop that includes checking for overlap with selection hue
-  int i = 0;
-  for (i=0; i<2; i++)
+  for (unsigned i=0; i<3; ++i)
     {
-    // Reverse the bits in vtkMapMarkerSet::NextMarkerHue
-    unsigned int forwardBits = vtkMapMarkerSet::NextMarkerHue;
-    unsigned int reverseBits = 0;
-    for (int i=0; i<bitCount; i++)
-      {
-      reverseBits = (reverseBits << 1) | (forwardBits & 1);
-      forwardBits >>= 1;
-      }
-
-    // Divide by max
-    unsigned int maxCount = 1 << bitCount;
-
-    hue = static_cast<double>(reverseBits) / maxCount;
-    hue += 0.6;  // offset to start at blue
-    hue = (hue > 1.0) ? hue - 1.0 : hue;
-    vtkMapMarkerSet::NextMarkerHue += 1;
-
-    // Check distance from SelectionHue
-    if (fabs(hue - this->SelectionHue) > 1.0/30.0)
-      {
-      break;
-      }
-
-    vtkDebugMacro("ComputeNextColor skipping hue " << hue);
-    }  // for (i)
-
-  if (i > 1)
-    {
-    vtkWarningMacro("ComputeNextColor default after 2 iterations");
+    color[i] = palette[paletteIndex][i];
     }
-
-  vtkDebugMacro("ComputeNextColor hue: " << hue);
-  double hsv[3] = {hue, 1.0, 1.0};
-  vtkMath::HSVToRGB(hsv, color);
+  paletteIndex = (paletteIndex + 1) % paletteSize;
 }
 
 #undef SQRT_TWO
