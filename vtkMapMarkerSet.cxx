@@ -63,13 +63,26 @@ unsigned int vtkMapMarkerSet::NextMarkerHue = 0;
 namespace
 {
   // Hard-code color palette to match leaflet-awesome markers
-  double palette[][3] = {
-    {0.84, 0.24, 0.16},  // red
-    {0.96, 0.59, 0.19},  // orange
-    {0.45, 0.69, 0.15},  // green
-    {0.22, 0.67, 0.87},  // blue
-    {0.82, 0.32, 0.73}   // violet
+  // The names are just a guess
+  unsigned char palette[][3] = {
+    {214,  62,  42},  // red
+    {246, 151,  48},  // orange
+    {114, 176,  38},  // green
+    { 56, 170, 221},  // light blue
+    //{210,  82, 185} // violet -- omit: too close to selection color (255,0,255)
+    {162,  51,  54},  // dark red
+    {  0, 103, 163},  // dark blue
+    {114, 130,  36},  // olive green
+    { 91,  57, 107},  // purple
+    { 67, 105, 120},  // teal
+    {255, 142, 127},  // salmon
+    {255, 203, 146},  // tan
+    {187, 249, 112},  // light green
+    {138, 218, 255},  // light blue
+    {255, 145, 234},  // pink
+    {235, 125, 127},  // slightly darker salmon
   };
+
   std::size_t paletteSize = sizeof(palette)/sizeof(double[3]);
   std::size_t paletteIndex = 0;
 }  // namespace
@@ -1176,7 +1189,7 @@ void vtkMapMarkerSet::ComputeNextColor(double color[3])
 {
   for (unsigned i=0; i<3; ++i)
     {
-    color[i] = palette[paletteIndex][i];
+    color[i] = static_cast<double>(palette[paletteIndex][i]) / 255.0;
     }
   paletteIndex = (paletteIndex + 1) % paletteSize;
 }
