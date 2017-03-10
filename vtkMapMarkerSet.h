@@ -49,6 +49,19 @@ public:
   void SetColor(double rgba[4]);
 
   // Description:
+  // Set/get the size to display point markers, in image pixels.
+  // The default is true
+  vtkSetMacro(EnablePointMarkerShadow, bool);
+  vtkGetMacro(EnablePointMarkerShadow, bool);
+  vtkBooleanMacro(EnablePointMarkerShadow, bool);
+
+  // Description:
+  // Set/get the size to display point markers, in image pixels.
+  // The default is 50
+  vtkSetMacro(PointMarkerSize, unsigned int);
+  vtkGetMacro(PointMarkerSize, unsigned int);
+
+  // Description:
   // Set/get the Z offset value, in world coordinates, assigned
   // to each marker in the current selected set.
   // This can be used to prevent selected markers from being
@@ -154,6 +167,15 @@ public:
   // Description:
   // Z Coordinate of this map feature
   double ZCoord;
+
+  // Description:
+  // Sets whether to include shadow with map marker display.
+  // Default value is true.
+  bool EnablePointMarkerShadow;
+
+  // Description:
+  // Size to display point markers, in pixels
+  unsigned int PointMarkerSize;
 
   // Description:
   // Offset to apply to Z coordinate of markers in the selected state

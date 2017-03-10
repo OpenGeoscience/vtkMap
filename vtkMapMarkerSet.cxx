@@ -138,6 +138,8 @@ public:
 vtkMapMarkerSet::vtkMapMarkerSet() : vtkPolydataFeature()
 {
   this->Initialized = false;
+  this->EnablePointMarkerShadow = true;
+  this->PointMarkerSize = 50;
   this->ZCoord = 0.1;
   this->SelectedZOffset = 0.0;
   this->PolyData = vtkPolyData::New();
@@ -784,9 +786,11 @@ void vtkMapMarkerSet::Init()
   this->Internals->GlyphMapper->SourceIndexingOn();
   this->Internals->GlyphMapper->SetSourceIndexArray(typeName);
 
+  double markerScale = static_cast<double>(this->PointMarkerSize)/50.0;
+
   // Set scale by "DistanceToCamera" array
   this->Internals->GlyphMapper->ScalingOn();
-  this->Internals->GlyphMapper->SetScaleFactor(1.0);
+  this->Internals->GlyphMapper->SetScaleFactor(markerScale);
   this->Internals->GlyphMapper->SetScaleModeToScaleByMagnitude();
   this->Internals->GlyphMapper->SetScaleArray("DistanceToCamera");
 
@@ -800,17 +804,23 @@ void vtkMapMarkerSet::Init()
 
 
   // Set up shadow actor
-  this->Internals->ShadowMapper->SetInputConnection(dFilter->GetOutputPort());
-  this->Internals->ShadowMapper->MaskingOn();
-  this->Internals->ShadowMapper->SetMaskArray(maskName);
-  this->Internals->ShadowMapper->SourceIndexingOn();
-  this->Internals->ShadowMapper->SetSourceIndexArray(typeName);
-  this->Internals->ShadowMapper->ScalingOn();
-  this->Internals->ShadowMapper->SetScaleFactor(1.0);
-  this->Internals->ShadowMapper->SetScaleModeToScaleByMagnitude();
-  this->Internals->ShadowMapper->SetScaleArray("DistanceToCamera");
-  this->Layer->GetRenderer()->AddActor(this->Internals->ShadowActor);
-  this->Internals->ShadowMapper->Update();
+  if (this->EnablePointMarkerShadow)
+    {
+    // Would like to use vtkTransformPolyDataFilter
+    // to offset point positions in Z, thereby forcing shadows behind markers.
+    // However, it calls vtkErrorMacro() if input data is empty.
+    this->Internals->ShadowMapper->SetInputConnection(dFilter->GetOutputPort());
+    this->Internals->ShadowMapper->MaskingOn();
+    this->Internals->ShadowMapper->SetMaskArray(maskName);
+    this->Internals->ShadowMapper->SourceIndexingOn();
+    this->Internals->ShadowMapper->SetSourceIndexArray(typeName);
+    this->Internals->ShadowMapper->ScalingOn();
+    this->Internals->ShadowMapper->SetScaleFactor(markerScale);
+    this->Internals->ShadowMapper->SetScaleModeToScaleByMagnitude();
+    this->Internals->ShadowMapper->SetScaleArray("DistanceToCamera");
+    this->Layer->GetRenderer()->AddActor(this->Internals->ShadowActor);
+    this->Internals->ShadowMapper->Update();
+    }
 
   this->Internals->GlyphMapper->Update();
   this->Initialized = true;
