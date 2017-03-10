@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 2.8.11 FATAL_ERROR)
 
 PROJECT(vtkMap)
+
+# Add our Cmake directory to the module search path
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/CMake)
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
@@ -45,6 +49,17 @@ include(GenerateExportHeader)
 # Specify GDAL components (used by vtkGDALRasterReprojection)
 find_package(GDAL REQUIRED)
 mark_as_advanced(GDAL_INCLUDE_DIR GDAL_LIBRARY)
+
+# Generate header file for map marker geometry
+include("EncodeCStringFunctions")
+set(marker_vtk "${CMAKE_SOURCE_DIR}/assets/pointMarkerPolyData.vtk")
+set(marker_h "${CMAKE_BINARY_DIR}/pointMarkerPolyData.h")
+configureFileAsCVariable("${marker_vtk}" "${marker_h}" "pointMarkerPolyData")
+
+# Copy header file for map marker shadow
+set(markers_shadow_input "${CMAKE_SOURCE_DIR}/assets/markersShadowImageData.h")
+set(markers_shadow_h "${CMAKE_BINARY_DIR}/markersShadowImageData.h")
+configure_file("${markers_shadow_input}" "${markers_shadow_h}" COPYONLY)
 
 
 # Specify source files
