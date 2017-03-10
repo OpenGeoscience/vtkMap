@@ -284,7 +284,7 @@ int main(int argc, char *argv[])
   testPolygon->SetRadius(2.0);
   vtkNew<vtkPolydataFeature> feature;
   feature->GetMapper()->SetInputConnection(testPolygon->GetOutputPort());
-  feature->GetActor()->GetProperty()->SetColor(1.0, 0.1, 0.1);
+  feature->GetActor()->GetProperty()->SetColor(0.0, 80.0/255, 80.0/255);  // (teal)
   feature->GetActor()->GetProperty()->SetOpacity(0.5);
 
   double x = kwLongitude;
@@ -311,8 +311,6 @@ int main(int argc, char *argv[])
     markerSet->AddMarker(lat, lon);
     }
 
-  // Set marker color & opacity
-  markerSet->GetActor()->GetProperty()->SetOpacity(0.9);
   map->Draw();
 
   // Set callbacks

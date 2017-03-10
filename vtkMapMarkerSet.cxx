@@ -233,6 +233,7 @@ vtkMapMarkerSet::vtkMapMarkerSet() : vtkPolydataFeature()
   this->Internals->ShadowMapper->SetSourceData(1, nullSource.GetPointer());
 
   this->Internals->ShadowActor = vtkActor::New();
+  this->Internals->ShadowActor->PickableOff();
   this->Internals->ShadowActor->SetMapper(this->Internals->ShadowMapper);
   this->Internals->ShadowActor->SetTexture(this->Internals->ShadowTexture);
 }
@@ -802,13 +803,9 @@ void vtkMapMarkerSet::Init()
   this->Internals->GlyphMapper->SetColorModeToMapScalars();
   this->PolyData->GetPointData()->SetActiveScalars(selectName);
 
-
   // Set up shadow actor
   if (this->EnablePointMarkerShadow)
     {
-    // Would like to use vtkTransformPolyDataFilter
-    // to offset point positions in Z, thereby forcing shadows behind markers.
-    // However, it calls vtkErrorMacro() if input data is empty.
     this->Internals->ShadowMapper->SetInputConnection(dFilter->GetOutputPort());
     this->Internals->ShadowMapper->MaskingOn();
     this->Internals->ShadowMapper->SetMaskArray(maskName);
@@ -819,6 +816,9 @@ void vtkMapMarkerSet::Init()
     this->Internals->ShadowMapper->SetScaleModeToScaleByMagnitude();
     this->Internals->ShadowMapper->SetScaleArray("DistanceToCamera");
     this->Layer->GetRenderer()->AddActor(this->Internals->ShadowActor);
+
+    // Adjust actor's position to be behind markers
+    this->Internals->ShadowActor->SetPosition(0, 0, -0.5*this->ZCoord);
     this->Internals->ShadowMapper->Update();
     }
 
