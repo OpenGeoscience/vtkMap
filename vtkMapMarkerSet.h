@@ -79,6 +79,14 @@ public:
   vtkBooleanMacro(Clustering, bool);
 
   // Description:
+  // Set/get the (maximum) depth of the point-clustering tree.
+  // This function should only be called *before* adding any markers.
+  // Valid values are between 2 and 20 inclusive; other values are ignored.
+  // The default is 14.
+  vtkSetClampMacro(ClusteringTreeDepth, unsigned int, 2, 20);
+  vtkGetMacro(ClusteringTreeDepth, unsigned int);
+
+  // Description:
   // Threshold distance to use when creating clusters.
   // The value is in display units (pixels).
   // Default value is 80 pixels.
@@ -188,6 +196,10 @@ public:
   // Description:
   // Flag to enable/disable marker clustering logic
   bool Clustering;
+
+  // Description:
+  // Depth of clustering tree to use
+  unsigned int ClusteringTreeDepth;
 
   // Description:
   // Sets the max size to render cluster glyphs (based on marker count)

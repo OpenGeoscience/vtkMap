@@ -53,7 +53,6 @@
 #include <iomanip>
 #include <vector>
 
-const int NumberOfClusterLevels = 20;
 unsigned int vtkMapMarkerSet::NextMarkerHue = 0;
 #define MARKER_TYPE 0
 #define CLUSTER_TYPE 1
@@ -144,7 +143,8 @@ vtkMapMarkerSet::vtkMapMarkerSet() : vtkPolydataFeature()
   this->SelectedZOffset = 0.0;
   this->PolyData = vtkPolyData::New();
   this->Clustering = false;
-  this->ClusterDistance = 80;
+  this->ClusteringTreeDepth = 14;
+  this->ClusterDistance = 40;
   this->MaxClusterScaleFactor = 2.0;
 
   // Initialize color table
@@ -174,7 +174,7 @@ vtkMapMarkerSet::vtkMapMarkerSet() : vtkPolydataFeature()
   this->Internals->ZoomLevel = -1;
   std::set<ClusteringNode*> clusterSet;
   std::fill_n(std::back_inserter(this->Internals->NodeTable),
-              NumberOfClusterLevels, clusterSet);
+              this->ClusteringTreeDepth, clusterSet);
   this->Internals->NumberOfMarkers = 0;
   this->Internals->NumberOfNodes = 0;
   this->Internals->GlyphMapper = vtkGlyph3DMapper::New();
@@ -836,9 +836,9 @@ void vtkMapMarkerSet::Update()
 
   // Clip zoom level to size of cluster table
   int zoomLevel = this->Layer->GetMap()->GetZoom();
-  if (zoomLevel >= NumberOfClusterLevels)
+  if (zoomLevel >= this->ClusteringTreeDepth)
     {
-    zoomLevel = NumberOfClusterLevels - 1;
+    zoomLevel = this->ClusteringTreeDepth - 1;
     }
 
   // If not clustering, only update if markers have changed
