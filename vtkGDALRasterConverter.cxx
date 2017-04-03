@@ -344,7 +344,7 @@ CopyToGDAL(vtkImageData *input, GDALDataset *output)
     {
     for (int i=0; i<array->GetNumberOfTuples(); i++)
       {
-      double value = noDataArray->GetValue(i);
+      double value = noDataArray->GetTuple1(i);
       if (!vtkMath::IsNan(value))
         {
         GDALRasterBand *band = output->GetRasterBand(i+1);

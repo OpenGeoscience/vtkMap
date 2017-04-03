@@ -2,6 +2,15 @@ cmake_minimum_required(VERSION 2.8.11 FATAL_ERROR)
 
 PROJECT(vtkMap)
 
+# If the user/superbuild hasn't explicitly stated what c++ standard to use,
+# require C++11, since VTK now builds with it
+if(NOT DEFINED CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 11)
+  set(CMAKE_CXX_STANDARD_REQUIRED True)
+  set(CMAKE_CXX_EXTENSIONS FALSE)
+endif()
+
+
 # Add our Cmake directory to the module search path
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/CMake)
 
