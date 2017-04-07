@@ -29,6 +29,8 @@
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
 
+#include <QCheckBox>
+#include <QDebug>
 #include <QMessageBox>
 #include <QString>
 #include <QVBoxLayout>
@@ -143,6 +145,9 @@ qtWeatherStations::qtWeatherStations(QWidget *parent)
                    this, SLOT(resetMapCoords()));
   QObject::connect(this->UI->ShowStationsButton, SIGNAL(clicked()),
                    this, SLOT(showStations()));
+  QObject::connect(
+    this->UI->ClusteringCheckbox, SIGNAL(stateChanged(int)),
+    this, SLOT(toggleClustering(int)));
 
   // Initialize curl
   curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -206,6 +211,18 @@ void qtWeatherStations::showStations()
   std::vector<StationReport> stationList = this->ParseStationData(json);
   this->DisplayStationData(stationList);
   this->DisplayStationMarkers(stationList);
+}
+
+// ------------------------------------------------------------
+void qtWeatherStations::toggleClustering(int checkboxState)
+{
+  if (this->Map)
+    {
+    bool mapClusteringState = checkboxState == Qt::Checked;
+    this->MapMarkers->SetClustering(mapClusteringState);
+    //qDebug() << "toggle clustering to: " << mapClusteringState;
+    this->Map->Draw();
+    }
 }
 
 // ------------------------------------------------------------

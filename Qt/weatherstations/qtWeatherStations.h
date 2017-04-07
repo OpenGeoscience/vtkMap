@@ -66,6 +66,7 @@ class qtWeatherStations : public QMainWindow
  protected slots:
    void resetMapCoords();
    void showStations();
+   void toggleClustering(int state);
 };
 
 #endif  // __qtWeatherStations_h

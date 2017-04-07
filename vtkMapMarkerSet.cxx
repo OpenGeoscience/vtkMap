@@ -111,7 +111,6 @@ class vtkMapMarkerSet::MapMarkerSetInternals
 {
 public:
   vtkGlyph3DMapper *GlyphMapper;
-  bool MarkersChanged;
   std::vector<ClusteringNode*> CurrentNodes;  // in this->PolyData
 
   // Used for marker clustering:
@@ -170,7 +169,6 @@ vtkMapMarkerSet::vtkMapMarkerSet() : vtkPolydataFeature()
   this->ColorTable->SetNanColor(red);
 
   this->Internals = new MapMarkerSetInternals;
-  this->Internals->MarkersChanged = false;
   this->Internals->ZoomLevel = -1;
   std::set<ClusteringNode*> clusterSet;
   std::fill_n(std::back_inserter(this->Internals->NodeTable),
@@ -322,7 +320,8 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
 
   // todo refactor into separate method
   // todo calc initial cluster distance here and divide down
-  if (this->Clustering)
+  // For now, always insert into cluster tree even if clustering disabled
+  if (true)  // was if (this->Clustering)
     {
     // Insertion step: Starting at bottom level, populate NodeTable until
     // a clustering partner is found.
@@ -458,7 +457,7 @@ vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
       }
     }
 
-  this->Internals->MarkersChanged = true;
+  this->Modified();
 
   if (false)
     {
@@ -551,7 +550,7 @@ bool vtkMapMarkerSet::DeleteMarker(vtkIdType markerId)
   vtkDebugMacro("Deleting marker " << markerNode->NodeId);
   delete markerNode;
 
-  this->Internals->MarkersChanged = true;
+  this->Modified();
   return true;
 }
 
@@ -566,10 +565,9 @@ bool vtkMapMarkerSet::SetMarkerVisibility(int markerId, bool visible)
     return false;
     }
 
-  bool isModified = visible != this->Internals->MarkerVisible[markerId];
-  if (!isModified)
+  if (visible == this->Internals->MarkerVisible[markerId])
     {
-    return false;
+    return false;  // no change
     }
 
   // Check that node wasn't deleted
@@ -592,10 +590,7 @@ bool vtkMapMarkerSet::SetMarkerVisibility(int markerId, bool visible)
     }
 
   this->Internals->MarkerVisible[markerId] = visible;
-  this->Internals->MarkersChanged = true;
-  // Do we need to set Modified?
-  // Better still - rebuild visibility (mask) array for current display
-  // Better still - incrementally update visibility array
+  this->Modified();
   return true;
 }
 
@@ -610,10 +605,9 @@ bool vtkMapMarkerSet::SetMarkerSelection(int markerId, bool selected)
     return false;
     }
 
-  bool isModified = selected != this->Internals->MarkerSelected[markerId];
-  if (!isModified)
+  if (selected == this->Internals->MarkerSelected[markerId])
     {
-    return false;
+    return false;  // no change
     }
 
   ClusteringNode *node = this->Internals->MarkerNodes[markerId];
@@ -635,7 +629,7 @@ bool vtkMapMarkerSet::SetMarkerSelection(int markerId, bool selected)
     }
 
   this->Internals->MarkerSelected[markerId] = selected;
-  this->Internals->MarkersChanged = true;
+  this->Modified();
   return true;
 }
 
@@ -829,6 +823,7 @@ void vtkMapMarkerSet::Init()
 //----------------------------------------------------------------------------
 void vtkMapMarkerSet::Update()
 {
+  //std::cout << __FILE__ << ":" << __LINE__ << "Enter Update()" << std::endl;
   if (!this->Initialized)
     {
     vtkErrorMacro("vtkMapMarkerSet has NOT been initialized");
@@ -841,24 +836,22 @@ void vtkMapMarkerSet::Update()
     zoomLevel = this->ClusteringTreeDepth - 1;
     }
 
-  // If not clustering, only update if markers have changed
-  if (!this->Clustering && !this->Internals->MarkersChanged)
+  // Only need to rebuild polydata if either
+  // 1. Contents have been modified
+  // 2. In clustering mode and zoom level changed
+  bool changed = this->GetMTime() > this->UpdateTime.GetMTime();
+  changed |= this->Clustering && (zoomLevel != this->Internals->ZoomLevel);
+  if (!changed)
     {
     return;
     }
 
-  // If clustering, only update if either zoom or markers changed
-  if (this->Clustering && !this->Internals->MarkersChanged &&
-      (zoomLevel == this->Internals->ZoomLevel))
-    {
-    return;
-    }
-
-  // In non-clustering mode, markers stored at level 0
+  // In non-clustering mode, markers stored at leaf level
   if (!this->Clustering)
     {
-    zoomLevel = this->Internals->NodeTable.size() - 1;
+    zoomLevel = this->ClusteringTreeDepth - 1;
     }
+  //std::cout << __FILE__ << ":" << __LINE__ << " zoomLevel " << zoomLevel << std::endl;
 
   // Copy marker info into polydata
   vtkNew<vtkPoints> points;
@@ -924,8 +917,8 @@ void vtkMapMarkerSet::Update()
   this->PolyData->Reset();
   this->PolyData->SetPoints(points.GetPointer());
 
-  this->Internals->MarkersChanged = false;
   this->Internals->ZoomLevel = zoomLevel;
+  this->UpdateTime.Modified();
 }
 
 //----------------------------------------------------------------------------
@@ -949,7 +942,7 @@ void vtkMapMarkerSet::Cleanup()
   this->Internals->CurrentNodes.clear();
   this->Internals->NumberOfMarkers = 0;
   this->Internals->NumberOfNodes = 0;
-  this->Internals->MarkersChanged = true;
+  this->Modified();
 }
 
 //----------------------------------------------------------------------------
