@@ -38,7 +38,8 @@ public:
     SelectionCompleteEvent = vtkCommand::UserEvent + 1,
     DisplayClickCompleteEvent,   // DisplayOnlyMode && mouse click
     DisplayDrawCompleteEvent,    // DisplayOnlyMode && rectangle draw
-    ZoomCompleteEvent
+    ZoomCompleteEvent,
+    RightButtonCompleteEvent     // for application-context menus
     };
 
 public:
@@ -62,6 +63,7 @@ public:
   // interactions.
   virtual void OnLeftButtonDown();
   virtual void OnLeftButtonUp();
+  virtual void OnRightButtonUp();
   virtual void OnMouseMove();
   virtual void OnMouseWheelForward();
   virtual void OnMouseWheelBackward();

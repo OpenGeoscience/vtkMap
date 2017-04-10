@@ -68,16 +68,38 @@ public:
     switch (eventId)
       {
       case vtkInteractorStyleGeoMap::SelectionCompleteEvent:
-          {
-          vtkObject *object = static_cast<vtkObject*>(data);
-          vtkGeoMapSelection *selection = vtkGeoMapSelection::SafeDownCast(object);
-          this->App->displaySelectionInfo(selection);
-          }
-          break;
+        {
+        vtkObject *object = static_cast<vtkObject*>(data);
+        vtkGeoMapSelection *selection = vtkGeoMapSelection::SafeDownCast(object);
+        this->App->displaySelectionInfo(selection);
+        }
+        break;
+
+      case vtkInteractorStyleGeoMap::RightButtonCompleteEvent:
+        {
+        vtkInteractorStyleGeoMap *style =
+          vtkInteractorStyleGeoMap::SafeDownCast(caller);
+        int *mapDisplayCoords = style->GetEndPosition();
+        // Convert to QWidget coords
+        // * VTK origin is bottom-left
+        // * Qt origin is top-right
+        // * Ignore widget margins for now
+        int *displaySize = this->App->getRenderer()->GetSize();
+        int qDisplayCoords[2];
+        qDisplayCoords[0] = mapDisplayCoords[0];
+        qDisplayCoords[1] = displaySize[1] - mapDisplayCoords[1];
+        std::cout << "Right Mouse Event at map xy "
+                  << mapDisplayCoords[0] << "," << mapDisplayCoords[1]
+                  << ", widget xy "
+                  << qDisplayCoords[0] << ", " << qDisplayCoords[1]
+                  << std::endl;
+        }
+        break;
 
       default:
-        std::cout << "Mouse event "
-                  << vtkCommand::GetStringFromEventId(eventId) << std::endl;
+        std::cout << "Mouse event " << eventId
+                  << "  " << vtkCommand::GetStringFromEventId(eventId)
+                  << std::endl;
         break;
       }
   }
@@ -137,8 +159,12 @@ qtWeatherStations::qtWeatherStations(QWidget *parent)
 
   // Watch for selection callback from map
   this->InteractorCallback = new MapCallback(this);
-  style->AddObserver(vtkInteractorStyleGeoMap::SelectionCompleteEvent,
-                     this->InteractorCallback);
+  style->AddObserver(
+    vtkInteractorStyleGeoMap::SelectionCompleteEvent,
+    this->InteractorCallback);
+  style->AddObserver(
+    vtkInteractorStyleGeoMap::RightButtonCompleteEvent,
+    this->InteractorCallback);
 
   // Connect UI controls
   QObject::connect(this->UI->ResetButton, SIGNAL(clicked()),

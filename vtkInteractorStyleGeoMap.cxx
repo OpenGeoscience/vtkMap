@@ -268,6 +268,16 @@ void vtkInteractorStyleGeoMap::OnLeftButtonUp()
   this->Superclass::OnLeftButtonUp();
 }
 
+//-----------------------------------------------------------------------------
+void vtkInteractorStyleGeoMap::OnRightButtonUp()
+{
+  this->StartPosition[0] = this->Interactor->GetEventPosition()[0];
+  this->StartPosition[1] = this->Interactor->GetEventPosition()[1];
+  this->EndPosition[0] = this->StartPosition[0];
+  this->EndPosition[1] = this->StartPosition[1];
+  this->InvokeEvent(vtkInteractorStyleGeoMap::RightButtonCompleteEvent, this->EndPosition);
+}
+
 //--------------------------------------------------------------------------
 void vtkInteractorStyleGeoMap::OnMouseMove()
 {

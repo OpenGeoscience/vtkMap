@@ -121,6 +121,17 @@ public:
                     << std::endl;
           }
           break;
+
+        case vtkInteractorStyleGeoMap::RightButtonCompleteEvent:
+          {
+          vtkInteractorStyleGeoMap *style =
+            vtkInteractorStyleGeoMap::SafeDownCast(
+              this->Map->GetInteractorStyle());
+          int *coords = style->GetEndPosition();
+          std::cout << "Right mouse click at ("
+                    << coords[0] << ", " << coords[1] << ")" << std::endl;
+          }
+          break;
         }  // switch
     }
 
@@ -323,6 +334,8 @@ int main(int argc, char *argv[])
   style->AddObserver(vtkInteractorStyleGeoMap::SelectionCompleteEvent,
                     pickCallback.GetPointer());
   style->AddObserver(vtkInteractorStyleGeoMap::ZoomCompleteEvent,
+                    pickCallback.GetPointer());
+  style->AddObserver(vtkInteractorStyleGeoMap::RightButtonCompleteEvent,
                     pickCallback.GetPointer());
 
   intr->Start();
