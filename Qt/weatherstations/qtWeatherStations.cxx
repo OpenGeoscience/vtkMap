@@ -29,9 +29,12 @@
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
 
+#include <QAction>
 #include <QCheckBox>
 #include <QDebug>
+#include <QMenu>
 #include <QMessageBox>
+#include <QPoint>
 #include <QString>
 #include <QVBoxLayout>
 #include <curl/curl.h>
@@ -85,14 +88,28 @@ public:
         // * Qt origin is top-right
         // * Ignore widget margins for now
         int *displaySize = this->App->getRenderer()->GetSize();
-        int qDisplayCoords[2];
-        qDisplayCoords[0] = mapDisplayCoords[0];
-        qDisplayCoords[1] = displaySize[1] - mapDisplayCoords[1];
+
+        QPoint widgetCoords;
+        widgetCoords.setX(mapDisplayCoords[0]);
+        widgetCoords.setY(displaySize[1] - mapDisplayCoords[1]);
+
+        // Get global coords, used below to display context menu
+        QPoint globalCoords = this->App->mapWidget()->mapToGlobal(widgetCoords);
         std::cout << "Right Mouse Event at map xy "
                   << mapDisplayCoords[0] << "," << mapDisplayCoords[1]
                   << ", widget xy "
-                  << qDisplayCoords[0] << ", " << qDisplayCoords[1]
+                  << widgetCoords.x() << "," << widgetCoords.y()
+                  << ", global xy "
+                  << globalCoords.x() << "," << globalCoords.y()
                   << std::endl;
+
+        QMenu menu(this->App);
+        menu.addAction("Context Menu Goes Here");
+        menu.addSeparator();
+        menu.addAction("Action #1");
+        menu.addAction("Action #2");
+        menu.addAction("et cetera");
+        menu.exec(globalCoords);
         }
         break;
 
@@ -530,6 +547,12 @@ displaySelectionInfo(vtkGeoMapSelection *selection) const
                              QString::fromStdString(ss.str()));
     }
 
+}
+
+// ------------------------------------------------------------
+QWidget *qtWeatherStations::mapWidget() const
+{
+  return this->MapWidget;
 }
 
 // ------------------------------------------------------------

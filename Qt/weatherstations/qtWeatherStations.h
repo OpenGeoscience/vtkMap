@@ -30,6 +30,7 @@ class vtkMapMarkerSet;
 class vtkRenderer;
 class QVTKWidget;
 class MapCallback;
+class QWidget;
 
 
 // Forward Qt class declarations
@@ -46,6 +47,7 @@ class qtWeatherStations : public QMainWindow
   void updateMap();
   vtkRenderer *getRenderer() const;
   void displaySelectionInfo(vtkGeoMapSelection *selection) const;
+  QWidget *mapWidget() const;
  public slots:
 
  protected:
