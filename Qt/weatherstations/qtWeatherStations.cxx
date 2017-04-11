@@ -29,7 +29,12 @@
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
 
+#include <QAction>
+#include <QCheckBox>
+#include <QDebug>
+#include <QMenu>
 #include <QMessageBox>
+#include <QPoint>
 #include <QString>
 #include <QVBoxLayout>
 #include <curl/curl.h>
@@ -66,16 +71,52 @@ public:
     switch (eventId)
       {
       case vtkInteractorStyleGeoMap::SelectionCompleteEvent:
-          {
-          vtkObject *object = static_cast<vtkObject*>(data);
-          vtkGeoMapSelection *selection = vtkGeoMapSelection::SafeDownCast(object);
-          this->App->displaySelectionInfo(selection);
-          }
-          break;
+        {
+        vtkObject *object = static_cast<vtkObject*>(data);
+        vtkGeoMapSelection *selection = vtkGeoMapSelection::SafeDownCast(object);
+        this->App->displaySelectionInfo(selection);
+        }
+        break;
+
+      case vtkInteractorStyleGeoMap::RightButtonCompleteEvent:
+        {
+        vtkInteractorStyleGeoMap *style =
+          vtkInteractorStyleGeoMap::SafeDownCast(caller);
+        int *mapDisplayCoords = style->GetEndPosition();
+        // Convert to QWidget coords
+        // * VTK origin is bottom-left
+        // * Qt origin is top-right
+        // * Ignore widget margins for now
+        int *displaySize = this->App->getRenderer()->GetSize();
+
+        QPoint widgetCoords;
+        widgetCoords.setX(mapDisplayCoords[0]);
+        widgetCoords.setY(displaySize[1] - mapDisplayCoords[1]);
+
+        // Get global coords, used below to display context menu
+        QPoint globalCoords = this->App->mapWidget()->mapToGlobal(widgetCoords);
+        std::cout << "Right Mouse Event at map xy "
+                  << mapDisplayCoords[0] << "," << mapDisplayCoords[1]
+                  << ", widget xy "
+                  << widgetCoords.x() << "," << widgetCoords.y()
+                  << ", global xy "
+                  << globalCoords.x() << "," << globalCoords.y()
+                  << std::endl;
+
+        QMenu menu(this->App);
+        menu.addAction("Context Menu Goes Here");
+        menu.addSeparator();
+        menu.addAction("Action #1");
+        menu.addAction("Action #2");
+        menu.addAction("et cetera");
+        menu.exec(globalCoords);
+        }
+        break;
 
       default:
-        std::cout << "Mouse event "
-                  << vtkCommand::GetStringFromEventId(eventId) << std::endl;
+        std::cout << "Mouse event " << eventId
+                  << "  " << vtkCommand::GetStringFromEventId(eventId)
+                  << std::endl;
         break;
       }
   }
@@ -135,14 +176,27 @@ qtWeatherStations::qtWeatherStations(QWidget *parent)
 
   // Watch for selection callback from map
   this->InteractorCallback = new MapCallback(this);
-  style->AddObserver(vtkInteractorStyleGeoMap::SelectionCompleteEvent,
-                     this->InteractorCallback);
+  style->AddObserver(
+    vtkInteractorStyleGeoMap::SelectionCompleteEvent,
+    this->InteractorCallback);
+  style->AddObserver(
+    vtkInteractorStyleGeoMap::RightButtonCompleteEvent,
+    this->InteractorCallback);
 
   // Connect UI controls
   QObject::connect(this->UI->ResetButton, SIGNAL(clicked()),
                    this, SLOT(resetMapCoords()));
   QObject::connect(this->UI->ShowStationsButton, SIGNAL(clicked()),
                    this, SLOT(showStations()));
+  QObject::connect(
+    this->UI->ClusteringCheckbox, SIGNAL(stateChanged(int)),
+    this, SLOT(toggleClustering(int)));
+  QObject::connect(
+    this->UI->ClusterRecomputeButton, SIGNAL(clicked(bool)),
+    this, SLOT(recomputeClusters()));
+  QObject::connect(
+    this->UI->ClusterDistanceSpinBox, SIGNAL(valueChanged(int)),
+    this, SLOT(onClusterDistanceChanged(int)));
 
   // Initialize curl
   curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -206,6 +260,42 @@ void qtWeatherStations::showStations()
   std::vector<StationReport> stationList = this->ParseStationData(json);
   this->DisplayStationData(stationList);
   this->DisplayStationMarkers(stationList);
+}
+
+// ------------------------------------------------------------
+void qtWeatherStations::toggleClustering(int checkboxState)
+{
+  if (this->Map)
+    {
+    bool mapClusteringState = checkboxState == Qt::Checked;
+    this->MapMarkers->SetClustering(mapClusteringState);
+    //qDebug() << "toggle clustering to: " << mapClusteringState;
+    this->Map->Draw();
+    }
+}
+
+// ------------------------------------------------------------
+void qtWeatherStations::onClusterDistanceChanged(int value)
+{
+  // Enable "Recompute" button if distance has changed
+  int currentDistance = this->MapMarkers->GetClusterDistance();
+  bool enabled = value != currentDistance;
+  this->UI->ClusterRecomputeButton->setEnabled(enabled);
+}
+
+// ------------------------------------------------------------
+void qtWeatherStations::recomputeClusters()
+{
+  //qDebug() << "recompute clustering";
+  if (this->Map)
+    {
+    int distance = this->UI->ClusterDistanceSpinBox->value();
+    this->MapMarkers->SetClusterDistance(distance);
+
+    this->MapMarkers->RecomputeClusters();
+    this->Map->Draw();
+    this->UI->ClusterRecomputeButton->setEnabled(false);
+    }
 }
 
 // ------------------------------------------------------------
@@ -457,6 +547,12 @@ displaySelectionInfo(vtkGeoMapSelection *selection) const
                              QString::fromStdString(ss.str()));
     }
 
+}
+
+// ------------------------------------------------------------
+QWidget *qtWeatherStations::mapWidget() const
+{
+  return this->MapWidget;
 }
 
 // ------------------------------------------------------------
