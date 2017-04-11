@@ -67,6 +67,8 @@ class qtWeatherStations : public QMainWindow
    void resetMapCoords();
    void showStations();
    void toggleClustering(int state);
+   void onClusterDistanceChanged(int value);
+   void recomputeClusters();
 };
 
 #endif  // __qtWeatherStations_h

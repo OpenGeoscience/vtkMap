@@ -148,6 +148,12 @@ qtWeatherStations::qtWeatherStations(QWidget *parent)
   QObject::connect(
     this->UI->ClusteringCheckbox, SIGNAL(stateChanged(int)),
     this, SLOT(toggleClustering(int)));
+  QObject::connect(
+    this->UI->ClusterRecomputeButton, SIGNAL(clicked(bool)),
+    this, SLOT(recomputeClusters()));
+  QObject::connect(
+    this->UI->ClusterDistanceSpinBox, SIGNAL(valueChanged(int)),
+    this, SLOT(onClusterDistanceChanged(int)));
 
   // Initialize curl
   curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -222,6 +228,30 @@ void qtWeatherStations::toggleClustering(int checkboxState)
     this->MapMarkers->SetClustering(mapClusteringState);
     //qDebug() << "toggle clustering to: " << mapClusteringState;
     this->Map->Draw();
+    }
+}
+
+// ------------------------------------------------------------
+void qtWeatherStations::onClusterDistanceChanged(int value)
+{
+  // Enable "Recompute" button if distance has changed
+  int currentDistance = this->MapMarkers->GetClusterDistance();
+  bool enabled = value != currentDistance;
+  this->UI->ClusterRecomputeButton->setEnabled(enabled);
+}
+
+// ------------------------------------------------------------
+void qtWeatherStations::recomputeClusters()
+{
+  //qDebug() << "recompute clustering";
+  if (this->Map)
+    {
+    int distance = this->UI->ClusterDistanceSpinBox->value();
+    this->MapMarkers->SetClusterDistance(distance);
+
+    this->MapMarkers->RecomputeClusters();
+    this->Map->Draw();
+    this->UI->ClusterRecomputeButton->setEnabled(false);
     }
 }
 

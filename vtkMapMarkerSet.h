@@ -94,6 +94,11 @@ public:
   vtkGetMacro(ClusterDistance, int);
 
   // Description:
+  // Rebuild the internal clustering tree, to reflect
+  // changes to settings and deleted markers
+  void RecomputeClusters();
+
+  // Description:
   // Max scale factor to apply to cluster markers, default is 2.0
   // The scale function is 2nd order model: y = k*x^2 / (x^2 + b).
   // Coefficient k sets the max scale factor, i.e., y(inf) = k
@@ -218,6 +223,9 @@ public:
   vtkLookupTable *ColorTable;
 
   class ClusteringNode;
+
+  // Used when rebuilding clustering tree
+  void InsertIntoNodeTable(ClusteringNode *node);
 
   // Computes clustering distance in gcs coordinates
   double ComputeDistanceThreshold2(double latitude, double longitude,
