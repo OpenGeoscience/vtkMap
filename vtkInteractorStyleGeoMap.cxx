@@ -230,6 +230,17 @@ void vtkInteractorStyleGeoMap::OnLeftButtonUp()
       {
       vtkNew<vtkGeoMapSelection> pickResult;
       pickResult->SetLatLngBounds(latLonCoords);
+
+      // Expanding the pick area reduces the number of misses
+      // by vtkHardwareSelector, which is used in
+      // vtkGeoMapFeatureSelector::PickArea(). April 2017
+      int x = (this->StartPosition[0] + this->EndPosition[0]) / 2;
+      int y = (this->StartPosition[1] + this->EndPosition[1]) / 2;
+      boundCoords[0] = x - 10;
+      boundCoords[1] = y - 10;
+      boundCoords[2] = x + 10;
+      boundCoords[3] = y + 10;
+
       this->Map->PickArea(boundCoords, pickResult.GetPointer());
       this->InvokeEvent(SelectionCompleteEvent, pickResult.GetPointer());
       }

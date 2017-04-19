@@ -332,10 +332,11 @@ void vtkGeoMapFeatureSelector::PickMarkers(
     hwSelection = hwSelector->Select();
     if (!hwSelection)  // null if grahpics < 24 bit
       {
+      vtkWarningMacro("vtkHardwareSelector::Select() returned null.");
       done = true;
       break;
       }
-    else if (hwSelection->GetNumberOfNodes() < 1)
+
     if (hwSelection->GetNumberOfNodes() < 1)
       {
       hwSelection->Delete();
@@ -347,6 +348,17 @@ void vtkGeoMapFeatureSelector::PickMarkers(
       {
       vtkSelectionNode *node = hwSelection->GetNode(i);
       vtkObjectBase *base = node->GetProperties()->Get(vtkSelectionNode::PROP());
+      if (!base)
+        {
+        // Workaround intermittent problem with output of hardware
+        // selector, currently unresolved (April 2017)
+        vtkWarningMacro(
+          "(.cxx:" << __LINE__ << ")  vtkSelectionNode PROP missing");
+#ifndef NDEBUG
+        node->Print(std::cout);
+#endif
+        continue;
+        }
       prop = vtkProp::SafeDownCast(base);
       propSet.insert(prop);
       prop->PickableOff();  // don't pick again (in this method)
