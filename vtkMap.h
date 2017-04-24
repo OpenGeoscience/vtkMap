@@ -81,9 +81,10 @@ public:
   vtkSetMacro(Zoom, int)
 
   // Description:
-  // Get/Set center of the map
+  // Get/Set center of the map.
   void GetCenter(double (&latlngPoint)[2]);
-  vtkSetVector2Macro(Center, double);
+  void SetCenter(double latlngPoint[2]);
+  void SetCenter(double latitude, double longitude);
 
   // Description:
   // Set center & zoom level to display area of interest.

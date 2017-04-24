@@ -40,6 +40,13 @@
        </widget>
       </item>
       <item>
+       <widget class="QPushButton" name="UpdateCoordsWidgetButton">
+        <property name="text">
+         <string>Update</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <spacer name="horizontalSpacer_3">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
@@ -56,9 +63,9 @@
        </spacer>
       </item>
       <item>
-       <widget class="QPushButton" name="ResetButton">
+       <widget class="QPushButton" name="MoveButton">
         <property name="text">
-         <string>Reset Coords</string>
+         <string>Move To Coords</string>
         </property>
        </widget>
       </item>

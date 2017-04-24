@@ -152,8 +152,11 @@ qtWeatherStations::qtWeatherStations(QWidget *parent)
   this->Map->AddLayer(osmLayer.GetPointer());
   //this->resetMapCoords();
   //this->Map->SetCenter(32.2, -90.9);  // approx ERDC coords
-  this->Map->SetCenter(42.849604, -73.758345);  // KHQ coords
-  this->Map->SetZoom(5);
+  double centerLatLon[2] = {42.849604, -73.758345};   // KHQ coords
+  double zoom = 5;
+  this->Map->SetCenter(centerLatLon);
+  this->Map->SetZoom(zoom);
+  this->UI->MapCoordinatesWidget->setCoordinates(centerLatLon, zoom);
 
   // Initialize map marker set
   vtkNew<vtkFeatureLayer> markerLayer;
@@ -184,8 +187,10 @@ qtWeatherStations::qtWeatherStations(QWidget *parent)
     this->InteractorCallback);
 
   // Connect UI controls
-  QObject::connect(this->UI->ResetButton, SIGNAL(clicked()),
-                   this, SLOT(resetMapCoords()));
+  QObject::connect(this->UI->MoveButton, SIGNAL(clicked()),
+                   this, SLOT(moveToCoords()));
+  QObject::connect(this->UI->UpdateCoordsWidgetButton, SIGNAL(clicked()),
+                   this, SLOT(onUpdateCoordsWidget()));
   QObject::connect(this->UI->ShowStationsButton, SIGNAL(clicked()),
                    this, SLOT(showStations()));
   QObject::connect(
@@ -225,16 +230,29 @@ qtWeatherStations::~qtWeatherStations()
 }
 
 // ------------------------------------------------------------
-// Resets map coordinates
-void qtWeatherStations::resetMapCoords()
+void qtWeatherStations::moveToCoords()
 {
   if (this->Map)
     {
-    // Hard coded for now
-    this->Map->SetCenter(0, 0);
-    this->Map->SetZoom(5);
+    double center[2] = {0.0, 0.0};
+    int zoom = 1;
+    this->UI->MapCoordinatesWidget->getCoordinates(center, zoom);
+
+    // Set zoom first
+    this->Map->SetZoom(zoom);
+    this->Map->SetCenter(center);
+    this->updateMap();
     this->drawMap();
     }
+}
+
+// ------------------------------------------------------------
+void qtWeatherStations::onUpdateCoordsWidget()
+{
+  double center[2] = {0.0, 0.0};
+  this->Map->GetCenter(center);
+  int zoom = this->Map->GetZoom();
+  this->UI->MapCoordinatesWidget->setCoordinates(center, zoom);
 }
 
 // ------------------------------------------------------------

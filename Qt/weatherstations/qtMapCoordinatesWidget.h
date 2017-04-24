@@ -32,6 +32,7 @@ class qtMapCoordinatesWidget : public QWidget
  qtMapCoordinatesWidget(QWidget *parent = 0);
 
  void setCoordinates(double center[2], int zoom);
+ void getCoordinates(double center[2], int& zoom) const;
   public slots:
     void refresh();
 

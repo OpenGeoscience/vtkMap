@@ -44,7 +44,7 @@ void SetupCacheDirectory(vtkMap *map, std::string& dirname)
 
   // Make sure directory is empty
   std::string command = "exec rm -rf " + testDir + "/*";
-  system(command.c_str());
+  int retval = system(command.c_str());
 }
 
 //----------------------------------------------------------------------------

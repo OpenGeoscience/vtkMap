@@ -66,10 +66,11 @@ class qtWeatherStations : public QMainWindow
   MapCallback *InteractorCallback;
 
  protected slots:
-   void resetMapCoords();
+   void moveToCoords();
    void showStations();
    void toggleClustering(int state);
    void onClusterDistanceChanged(int value);
+   void onUpdateCoordsWidget();
    void recomputeClusters();
 };
 

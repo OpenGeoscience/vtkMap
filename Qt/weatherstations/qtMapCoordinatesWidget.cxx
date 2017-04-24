@@ -43,6 +43,18 @@ void qtMapCoordinatesWidget::setCoordinates(double center[2], int zoom)
 }
 
 // ------------------------------------------------------------
+void qtMapCoordinatesWidget::getCoordinates(double center[2], int& zoom) const
+{
+  QString latText = this->UI->LatitudeEdit->text();
+  center[0] = latText.toDouble();
+
+  QString lonText = this->UI->LongitudeEdit->text();
+  center[1] = lonText.toDouble();
+
+  zoom = this->UI->ZoomEdit->value();
+}
+
+// ------------------------------------------------------------
 void qtMapCoordinatesWidget::refresh()
 {
 }

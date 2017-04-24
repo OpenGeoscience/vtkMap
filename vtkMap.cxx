@@ -203,34 +203,12 @@ void vtkMap::SetVisibleBounds(double latLngCoords[4])
     zoom -= this->PerspectiveProjection ? 1 : 0;
     }
 
-  // Compute center
+  // Update center and zoom
   double center[2];
   center[0] = 0.5 * (validCoords[0] + validCoords[2]);
   center[1] = 0.5 * (validCoords[1] + validCoords[3]);
-
-  this->SetCenter(center);
   this->SetZoom(zoom);
-
-  // If initialized, update camera distance
-  if (this->Renderer)
-    {
-      double x = this->Center[1];
-      double y = vtkMercator::lat2y(this->Center[0]);
-
-      double cameraCoords[3] = {0.0, 0.0, 1.0};
-      this->Renderer->GetActiveCamera()->GetPosition(cameraCoords);
-      double z = cameraCoords[2];
-
-      if (this->PerspectiveProjection)
-        {
-        z = computeCameraDistance(
-          this->Renderer->GetActiveCamera(), this->Zoom);
-        }
-
-      this->Renderer->GetActiveCamera()->SetPosition(x, y, z);
-      this->Renderer->GetActiveCamera()->SetFocalPoint(x, y, 0.0);
-    }
-  this->Modified();
+  this->SetCenter(center);
 }
 
 //----------------------------------------------------------------------------
@@ -285,6 +263,40 @@ void vtkMap::GetCenter(double (&latlngPoint)[2])
   worldPoint[1] = vtkMercator::y2lat(worldPoint[1]);
   latlngPoint[0] = worldPoint[1];
   latlngPoint[1] = worldPoint[0];
+}
+
+//----------------------------------------------------------------------------
+void vtkMap::SetCenter(double latLonPoint[2])
+{
+  this->SetCenter(latLonPoint[0], latLonPoint[1]);
+}
+
+//----------------------------------------------------------------------------
+void vtkMap::SetCenter(double latitude, double longitude)
+{
+  this->Center[0] = latitude;
+  this->Center[1] = longitude;
+
+  // If initialized, update camera distance
+  if (this->Initialized)
+    {
+    double x = longitude;
+    double y = vtkMercator::lat2y(latitude);
+
+    double cameraCoords[3] = {0.0, 0.0, 1.0};
+    this->Renderer->GetActiveCamera()->GetPosition(cameraCoords);
+    double z = cameraCoords[2];
+
+    if (this->PerspectiveProjection)
+      {
+      z = computeCameraDistance(
+        this->Renderer->GetActiveCamera(), this->Zoom);
+      }
+    this->Renderer->GetActiveCamera()->SetPosition(x, y, z);
+    this->Renderer->GetActiveCamera()->SetFocalPoint(x, y, 0.0);
+    }
+
+this->Modified();
 }
 
 //----------------------------------------------------------------------------
