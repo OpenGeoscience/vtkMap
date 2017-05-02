@@ -32,6 +32,13 @@ public:
   vtkTypeMacro(vtkRasterFeature, vtkFeature);
 
   // Description
+  // Set the GDAL_DATA folder, which is generally needed
+  // to display raster features. If/when the raster-preojection
+  // code is migrated to VTK, this function should
+  // be moved with it.
+  static void SetGDALDataDirectory(char *path);
+
+  // Description
   // Set input image data
   // Must contain origin & spacing in vtk-mercator units
   // Use vtkMercator to convert from lat-lon or EPSG:3857 units

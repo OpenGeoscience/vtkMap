@@ -22,6 +22,8 @@
 #include <vtkObjectFactory.h>
 #include <vtkStringArray.h>
 
+#include <cpl_conv.h>
+
 vtkStandardNewMacro(vtkRasterFeature);
 
 //----------------------------------------------------------------------------
@@ -43,6 +45,12 @@ vtkRasterFeature::~vtkRasterFeature()
     }
   delete [] this->InputProjection;
   this->Actor->Delete();
+}
+
+//----------------------------------------------------------------------------
+void vtkRasterFeature::SetGDALDataDirectory(char *path)
+{
+  CPLSetConfigOption("GDAL_DATA", path);
 }
 
 //----------------------------------------------------------------------------

@@ -56,6 +56,12 @@ public:
   virtual void PrintSelf(ostream &os, vtkIndent indent);
   vtkTypeMacro(vtkMap, vtkObject)
 
+  // Description
+  // Set the GDAL_DATA folder, which is generally needed
+  // to display raster features. This methods calls
+  // vtkRasterFeature::SetGDALDataDirectory().
+  static void SetGDALDataDirectory(char *path);
+
   // Description:
   // Get/Set the renderer to which map content will be added
   vtkGetMacro(Renderer, vtkRenderer*)
