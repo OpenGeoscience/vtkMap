@@ -18,6 +18,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 option(BUILD_SHARED_LIBS "Build vtkMap with shared libraries" ON)
+option(TINY_BUILD "Tiny build without GDAL/GeoJSON/RasterReprojection (compatible with VTK 7.0)" OFF)
 
 # Specify VTK components
 set (VTK_RENDERING_BACKEND "OpenGL2"
@@ -26,18 +27,24 @@ set (VTK_REQUIRED_COMPONENTS
     vtkCommonCore
     vtkFiltersTexture
     vtkInteractionStyle
-    vtkIOGDAL
-    vtkIOGeoJSON
     vtkIOLegacy
-    vtkjsoncpp
     vtkRenderingCore
     vtkRendering${VTK_RENDERING_BACKEND}
 
     # For testing:
-    vtkIOXML
-    vtkImagingStatistics
     vtkInteractionImage
 )
+if(NOT TINY_BUILD)
+    list(APPEND VTK_REQUIRED_COMPONENTS
+        vtkIOGDAL
+        vtkIOGeoJSON
+        vtkjsoncpp
+
+        # For testing:
+        vtkIOXML
+        vtkImagingStatistics
+    )
+endif()
 
 option(BUILD_QT_APPS "Build Qt applications (source files in Qt subdirectory)" OFF)
 if (BUILD_QT_APPS)
@@ -55,9 +62,11 @@ set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
 include(GenerateExportHeader)
 
-# Specify GDAL components (used by vtkGDALRasterReprojection)
-find_package(GDAL REQUIRED)
-mark_as_advanced(GDAL_INCLUDE_DIR GDAL_LIBRARY)
+if(NOT TINY_BUILD)
+  # Specify GDAL components (used by vtkGDALRasterReprojection)
+  find_package(GDAL REQUIRED)
+  mark_as_advanced(GDAL_INCLUDE_DIR GDAL_LIBRARY)
+endif()
 
 # Generate header file for map marker geometry
 include("EncodeCStringFunctions")
@@ -75,9 +84,6 @@ configure_file("${markers_shadow_input}" "${markers_shadow_h}" COPYONLY)
 set (SOURCES
     vtkFeature.cxx
     vtkFeatureLayer.cxx
-    vtkGDALRasterConverter.cxx
-    vtkGDALRasterReprojection.cxx
-    vtkGeoJSONMapFeature.cxx
     vtkGeoMapFeatureSelector.cxx
     vtkGeoMapSelection.cxx
     vtkInteractorStyleGeoMap.cxx
@@ -88,17 +94,22 @@ set (SOURCES
     vtkLayer.cxx
     vtkOsmLayer.cxx
     vtkPolydataFeature.cxx
-    vtkRasterFeature.cxx
-    vtkRasterReprojectionFilter.cxx
     vtkTeardropSource.cxx
     )
+if(NOT TINY_BUILD)
+    list(APPEND SOURCES
+        vtkGDALRasterConverter.cxx
+        vtkGDALRasterReprojection.cxx
+        vtkGeoJSONMapFeature.cxx
+        vtkRasterFeature.cxx
+        vtkRasterReprojectionFilter.cxx
+        )
+endif()
 
 #headers that we are going to install
 set (HEADERS
     vtkFeature.h
     vtkFeatureLayer.h
-    vtkGDALRasterConverter.h
-    vtkGDALRasterReprojection.h
     vtkGeoMapFeatureSelector.h
     vtkGeoMapSelection.h
     vtkInteractorStyleGeoMap.h
@@ -111,11 +122,17 @@ set (HEADERS
     vtkMultiThreadedOsmLayer.h
     vtkOsmLayer.h
     vtkPolydataFeature.h
-    vtkRasterFeature.h
-    vtkRasterReprojectionFilter.h
     vtkTeardropSource.h
     ${CMAKE_CURRENT_BINARY_DIR}/vtkmap_export.h
     )
+if(NOT TINY_BUILD)
+    list(APPEND HEADERS
+        vtkGDALRasterConverter.h
+        vtkGDALRasterReprojection.h
+        vtkRasterFeature.h
+        vtkRasterReprojectionFilter.h
+        )
+endif()
 
 
 # Specify targets
@@ -126,16 +143,30 @@ target_link_libraries(vtkMap
                         ${VTK_LIBRARIES}
                       LINK_PRIVATE
                         ${CURL_LIBRARIES}
-                        ${GDAL_LIBRARY}
                       )
 
 target_include_directories(vtkMap
                            PUBLIC
-                             ${CMAKE_CURRENT_BINARY_DIR}
+                             $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+                             ${VTK_INCLUDE_DIRS}
                            PRIVATE
                              ${CURL_INCLUDE_DIRS}
-                             ${GDAL_INCLUDE_DIRS}
                           )
+
+if(GDAL_FOUND)
+    target_link_libraries(vtkMap
+                          LINK_PRIVATE
+                            ${GDAL_LIBRARY}
+                          )
+    target_include_directories(vtkMap
+                               PRIVATE
+                                 ${GDAL_INCLUDE_DIRS}
+                              )
+endif()
+
+if(TINY_BUILD)
+    target_compile_definitions(vtkMap PRIVATE TINY_BUILD)
+endif()
 
 #setup export header
 generate_export_header(vtkMap)

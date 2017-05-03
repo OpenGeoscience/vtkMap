@@ -19,7 +19,9 @@
 #include "vtkLayer.h"
 #include "vtkMapTile.h"
 #include "vtkMercator.h"
+#ifndef TINY_BUILD
 #include "vtkRasterFeature.h"
+#endif
 
 // VTK Includes
 #include <vtkCallbackCommand.h>
@@ -135,7 +137,9 @@ vtkMap::~vtkMap()
 //----------------------------------------------------------------------------
 void vtkMap::SetGDALDataDirectory(char *path)
 {
+#ifndef TINY_BUILD
   vtkRasterFeature::SetGDALDataDirectory(path);
+#endif
 }
 
 //----------------------------------------------------------------------------

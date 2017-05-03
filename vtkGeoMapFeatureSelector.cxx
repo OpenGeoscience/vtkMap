@@ -17,7 +17,9 @@
 #include "vtkFeature.h"
 #include "vtkGeoMapSelection.h"
 #include "vtkMapMarkerSet.h"
+#ifndef TINY_BUILD
 #include "vtkRasterFeature.h"
+#endif
 
 #include <vtkAbstractArray.h>
 #include <vtkActor.h>
@@ -153,6 +155,7 @@ PickArea(vtkRenderer *renderer, int displayCoords[4],
       cellIdList->Reset();
 
       // Handling depends on feature type
+#ifndef TINY_BUILD
       vtkRasterFeature *rasterFeature =
         vtkRasterFeature::SafeDownCast(feature);
       if (rasterFeature)
@@ -162,6 +165,7 @@ PickArea(vtkRenderer *renderer, int displayCoords[4],
         nonMarkerProps.insert(prop);
         continue;
         }
+#endif
 
       vtkMapMarkerSet *markerFeature = vtkMapMarkerSet::SafeDownCast(feature);
       if (markerFeature)
