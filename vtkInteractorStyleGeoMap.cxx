@@ -38,6 +38,10 @@
 
 #include <algorithm>  // std::copy, std::max, std::min
 
+#ifndef vtkGenericDataArray_h	// VTK 7.0 compatibility
+#define InsertNextTypedTuple InsertNextTupleValue
+#endif
+
 vtkStandardNewMacro(vtkInteractorStyleGeoMap);
 
 //-----------------------------------------------------------------------------
