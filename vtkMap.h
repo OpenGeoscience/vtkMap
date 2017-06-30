@@ -20,6 +20,7 @@
 
 // VTK Includes
 #include <vtkObject.h>
+#include <vtkRenderer.h>
 
 #include "vtkmap_export.h"
 
@@ -30,7 +31,6 @@ class vtkGeoMapSelection;
 class vtkInteractorStyle;
 class vtkInteractorStyleGeoMap;
 class vtkLayer;
-class vtkRenderer;
 
 #include <map>
 #include <string>
@@ -64,8 +64,11 @@ public:
 
   // Description:
   // Get/Set the renderer to which map content will be added
+  // vtkSetObjectMacro is used so that map takes reference to renderer.
+  // This ensures that map can delete its contents before the renderer
+  // is deleted.
   vtkGetMacro(Renderer, vtkRenderer*)
-  vtkSetMacro(Renderer, vtkRenderer*)
+  vtkSetObjectMacro(Renderer, vtkRenderer)
 
   // Description:
   // Get/Set the interactor style for the map renderer

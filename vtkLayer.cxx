@@ -34,9 +34,15 @@ vtkLayer::~vtkLayer()
 }
 
 //----------------------------------------------------------------------------
-void vtkLayer::PrintSelf(ostream&, vtkIndent)
+void vtkLayer::PrintSelf(ostream& os, vtkIndent indent)
 {
-  // TODO
+  this->Superclass::PrintSelf(os, indent);
+
+  os << indent << "Name: " << this->Name << "\n"
+     << indent << "Visibility: " << this->Visibility << "\n"
+     << indent << "Opacity: " << this->Opacity << "\n"
+     << indent << "AsyncMode: " << this->AsyncMode << "\n"
+     << indent << "Id: " << this->Id << std::endl;
 }
 
 //----------------------------------------------------------------------------

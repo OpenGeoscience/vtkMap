@@ -150,7 +150,7 @@ public:
 
   // Description:
   // Override
-  virtual void Cleanup();
+  virtual void CleanUp();
 
   // Description:
   // Return cluster id for display id at current zoom level.

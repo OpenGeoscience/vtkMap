@@ -32,6 +32,11 @@ class vtkFeatureLayer::vtkInternal
 public:
   std::vector<vtkFeature*> Features;
   vtkSmartPointer<vtkCollection> FeatureCollection;
+
+  vtkInternal()
+  {
+    this->FeatureCollection = vtkSmartPointer<vtkCollection>::New();
+  }
 };
 
 //----------------------------------------------------------------------------
@@ -43,6 +48,28 @@ vtkFeatureLayer::vtkFeatureLayer():
 //----------------------------------------------------------------------------
 vtkFeatureLayer::~vtkFeatureLayer()
 {
+}
+
+//----------------------------------------------------------------------------
+void vtkFeatureLayer::PrintSelf(std::ostream& os, vtkIndent indent)
+{
+  this->Superclass::PrintSelf(os, indent);
+  os << indent << "vtkFeatureLayer" << "\n"
+     << indent << "Number Of Features: " << this->Impl->Features.size()
+     << std::endl;
+}
+
+//----------------------------------------------------------------------------
+void vtkFeatureLayer::Delete()
+{
+  if (this->GetReferenceCount() > 1)
+    {
+    this->Superclass::Delete();
+    return;
+    }
+
+  // (else) Delete features before calling superclass Delete() method
+  this->Impl->FeatureCollection->RemoveAllItems();
   const std::size_t size = this->Impl->Features.size();
   for(std::size_t i=0; i < size; ++i)
     {
@@ -50,16 +77,13 @@ vtkFeatureLayer::~vtkFeatureLayer()
     vtkFeature* f = this->Impl->Features[i];
     if(f)
       {
+      f->CleanUp();
       f->Delete();
       }
     }
   delete this->Impl;
-}
 
-//----------------------------------------------------------------------------
-void vtkFeatureLayer::PrintSelf(std::ostream&, vtkIndent)
-{
-  // TODO
+  this->Superclass::Delete();
 }
 
 //----------------------------------------------------------------------------

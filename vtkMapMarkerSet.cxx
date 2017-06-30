@@ -857,7 +857,7 @@ void vtkMapMarkerSet::Update()
 }
 
 //----------------------------------------------------------------------------
-void vtkMapMarkerSet::Cleanup()
+void vtkMapMarkerSet::CleanUp()
 {
   // Explicitly delete node instances in the table
   std::vector<std::set<ClusteringNode*> >::iterator tableIter =
@@ -877,7 +877,10 @@ void vtkMapMarkerSet::Cleanup()
   this->Internals->CurrentNodes.clear();
   this->Internals->NumberOfMarkers = 0;
   this->Internals->NumberOfNodes = 0;
-  this->Modified();
+
+  this->Layer->GetRenderer()->RemoveActor(this->Internals->ShadowActor);
+
+  this->Superclass::CleanUp();
 }
 
 //----------------------------------------------------------------------------

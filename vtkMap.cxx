@@ -401,10 +401,12 @@ void vtkMap::RemoveLayer(vtkLayer* layer)
         this->FeatureSelector->RemoveFeature(feature);
         }
       }
+    features->RemoveAllItems();
     }
 
   this->Layers.erase(std::remove(this->Layers.begin(),
                                  this->Layers.end(), layer));
+  layer->Delete();
 }
 
 //----------------------------------------------------------------------------

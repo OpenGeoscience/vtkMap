@@ -7,6 +7,7 @@ set (TEST_NAMES
   TestMultiThreadedOsmLayer
   TestOsmLayer
   TestRasterReprojectionFilter
+  TestRemoveLayer
 )
 
 foreach(name ${TEST_NAMES})

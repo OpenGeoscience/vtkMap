@@ -31,6 +31,13 @@ public:
   virtual void PrintSelf(ostream &os, vtkIndent indent);
   vtkTypeMacro(vtkFeatureLayer, vtkLayer)
 
+
+  // Description:
+  // Override vtkObject::Delete()
+  // Needed in order to delete features, which use a weak pointer to
+  // to their vtkFeatureLayer instance,
+  virtual void Delete();
+
   // Description:
   // Add a new feature to the layer
   // Note: layer must be added to a vtkMap *before* features can be added.
