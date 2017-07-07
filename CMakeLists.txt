@@ -79,6 +79,7 @@ set (SOURCES
     vtkGDALRasterReprojection.cxx
     vtkGeoJSONMapFeature.cxx
     vtkGeoMapFeatureSelector.cxx
+    vtkGeoMapLayerPass.cxx
     vtkGeoMapSelection.cxx
     vtkInteractorStyleGeoMap.cxx
     vtkMapMarkerSet.cxx
@@ -100,6 +101,7 @@ set (HEADERS
     vtkGDALRasterConverter.h
     vtkGDALRasterReprojection.h
     vtkGeoMapFeatureSelector.h
+    vtkGeoMapLayerPass.h
     vtkGeoMapSelection.h
     vtkInteractorStyleGeoMap.h
     vtkMapMarkerSet.h
@@ -165,8 +167,12 @@ set(CMAKE_CXX_VISIBILITY_PRESET)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN)
 
 #example does not need to installed
+#///TODO Move into a separate directory; enable/disable through a CMake var.
 add_executable(example example.cpp)
 target_link_libraries(example vtkMap)
+
+add_executable(exampleLayers exampleLayers.cxx)
+target_link_libraries(exampleLayers vtkMap)
 
 #both testing and Qt do need to exported or installed as they are for testing
 #and examples

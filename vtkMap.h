@@ -163,6 +163,17 @@ public:
   // For internal debug/test use
   void ComputeDisplayCoords(double lanLngCoords[2], double elevation,
                             double displayCoords[3]);
+
+  ///@{
+  /**
+   * Change order of layers in the stack.
+   */
+  void MoveUp(vtkLayer* layer);
+  void MoveDown(vtkLayer* layer);
+  void MoveToTop(vtkLayer* layer);
+  void MoveToBottom(vtkLayer* layer);
+  ///@}
+
 protected:
   vtkMap();
   ~vtkMap();

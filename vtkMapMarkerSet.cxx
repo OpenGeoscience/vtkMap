@@ -283,6 +283,12 @@ int vtkMapMarkerSet::GetNumberOfMarkers()
 //----------------------------------------------------------------------------
 vtkIdType vtkMapMarkerSet::AddMarker(double latitude, double longitude)
 {
+  if (!this->Initialized)
+  {
+    vtkErrorMacro("Is not initialized!");
+    return -1;
+  }
+
   // Set marker id
   int markerId = this->Internals->NumberOfMarkers++;
   vtkDebugMacro("Adding marker " << markerId);
@@ -650,6 +656,12 @@ GetMarkerIdsRecursive(vtkIdType clusterId, vtkIdList *markerIds)
 //----------------------------------------------------------------------------
 void vtkMapMarkerSet::Init()
 {
+  if (!this->Layer)
+  {
+    vtkErrorMacro("Invalid Layer!");
+    return;
+  }
+
   // Set up rendering pipeline
 
   // Add "Visible" array to polydata - to mask display
