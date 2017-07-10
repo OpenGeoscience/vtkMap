@@ -11,13 +11,15 @@
    PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
-
+#include "vtkGeoMapLayerPass.h"
 #include "vtkLayer.h"
+
 
 unsigned int vtkLayer::GlobalId = 0;
 
 //----------------------------------------------------------------------------
 vtkLayer::vtkLayer() : vtkObject()
+, RenderPass(vtkSmartPointer<vtkGeoMapLayerPass>::New())
 {
   this->Visibility = 1;
   this->Opacity = 1.0;
@@ -105,4 +107,10 @@ vtkMap::AsyncState vtkLayer::ResolveAsync()
   // (Otherwise they don't need to be asynchronous...)
   vtkWarningMacro(<<"vtkLayer::ResolveAsync() should not be called");
   return vtkMap::AsyncOff;
+}
+
+//----------------------------------------------------------------------------
+vtkRenderPass* vtkLayer::GetRenderPass()
+{
+  return this->RenderPass.GetPointer(); 
 }

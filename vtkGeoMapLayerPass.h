@@ -21,14 +21,16 @@
 #ifndef vtkGeoMapLayerPass_h
 #define vtkGeoMapLayerPass_h
 #include "vtkmap_export.h"
-#include "vtkRenderPass.h"
+#include "vtkDefaultPass.h"
 
 
-class VTKMAP_EXPORT vtkGeoMapLayerPass : public vtkRenderPass
+class vtkDefaultPass;
+
+class VTKMAP_EXPORT vtkGeoMapLayerPass : public vtkDefaultPass
 {
 public:
   static vtkGeoMapLayerPass* New();
-  vtkTypeMacro(vtkGeoMapLayerPass, vtkRenderPass);
+  vtkTypeMacro(vtkGeoMapLayerPass, vtkDefaultPass);
   void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
   void Render(const vtkRenderState* s) VTK_OVERRIDE;

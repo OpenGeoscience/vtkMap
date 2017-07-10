@@ -53,6 +53,10 @@ void vtkPolydataFeature::Init()
       this->Actor->SetMapper(this->Mapper);
       }
     }
+
+//  vtkInformation* keys = this->Layer->GetPropertyKeys();
+//  this->Actor->SetPropertyKeys(keys);
+
   this->Layer->GetRenderer()->AddActor(this->Actor);
 }
 

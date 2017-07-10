@@ -20,17 +20,21 @@
 
 // VTK Includes
 #include <vtkObject.h>
-#include <vtkRenderer.h>
+#include <vtkSmartPointer.h>
 
 #include "vtkmap_export.h"
 
 class vtkCallbackCommand;
+class vtkCameraPass;
 class vtkFeature;
 class vtkGeoMapFeatureSelector;
 class vtkGeoMapSelection;
 class vtkInteractorStyle;
 class vtkInteractorStyleGeoMap;
 class vtkLayer;
+class vtkRenderer;
+class vtkRenderPassCollection;
+class vtkSequencePass;
 
 #include <map>
 #include <string>
@@ -68,7 +72,7 @@ public:
   // This ensures that map can delete its contents before the renderer
   // is deleted.
   vtkGetMacro(Renderer, vtkRenderer*)
-  vtkSetObjectMacro(Renderer, vtkRenderer)
+  vtkSetObjectMacro(Renderer, vtkRenderer) ///TODO USe def macro in cxx
 
   // Description:
   // Get/Set the interactor style for the map renderer
@@ -210,6 +214,10 @@ protected:
   char* StorageDirectory;
 
 protected:
+  void Initialize();
+
+  void UpdateLayerSequence();
+
   bool Initialized;
 
   // Description:
@@ -232,6 +240,11 @@ protected:
   // Description:
   // Current state of asynchronous layers
   AsyncState CurrentAsyncState;
+
+  vtkSmartPointer<vtkRenderPassCollection> LayerCollection;
+  vtkSmartPointer<vtkSequencePass> LayerSequence;
+  vtkSmartPointer<vtkCameraPass> CameraPass;
+  
 private:
   vtkMap(const vtkMap&);  // Not implemented
   vtkMap& operator=(const vtkMap&); // Not implemented

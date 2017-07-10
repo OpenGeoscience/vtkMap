@@ -24,6 +24,12 @@
 // VTK Includes
 #include <vtkObject.h>
 #include <vtkRenderer.h>
+#include <vtkSmartPointer.h>
+
+
+class vtkGeoMapLayerPass;
+//class vtkInformat
+class vtkRenderPass;
 
 class VTKMAP_EXPORT vtkLayer : public vtkObject
 {
@@ -73,6 +79,8 @@ public:
   // Description:
   virtual void Update() = 0;
 
+  vtkRenderPass* GetRenderPass();
+
 protected:
 
   vtkLayer();
@@ -88,6 +96,7 @@ protected:
 
   vtkMap* Map;
   vtkRenderer* Renderer;
+  vtkSmartPointer<vtkGeoMapLayerPass> RenderPass;
 
   static unsigned int GlobalId;
 

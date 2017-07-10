@@ -30,10 +30,14 @@ void vtkGeoMapLayerPass::PrintSelf(ostream& os, vtkIndent indent)
 {
 }
 
-void vtkGeoMapLayerPass::Render(const vtkRenderState* s)
+void vtkGeoMapLayerPass::Render(const vtkRenderState* state)
 {
+  this->RenderFilteredOpaqueGeometry(state);
+  this->RenderFilteredTranslucentPolygonalGeometry(state);
+  this->RenderFilteredOverlay(state);
 }
 
 void vtkGeoMapLayerPass::ReleaseGraphicsResources(vtkWindow* win)
 {
+  Superclass::ReleaseGraphicsResources(win);
 }
