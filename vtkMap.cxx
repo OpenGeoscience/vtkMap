@@ -547,6 +547,7 @@ void vtkMap::Initialize()
   this->Renderer->GetRenderWindow()->Render();
 
   this->UpdateLayerSequence();
+  this->LayerSequence->SetPasses(LayerCollection);
   CameraPass->SetDelegatePass(LayerSequence);
   this->Renderer->SetPass(CameraPass);
 
@@ -557,12 +558,11 @@ void vtkMap::Initialize()
 void vtkMap::UpdateLayerSequence()
 {
   this->LayerCollection->RemoveAllItems();
+  this->LayerCollection->AddItem(this->BaseLayer->GetRenderPass());
   for (auto& layer : this->Layers)
   {
     this->LayerCollection->AddItem(layer->GetRenderPass());
   }
-  
-  this->LayerSequence->SetPasses(LayerCollection);
 }
 
 //----------------------------------------------------------------------------

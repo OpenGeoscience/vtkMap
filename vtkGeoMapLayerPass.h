@@ -20,18 +20,22 @@
  */
 #ifndef vtkGeoMapLayerPass_h
 #define vtkGeoMapLayerPass_h
+#include <vector>             // For std::vector
 #include "vtkmap_export.h"
-#include "vtkDefaultPass.h"
+#include <vtkRenderPass.h>
 
 
-class vtkDefaultPass;
+class vtkProp;
 
-class VTKMAP_EXPORT vtkGeoMapLayerPass : public vtkDefaultPass
+class VTKMAP_EXPORT vtkGeoMapLayerPass : public vtkRenderPass
 {
 public:
   static vtkGeoMapLayerPass* New();
-  vtkTypeMacro(vtkGeoMapLayerPass, vtkDefaultPass);
+  vtkTypeMacro(vtkGeoMapLayerPass, vtkRenderPass);
   void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+
+  void AddActor(vtkProp* prop);
+  void RemoveActor(vtkProp* prop);
 
   void Render(const vtkRenderState* s) VTK_OVERRIDE;
 
@@ -44,6 +48,12 @@ protected:
 private:
   vtkGeoMapLayerPass(const vtkGeoMapLayerPass&) VTK_DELETE_FUNCTION;
   void operator=(const vtkGeoMapLayerPass&) VTK_DELETE_FUNCTION;
+
+  void RenderOpaqueGeometry(const vtkRenderState* layerState);
+  void RenderTranslucentGeometry(const vtkRenderState* layerState);
+  void RenderOverlay(const vtkRenderState* state);
+
+  std::vector<vtkProp*> Actors;
 };
 
 #endif // vtkGeoMapLayerPass_h

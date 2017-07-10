@@ -28,6 +28,7 @@ vtkLayer::vtkLayer() : vtkObject()
   this->Map = NULL;
   this->AsyncMode = false;
   this->Id = this->GlobalId + 1;
+  this->GlobalId++;
 }
 
 //----------------------------------------------------------------------------
@@ -113,4 +114,43 @@ vtkMap::AsyncState vtkLayer::ResolveAsync()
 vtkRenderPass* vtkLayer::GetRenderPass()
 {
   return this->RenderPass.GetPointer(); 
+}
+
+//----------------------------------------------------------------------------
+void vtkLayer::RemoveActor(vtkProp* prop)
+{
+  if (!this->Renderer || !prop)
+  {
+    vtkErrorMacro(<< "Could not remove vtkProp.");
+    return;
+  }
+
+  this->Renderer->RemoveActor(prop);
+  this->RenderPass->RemoveActor(prop);
+}
+
+//----------------------------------------------------------------------------
+void vtkLayer::AddActor(vtkProp* prop)
+{
+  if (!this->Renderer || !prop)
+  {
+    vtkErrorMacro(<< "Could not register vtkProp.");
+    return;
+  }
+
+  this->Renderer->AddActor(prop);
+  this->RenderPass->AddActor(prop);
+}
+
+//----------------------------------------------------------------------------
+void vtkLayer::AddActor2D(vtkProp* prop)
+{
+  if (!this->Renderer || !prop)
+  {
+    vtkErrorMacro(<< "Could not register vtkProp.");
+    return;
+  }
+
+  this->Renderer->AddActor2D(prop);
+  this->RenderPass->AddActor(prop);
 }

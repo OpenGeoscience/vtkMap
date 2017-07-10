@@ -240,7 +240,7 @@ void vtkMapTile::Init()
 //----------------------------------------------------------------------------
 void vtkMapTile::CleanUp()
 {
-  this->Layer->GetRenderer()->RemoveActor(this->Actor);
+  this->Layer->RemoveActor(this->Actor);
   this->SetLayer(0);
 }
 

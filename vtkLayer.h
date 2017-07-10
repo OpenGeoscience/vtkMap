@@ -28,7 +28,6 @@
 
 
 class vtkGeoMapLayerPass;
-//class vtkInformat
 class vtkRenderPass;
 
 class VTKMAP_EXPORT vtkLayer : public vtkObject
@@ -80,6 +79,13 @@ public:
   virtual void Update() = 0;
 
   vtkRenderPass* GetRenderPass();
+
+  // Description:
+  // Adds actor to vtkRenderer and the vtkRenderPass particular to this
+  // layer.
+  void AddActor(vtkProp* prop);
+  void AddActor2D(vtkProp* prop);
+  void RemoveActor(vtkProp* prop);
 
 protected:
 

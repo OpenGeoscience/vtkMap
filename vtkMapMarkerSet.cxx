@@ -717,7 +717,7 @@ void vtkMapMarkerSet::Init()
 
   // Switch in our mapper, and do NOT call Superclass::Init()
   this->GetActor()->SetMapper(this->Internals->GlyphMapper);
-  this->Layer->GetRenderer()->AddActor(this->Actor);
+  this->Layer->AddActor(this->Actor);
 
   // Set up glyph mapper inputs
   this->Internals->GlyphMapper->SetSourceConnection(0, pointMarkerReader->GetOutputPort());
@@ -756,7 +756,7 @@ void vtkMapMarkerSet::Init()
     this->Internals->ShadowMapper->SetScaleFactor(markerScale);
     this->Internals->ShadowMapper->SetScaleModeToScaleByMagnitude();
     this->Internals->ShadowMapper->SetScaleArray("DistanceToCamera");
-    this->Layer->GetRenderer()->AddActor(this->Internals->ShadowActor);
+    this->Layer->AddActor(this->Internals->ShadowActor);
 
     // Adjust actor's position to be behind markers
     this->Internals->ShadowActor->SetPosition(0, 0, -0.5*this->ZCoord);
