@@ -624,14 +624,17 @@ void vtkMap::ComputeLatLngCoords(double displayCoords[2], double elevation,
 //----------------------------------------------------------------------------
 void vtkMap::PickPoint(int displayCoords[2], vtkGeoMapSelection* result)
 {
+  this->Renderer->SetPass(nullptr);
   this->FeatureSelector->PickPoint(this->Renderer, displayCoords, result);
-
+  this->Renderer->SetPass(this->CameraPass);
 }
 
 //----------------------------------------------------------------------------
 void vtkMap::PickArea(int displayCoords[4], vtkGeoMapSelection* result)
 {
+  this->Renderer->SetPass(nullptr);
   this->FeatureSelector->PickArea(this->Renderer, displayCoords, result);
+  this->Renderer->SetPass(this->CameraPass);
 }
 
 //----------------------------------------------------------------------------

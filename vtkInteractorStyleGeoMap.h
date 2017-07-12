@@ -14,9 +14,22 @@
 =========================================================================*/
 // .NAME vtkInteractorStyleGeoMap - interactor style specifically for map views
 // .SECTION Description
+// The legacy implementation used RubberBandActor to render a colored selection
+// rectangle.  This approach does not fit directly the layer-per-renderpass
+// paradigm since only actors in a layer would be rendered (RubberBandActor is
+// never added to any vtkGeoMapLayerPass). To achieve rendering the rectangle
+// through an actor, a top-layer (containing RubberBandActor only) would need to
+// be added to the sequence while doing rubber band selection.
 //
-
-
+// Performance note: both of these approaches (legacy--through Interactor->Render()
+// and potentially-future-- rendering RubberBandActor through vtkRenderPass) force
+// re-rendering the entire scene while manipulating/growing the selection rectangle
+// , which might not scale well with the number of actors.
+//
+// Because of this, InteractorStyleGeoMap defaults for now to its base class
+// approach which does not render anything through the vtkRenderer OnMouseMove()
+// but rather just does it in the CPU caching the current frame to restore it after
+// selection is finished.
 #ifndef __vtkInteractorStyleGeoMap_h
 #define __vtkInteractorStyleGeoMap_h
 
@@ -125,6 +138,15 @@ private:
 
   int RubberBandMode;
   int RubberBandSelectionWithCtrlKey;
+
+/**
+  * vtkInteractorStyleGeoMap defaults for now to its base class
+  * approach which does not render anything through the vtkRenderer. This
+  * is a temporary fix and there is no API to change it given that the
+  * layer-renderPass paradigm is not compatible with rendering through
+  * vtkRenderer in the interactor style.
+  */
+  bool UseDefaultRenderingMode = true;
 
   vtkActor2D* RubberBandActor;
   vtkPoints*  RubberBandPoints;

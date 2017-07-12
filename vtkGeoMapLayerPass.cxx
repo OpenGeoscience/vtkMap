@@ -27,6 +27,7 @@ vtkStandardNewMacro(vtkGeoMapLayerPass)
 vtkGeoMapLayerPass::vtkGeoMapLayerPass()
 : vtkRenderPass()
 {
+  std::cout << "->>> Constructing vtkGeoMapLayerPass!!\n";
 }
 
 vtkGeoMapLayerPass::~vtkGeoMapLayerPass()
