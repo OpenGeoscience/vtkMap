@@ -48,6 +48,8 @@ class vtkLayer;
 class VTKMAP_EXPORT vtkMap : public vtkObject
 {
 public:
+  using LayerContainer = std::vector<vtkLayer*>;
+
   // Description:
   // State of asynchronous layers
   enum AsyncState
@@ -71,11 +73,11 @@ public:
 
   // Description:
   // Get/Set the renderer to which map content will be added
-  // vtkSetObjectMacro is used so that map takes reference to renderer.
+  // vtkCxxSetObjectMacro is used so that map takes reference to renderer.
   // This ensures that map can delete its contents before the renderer
   // is deleted.
   vtkGetMacro(Renderer, vtkRenderer*)
-  vtkSetObjectMacro(Renderer, vtkRenderer) ///TODO USe def macro in cxx
+  void SetRenderer(vtkRenderer* ren);
 
   // Description:
   // Get/Set the interactor style for the map renderer
@@ -230,7 +232,7 @@ protected:
 
   // Description:
   // List of layers attached to the map
-  std::vector<vtkLayer*> Layers;
+  LayerContainer Layers;
 
   // Description:
   // Helper class for selection

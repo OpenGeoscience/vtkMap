@@ -89,8 +89,12 @@ public:
   vtkRenderPass* GetRenderPass();
 
   // Description:
-  // Adds actor to vtkRenderer and the vtkRenderPass particular to this
-  // layer.
+  // Adds actor to vtkRenderer and sets the necessary PropertyKeys in the
+  // vtkProp (e.g. Layer Id).  It is imperative to add vtkProp instances to
+  // the renderer through this API (and not directly to the vtkRenderer) if
+  // a given vtkProp is to be displayed as part of a particular layer. Otherwise
+  // they might not be displayed at all,  this is because vtkRenderer actual
+  // rendering to vtkGeoMapLayerPass.
   void AddActor(vtkProp* prop);
   void AddActor2D(vtkProp* prop);
   void RemoveActor(vtkProp* prop);

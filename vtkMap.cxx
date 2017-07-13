@@ -42,7 +42,9 @@
 #include <math.h>
 #include <sstream>
 
+
 vtkStandardNewMacro(vtkMap)
+vtkCxxSetObjectMacro(vtkMap, Renderer, vtkRenderer);
 
 //----------------------------------------------------------------------------
 double computeCameraDistance(vtkCamera* cam, int zoomLevel)
@@ -371,7 +373,7 @@ void vtkMap::AddLayer(vtkLayer* layer)
     }
   else
     {
-    std::vector<vtkLayer*>::iterator it =
+    LayerContainer::iterator it =
         std::find(this->Layers.begin(), this->Layers.end(), layer);
     if (it == this->Layers.end())
       {
@@ -413,6 +415,7 @@ void vtkMap::RemoveLayer(vtkLayer* layer)
 
   this->Layers.erase(std::remove(this->Layers.begin(),
                                  this->Layers.end(), layer));
+  this->UpdateLayerSequence();
   layer->Delete();
 }
 
@@ -426,7 +429,7 @@ vtkLayer *vtkMap::FindLayer(const char *name)
     return this->BaseLayer;
     }
 
-  std::vector<vtkLayer*>::iterator it = this->Layers.begin();
+  LayerContainer::iterator it = this->Layers.begin();
   for (; it != this->Layers.end(); it++)
     {
     vtkLayer *layer = *it;
@@ -516,7 +519,7 @@ void vtkMap::Initialize()
     }
 
   // Initialize polling timer if there are any asynchronous layers
-  std::vector<vtkLayer*> allLayers(this->Layers);
+  LayerContainer allLayers(this->Layers);
   allLayers.push_back(this->BaseLayer);
   for (size_t i = 0; i < allLayers.size(); ++i)
     {
@@ -702,7 +705,7 @@ void vtkMap::PollingCallback()
   AsyncState newState = AsyncIdle;
 
   // Compute highest "state" of async layers
-  std::vector<vtkLayer*> allLayers(this->Layers);
+  LayerContainer allLayers(this->Layers);
   allLayers.push_back(this->BaseLayer);
   for (size_t i = 0; i < allLayers.size(); ++i)
     {
@@ -724,19 +727,59 @@ void vtkMap::PollingCallback()
 //----------------------------------------------------------------------------
 void vtkMap::MoveUp(vtkLayer* layer)
 {
+  auto result = std::find(this->Layers.begin(), this->Layers.end(), layer);
+  auto nextIt = result + 1;
+  if (result == this->Layers.cend() || nextIt == this->Layers.cend())
+  {
+    return;
+  }
+
+  std::iter_swap(result, nextIt);
+  this->UpdateLayerSequence();
 }
 
 //----------------------------------------------------------------------------
 void vtkMap::MoveDown(vtkLayer* layer)
 {
+  auto result = std::find(this->Layers.begin(), this->Layers.end(), layer);
+  auto prevIt = result - 1;
+  if (result == this->Layers.cend() || prevIt == this->Layers.cend())
+  {
+    return;
+  }
+
+  std::iter_swap(result, prevIt);
+  this->UpdateLayerSequence();
 }
 
 //----------------------------------------------------------------------------
 void vtkMap::MoveToTop(vtkLayer* layer)
 {
+  auto result = std::find(this->Layers.begin(), this->Layers.end(), layer);
+  if (result == this->Layers.cend())
+  {
+    return;
+  }
+
+  // rotation ccw
+  std::rotate(result, result + 1, this->Layers.end());
+  this->UpdateLayerSequence();
 }
 
 //----------------------------------------------------------------------------
 void vtkMap::MoveToBottom(vtkLayer* layer)
 {
+  auto result = std::find(this->Layers.begin(), this->Layers.end(), layer);
+  if (result == this->Layers.cend())
+  {
+    return;
+  }
+
+  // rotation cw
+  // Note: when an iterator is reversed, the reversed version points
+  // to the one preceeding it, so it is decremented to point to the original
+  // element.
+  auto rresult = LayerContainer::reverse_iterator(result) - 1;
+  std::rotate(rresult, rresult + 1, this->Layers.rend());
+  this->UpdateLayerSequence();
 }

@@ -1,12 +1,4 @@
-#include "vtkMap.h"
-#include "vtkFeatureLayer.h"
-#include "vtkGeoMapSelection.h"
-#include "vtkInteractorStyleGeoMap.h"
-#include "vtkMapMarkerSet.h"
-#include "vtkMercator.h"
-#include "vtkMultiThreadedOsmLayer.h"
-#include "vtkOsmLayer.h"
-#include "vtkPolydataFeature.h"
+#include <iostream>
 
 #include <vtkCollection.h>
 #include <vtkCommand.h>
@@ -22,7 +14,16 @@
 #include <vtkRegularPolygonSource.h>
 #include <vtksys/CommandLineArguments.hxx>
 
-#include <iostream>
+#include "vtkMap.h"
+#include "vtkFeatureLayer.h"
+#include "vtkGeoMapSelection.h"
+#include "vtkInteractorStyleGeoMap.h"
+#include "vtkMapMarkerSet.h"
+#include "vtkMercator.h"
+#include "vtkMultiThreadedOsmLayer.h"
+#include "vtkOsmLayer.h"
+#include "vtkPolydataFeature.h"
+
 
 // ------------------------------------------------------------
 class PickCallback : public vtkCommand
@@ -108,8 +109,8 @@ public:
                   }
                 std::cout << std::endl;
               }
-            }  // for (i)
-          }  // case
+            }
+          }
           break;
 
         case vtkInteractorStyleGeoMap::ZoomCompleteEvent:
@@ -143,6 +144,7 @@ public:
 protected:
   vtkMap *Map;
 };
+
 
 // ------------------------------------------------------------
 int main(int argc, char *argv[])
@@ -205,10 +207,6 @@ int main(int argc, char *argv[])
 
   vtkNew<vtkMap> map;
 
-  // For reference, Kitware geo coords (Clifton Park, NY)
-  double kwLatitude = 42.849604;
-  double kwLongitude = -73.758345;
-
   // Note: Always set map's renderer *before* adding layers
   vtkNew<vtkRenderer> rend;
   map->SetRenderer(rend.GetPointer());
@@ -242,6 +240,7 @@ int main(int argc, char *argv[])
     {
     osmLayer = vtkMultiThreadedOsmLayer::New();
     }
+  // Layer 1 - Map
   map->AddLayer(osmLayer);
 
   if (tileServer != "")
@@ -249,10 +248,10 @@ int main(int argc, char *argv[])
     osmLayer->SetMapTileServer(
       tileServer.c_str(), tileServerAttribution.c_str(), tileExtension.c_str());
     }
+  osmLayer->Delete();
 
   vtkNew<vtkRenderWindow> wind;
   wind->AddRenderer(rend.GetPointer());;
-  //wind->SetSize(1920, 1080);
   wind->SetSize(800, 600);
 
   vtkNew<vtkRenderWindowInteractor> intr;
@@ -260,6 +259,20 @@ int main(int argc, char *argv[])
   vtkInteractorStyle *style = map->GetInteractorStyle();
   vtkInteractorStyleGeoMap *mapStyle =
     vtkInteractorStyleGeoMap::SafeDownCast(style);
+
+  // Interactor observer
+  vtkNew<PickCallback> pickCallback;
+  pickCallback->SetMap(map.GetPointer());
+  style->AddObserver(vtkInteractorStyleGeoMap::DisplayClickCompleteEvent,
+                    pickCallback.GetPointer());
+  style->AddObserver(vtkInteractorStyleGeoMap::DisplayDrawCompleteEvent,
+                    pickCallback.GetPointer());
+  style->AddObserver(vtkInteractorStyleGeoMap::SelectionCompleteEvent,
+                    pickCallback.GetPointer());
+  style->AddObserver(vtkInteractorStyleGeoMap::ZoomCompleteEvent,
+                    pickCallback.GetPointer());
+  style->AddObserver(vtkInteractorStyleGeoMap::RightButtonCompleteEvent,
+                    pickCallback.GetPointer());
 
   if (rubberBandDisplayOnly)
     {
@@ -274,7 +287,6 @@ int main(int argc, char *argv[])
     mapStyle->SetRubberBandModeToZoom();
     }
   intr->SetInteractorStyle(style);
-
   intr->Initialize();
   map->Draw();
 
@@ -285,71 +297,98 @@ int main(int argc, char *argv[])
             << "(" << latLon[2] << ", " << latLon[3] << ")"
             << std::endl;
 
-  // --- Layer 1 - test polygon ---
-  vtkNew<vtkFeatureLayer> testPolyLayer;
-  testPolyLayer->SetName("test-polygon");
-  map->AddLayer(testPolyLayer.GetPointer());
+  ///////////////////// Layer 2 - Markers /////////////////////////////////////
+  vtkNew<vtkFeatureLayer> markers1;
+  markers1->SetName("markers1");
+  map->AddLayer(markers1.GetPointer());
 
-  // Note: Always add feature layer to the map *before* adding features
-  vtkNew<vtkRegularPolygonSource> polygon;
-  polygon->SetNumberOfSides(50);
-  polygon->SetRadius(2.0);
-  vtkNew<vtkPolydataFeature> feature;
-  feature->GetMapper()->SetInputConnection(polygon->GetOutputPort());
-  feature->GetActor()->GetProperty()->SetColor(0.0, 80.0 / 255, 80.0 / 255); // (teal)
-  feature->GetActor()->GetProperty()->SetOpacity(0.5);
-
-  double x = kwLongitude;
-  double y = vtkMercator::lat2y(kwLatitude);
-  feature->GetActor()->SetPosition(x, y, 0.0);
-  testPolyLayer->AddFeature(feature.GetPointer());
-  map->Draw();
-
-  // --- Layer 2 - features ---
-  vtkNew<vtkFeatureLayer> featureLayer;
-  featureLayer->SetName("features");
-  map->AddLayer(featureLayer.GetPointer());
-
-  // Note: Always add feature layer to the map *before* adding features
-  // ///TODO Throw an error if this is not true.
   // Instantiate markers for array of lat-lon coordinates
   vtkNew<vtkMapMarkerSet> markerSet;
   markerSet->SetClustering(!clusteringOff);
-  featureLayer->AddFeature(markerSet.GetPointer());
+  markers1->AddFeature(markerSet.GetPointer());
 
+  const double kwLatitude = 42.849604; // Kitware HQ coords
+  const double kwLongitude = -73.758345;
   double latlonCoords[][2] = {
     0.0, 0.0,
-    42.849604, -73.758345,  // KHQ
-    35.911373, -79.072205,  // KRS
-    32.301393, -90.871495   // ERDC
+    kwLatitude, kwLongitude,  // KHQ
+    35.911373, -79.072205,    // KRS
+    32.301393, -90.871495     // ERDC
   };
-  const unsigned numMarkers = sizeof(latlonCoords) / sizeof(double) / 2;
-  for (unsigned i = 0; i < numMarkers; ++i)
+
+  const size_t numMarkers = sizeof(latlonCoords) / sizeof(double) / 2;
+  for (size_t i = 0; i < numMarkers; ++i)
   {
     const double lat = latlonCoords[i][0];
     const double lon = latlonCoords[i][1];
     markerSet->AddMarker(lat, lon);
   }
+  
+  ///////////////////// Layer 3 - Markers2 /////////////////////////////////////
+  vtkNew<vtkFeatureLayer> markers2;
+  markers2->SetName("markers2");
+  map->AddLayer(markers2.GetPointer());
 
-  map->Draw();
+  // Instantiate markers for array of lat-lon coordinates
+  vtkNew<vtkMapMarkerSet> markerSet2;
+  markerSet2->SetClustering(!clusteringOff);
+  markers2->AddFeature(markerSet2.GetPointer());
 
-  // Set callbacks
-  vtkNew<PickCallback> pickCallback;
-  pickCallback->SetMap(map.GetPointer());
-  style->AddObserver(vtkInteractorStyleGeoMap::DisplayClickCompleteEvent,
-                    pickCallback.GetPointer());
-  style->AddObserver(vtkInteractorStyleGeoMap::DisplayDrawCompleteEvent,
-                    pickCallback.GetPointer());
-  style->AddObserver(vtkInteractorStyleGeoMap::SelectionCompleteEvent,
-                    pickCallback.GetPointer());
-  style->AddObserver(vtkInteractorStyleGeoMap::ZoomCompleteEvent,
-                    pickCallback.GetPointer());
-  style->AddObserver(vtkInteractorStyleGeoMap::RightButtonCompleteEvent,
-                    pickCallback.GetPointer());
+  const double offset = 0.5;
+  double coords[][2] = {
+    0.0, 0.0,
+    kwLatitude, kwLongitude + offset,  // KHQ
+    35.911373, -79.072205 + offset,    // KRS
+    32.301393, -90.871495 + offset     // ERDC
+  };
+
+  const size_t numMarkers2 = sizeof(coords) / sizeof(double) / 2;
+  for (size_t i = 0; i < numMarkers2; ++i)
+  {
+    const double lat = coords[i][0];
+    const double lon = coords[i][1];
+    markerSet2->AddMarker(lat, lon);
+  }
+
+  ///////////////////// Layer 4 - Circle //////////////////////////////////////
+  vtkNew<vtkFeatureLayer> circle;
+  circle->SetName("circle");
+  map->AddLayer(circle.GetPointer());
+
+  // Note: Always add vtkFeatureLayer to the map before adding features
+  vtkNew<vtkRegularPolygonSource> polygon;
+  polygon->SetNumberOfSides(50);
+  polygon->SetRadius(2.0);
+  vtkNew<vtkPolydataFeature> feature;
+  feature->GetMapper()->SetInputConnection(polygon->GetOutputPort());
+  feature->GetActor()->GetProperty()->SetColor(0.0, 0.0, 1.0);
+  feature->GetActor()->GetProperty()->SetOpacity(0.5);
+
+  feature->GetActor()->SetPosition(kwLongitude, vtkMercator::lat2y(kwLatitude), 0.0);
+  circle->AddFeature(feature.GetPointer());
+
+  ///////////////////// Layer 5 - Circle2 //////////////////////////////////////
+  vtkNew<vtkFeatureLayer> circle2;
+  circle2->SetName("circle2");
+  map->AddLayer(circle2.GetPointer());
+
+  // Note: Always add vtkFeatureLayer to the map before adding features
+  vtkNew<vtkRegularPolygonSource> polygon2;
+  polygon2->SetNumberOfSides(50);
+  polygon2->SetRadius(3.0);
+  vtkNew<vtkPolydataFeature> feature2;
+  feature2->GetMapper()->SetInputConnection(polygon2->GetOutputPort());
+  feature2->GetActor()->GetProperty()->SetColor(0.0, 1.0, 0.0);
+  feature2->GetActor()->GetProperty()->SetOpacity(0.5);
+
+  feature2->GetActor()->SetPosition(-79.072205, vtkMercator::lat2y(35.911373), 0.0);
+  circle2->AddFeature(feature2.GetPointer());
+
+  //////////////////////// Manipulate layers ///////////////////////////////////
+  map->MoveDown(circle.GetPointer());
+  map->MoveToBottom(circle2.GetPointer());
+  map->MoveUp(circle2.GetPointer());
 
   intr->Start();
-
-  //map->Print(std::cout);
-  osmLayer->Delete();
   return 0;
 }
