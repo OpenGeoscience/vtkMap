@@ -14,6 +14,12 @@
 // .NAME vtkLayer -
 // .SECTION Description
 //
+// vtkLayer instances are rendered as vtkRenderPasses.  A sequence of render
+// passes is defined in vtkMap, which defines the order in which the layers
+// are rendered. vtkProps contained in a layer are marked as such through
+// a PropertyKey (ID), which is later used by the member vtkGeoMapLayerPass
+// at render time to filter these vtkProps from the global vtkRenderer::PropArray.
+//
 
 #ifndef __vtkLayer_h
 #define __vtkLayer_h
@@ -28,6 +34,7 @@
 
 
 class vtkGeoMapLayerPass;
+class vtkInformationIntegerKey;
 class vtkRenderPass;
 
 class VTKMAP_EXPORT vtkLayer : public vtkObject
@@ -45,8 +52,9 @@ public:
   void SetName(const std::string& Name);
 
   // Description:
+  // Get the unique Layer Id.  The Id is defined internally at
+  // construction-time.
   unsigned int GetId();
-  void SetId(const unsigned int& id);
 
   // Description:
   vtkGetMacro(Opacity, double)
@@ -87,8 +95,14 @@ public:
   void AddActor2D(vtkProp* prop);
   void RemoveActor(vtkProp* prop);
 
-protected:
+  // Description:
+  // Information key containing the Id of this layer. This Id set as a
+  // PropertyKey in all the vtkProps (actors) contained within this layer.
+  // At render-time, vtkGeoMapLayerPass filters out the vtkProps of its
+  // particular layer by comparing Ids.
+  static vtkInformationIntegerKey* ID();
 
+protected:
   vtkLayer();
   virtual ~vtkLayer();
 

@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkValuePass.h
+  Module:    vtkMap
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -13,10 +13,17 @@
 
 =========================================================================*/
 /**
- * @class   vtkGeoMapLayerPass
+ * @class vtkGeoMapLayerPass
+ * @brief Rendering infrastructure of a vtkLayer.
  *
- * Renders a vtkLayer instance. A sequence of these passes can be defined
- * in order to render a set of stacked layers.
+ * Renders the vtkProps related to a vtkLayer instance. At render-time, a
+ * pass receives the global PropArray held by the vtkRenderer through a
+ * vtkRenderState instance.  This global array is filtered by the class
+ * by comparing layer ids. The filtered vector of vtkProps is then rendered.
+ *
+ * A sequence of these passes can be defined in order to render a set of
+ * stacked layers.
+ *
  */
 #ifndef vtkGeoMapLayerPass_h
 #define vtkGeoMapLayerPass_h
@@ -34,12 +41,11 @@ public:
   vtkTypeMacro(vtkGeoMapLayerPass, vtkRenderPass);
   void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
-  void AddActor(vtkProp* prop);
-  void RemoveActor(vtkProp* prop);
-
   void Render(const vtkRenderState* s) VTK_OVERRIDE;
 
   void ReleaseGraphicsResources(vtkWindow* win) VTK_OVERRIDE;
+
+  vtkSetMacro(LayerId, int);
 
 protected:
   vtkGeoMapLayerPass();
@@ -49,11 +55,17 @@ private:
   vtkGeoMapLayerPass(const vtkGeoMapLayerPass&) VTK_DELETE_FUNCTION;
   void operator=(const vtkGeoMapLayerPass&) VTK_DELETE_FUNCTION;
 
-  void RenderOpaqueGeometry(const vtkRenderState* layerState);
-  void RenderTranslucentGeometry(const vtkRenderState* layerState);
+/**
+ * Builds the vector of vtkProps related to this vtkLayer.
+ */
+  void FilterLayerProps(const vtkRenderState* state);
+
+  void RenderOpaqueGeometry(const vtkRenderState* state);
+  void RenderTranslucentGeometry(const vtkRenderState* state);
   void RenderOverlay(const vtkRenderState* state);
 
-  std::vector<vtkProp*> Actors;
+  std::vector<vtkProp*> LayerProps;
+  int LayerId = -1;
 };
 
 #endif // vtkGeoMapLayerPass_h

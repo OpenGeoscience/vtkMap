@@ -11,10 +11,14 @@
    PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
+#include <vtkInformation.h>
+#include <vtkInformationIntegerKey.h>
+
 #include "vtkGeoMapLayerPass.h"
 #include "vtkLayer.h"
 
 
+vtkInformationKeyMacro(vtkLayer, ID, Integer);
 unsigned int vtkLayer::GlobalId = 0;
 
 //----------------------------------------------------------------------------
@@ -28,6 +32,7 @@ vtkLayer::vtkLayer() : vtkObject()
   this->Map = NULL;
   this->AsyncMode = false;
   this->Id = this->GlobalId + 1;
+  this->RenderPass->SetLayerId(this->Id);
   this->GlobalId++;
 }
 
@@ -73,18 +78,6 @@ unsigned int vtkLayer::GetId()
 }
 
 //----------------------------------------------------------------------------
-void vtkLayer::SetId(const unsigned int& id)
-{
-  if (id == this->Id)
-    {
-    return;
-    }
-
-  this->Id = id;
-  this->Modified();
-}
-
-//----------------------------------------------------------------------------
 void vtkLayer::SetMap(vtkMap* map)
 {
   if (this->Map != map)
@@ -126,7 +119,6 @@ void vtkLayer::RemoveActor(vtkProp* prop)
   }
 
   this->Renderer->RemoveActor(prop);
-  this->RenderPass->RemoveActor(prop);
 }
 
 //----------------------------------------------------------------------------
@@ -139,7 +131,11 @@ void vtkLayer::AddActor(vtkProp* prop)
   }
 
   this->Renderer->AddActor(prop);
-  this->RenderPass->AddActor(prop);
+
+  vtkInformation* keys = vtkInformation::New();
+  keys->Set(vtkLayer::ID(), this->Id);
+  prop->SetPropertyKeys(keys);
+  keys->Delete();
 }
 
 //----------------------------------------------------------------------------
@@ -152,5 +148,9 @@ void vtkLayer::AddActor2D(vtkProp* prop)
   }
 
   this->Renderer->AddActor2D(prop);
-  this->RenderPass->AddActor(prop);
+
+  vtkInformation* keys = vtkInformation::New();
+  keys->Set(vtkLayer::ID(), this->Id);
+  prop->SetPropertyKeys(keys);
+  keys->Delete();
 }

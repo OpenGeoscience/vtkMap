@@ -14,6 +14,9 @@
 // .NAME vtkMap -
 // .SECTION Description
 //
+// Provides an API to manipulate the order in which different vtkLayer instances
+// are rendered.
+//
 
 #ifndef __vtkMap_h
 #define __vtkMap_h
@@ -241,9 +244,15 @@ protected:
   // Current state of asynchronous layers
   AsyncState CurrentAsyncState;
 
+//@{
+/**
+ * Layer infrastructure. LayerCollection defines the order in which layers
+ * are rendered.
+ */
   vtkSmartPointer<vtkRenderPassCollection> LayerCollection;
   vtkSmartPointer<vtkSequencePass> LayerSequence;
   vtkSmartPointer<vtkCameraPass> CameraPass;
+//@}
   
 private:
   vtkMap(const vtkMap&);  // Not implemented
