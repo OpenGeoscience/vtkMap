@@ -725,7 +725,22 @@ void vtkMap::PollingCallback()
 }
 
 //----------------------------------------------------------------------------
-void vtkMap::MoveUp(vtkLayer* layer)
+void vtkMap::MoveLayer(const vtkLayer* layer, vtkMapType::Move direction)
+{
+  switch (direction)
+  {
+    case vtkMapType::Move::UP:     this->MoveUp(layer);       break;
+    case vtkMapType::Move::DOWN:   this->MoveDown(layer);     break;
+    case vtkMapType::Move::TOP:    this->MoveToTop(layer);    break;
+    case vtkMapType::Move::BOTTOM: this->MoveToBottom(layer); break;
+    default: vtkErrorMacro(<< "Move direction not supported!");
+  }
+
+  this->Draw();
+}
+
+//----------------------------------------------------------------------------
+void vtkMap::MoveUp(const vtkLayer* layer)
 {
   auto result = std::find(this->Layers.begin(), this->Layers.end(), layer);
   auto nextIt = result + 1;
@@ -739,11 +754,11 @@ void vtkMap::MoveUp(vtkLayer* layer)
 }
 
 //----------------------------------------------------------------------------
-void vtkMap::MoveDown(vtkLayer* layer)
+void vtkMap::MoveDown(const vtkLayer* layer)
 {
   auto result = std::find(this->Layers.begin(), this->Layers.end(), layer);
   auto prevIt = result - 1;
-  if (result == this->Layers.cend() || prevIt == this->Layers.cend())
+  if (result == this->Layers.cbegin() || prevIt == this->Layers.cbegin())
   {
     return;
   }
@@ -753,7 +768,7 @@ void vtkMap::MoveDown(vtkLayer* layer)
 }
 
 //----------------------------------------------------------------------------
-void vtkMap::MoveToTop(vtkLayer* layer)
+void vtkMap::MoveToTop(const vtkLayer* layer)
 {
   auto result = std::find(this->Layers.begin(), this->Layers.end(), layer);
   if (result == this->Layers.cend())
@@ -767,7 +782,7 @@ void vtkMap::MoveToTop(vtkLayer* layer)
 }
 
 //----------------------------------------------------------------------------
-void vtkMap::MoveToBottom(vtkLayer* layer)
+void vtkMap::MoveToBottom(const vtkLayer* layer)
 {
   auto result = std::find(this->Layers.begin(), this->Layers.end(), layer);
   if (result == this->Layers.cend())

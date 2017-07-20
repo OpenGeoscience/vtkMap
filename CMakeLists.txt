@@ -46,6 +46,7 @@ endif()
 
 find_package(VTK NO_MODULE REQUIRED COMPONENTS ${VTK_REQUIRED_COMPONENTS})
 find_package(CURL REQUIRED)
+find_package(OpenGL REQUIRED)
 
 include(${VTK_USE_FILE})
 
@@ -108,6 +109,7 @@ set (HEADERS
     vtkMapTile.h
     vtkMapTileSpecInternal.h
     vtkMap.h
+    vtkMap_typedef.h
     vtkMercator.h
     vtkLayer.h
     vtkMultiThreadedOsmLayer.h
@@ -129,6 +131,7 @@ target_link_libraries(vtkMap
                       LINK_PRIVATE
                         ${CURL_LIBRARIES}
                         ${GDAL_LIBRARY}
+                        ${OPENGL_LIBRARIES}
                       )
 
 target_include_directories(vtkMap
@@ -137,6 +140,7 @@ target_include_directories(vtkMap
                            PRIVATE
                              ${CURL_INCLUDE_DIRS}
                              ${GDAL_INCLUDE_DIRS}
+                             ${OPENGL_INCLUDE_DIRS}
                           )
 
 #setup export header

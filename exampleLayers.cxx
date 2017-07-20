@@ -385,9 +385,9 @@ int main(int argc, char *argv[])
   circle2->AddFeature(feature2.GetPointer());
 
   //////////////////////// Manipulate layers ///////////////////////////////////
-  map->MoveDown(circle.GetPointer());
-  map->MoveToBottom(circle2.GetPointer());
-  map->MoveUp(circle2.GetPointer());
+  map->MoveLayer(circle.GetPointer(), vtkMapType::Move::DOWN);
+  map->MoveLayer(circle2.GetPointer(), vtkMapType::Move::BOTTOM);
+  map->MoveLayer(circle2.GetPointer(), vtkMapType::Move::UP);
 
   intr->Start();
   return 0;

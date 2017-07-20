@@ -26,6 +26,7 @@
 #include <vtkSmartPointer.h>
 
 #include "vtkmap_export.h"
+#include "vtkMap_typedef.h"
 
 class vtkCallbackCommand;
 class vtkCameraPass;
@@ -53,13 +54,13 @@ public:
   // Description:
   // State of asynchronous layers
   enum AsyncState
-    {
+  {
     AsyncOff = 0,        // layer is not asynchronous
     AsyncIdle,           // no work scheduled
     AsyncPending,        // work in progress
     AsyncPartialUpdate,  // some work completed
     AsyncFullUpdate      // all work completed
-    };
+  };
 
   static vtkMap *New();
   virtual void PrintSelf(ostream &os, vtkIndent indent);
@@ -173,15 +174,12 @@ public:
   void ComputeDisplayCoords(double lanLngCoords[2], double elevation,
                             double displayCoords[3]);
 
-  ///@{
-  /**
-   * Change order of layers in the stack.
-   */
-  void MoveUp(vtkLayer* layer);
-  void MoveDown(vtkLayer* layer);
-  void MoveToTop(vtkLayer* layer);
-  void MoveToBottom(vtkLayer* layer);
-  ///@}
+/**
+ * Change the order of layers in the stack. Supports move UP, DOWN,
+ * TOP, BOTTOM. Assumes 'layer' is valid.
+ * \sa vtkMapType::Move
+ */
+  void MoveLayer(const vtkLayer* layer, vtkMapType::Move direction);
 
 protected:
   vtkMap();
@@ -218,7 +216,6 @@ protected:
   // Directory for caching map files
   char* StorageDirectory;
 
-protected:
   void Initialize();
 
   void UpdateLayerSequence();
@@ -257,8 +254,20 @@ protected:
 //@}
   
 private:
-  vtkMap(const vtkMap&);  // Not implemented
-  vtkMap& operator=(const vtkMap&); // Not implemented
+  vtkMap(const vtkMap&) VTK_DELETE_FUNCTION;
+  vtkMap& operator=(const vtkMap&) VTK_DELETE_FUNCTION;
+
+///@{
+/**
+ * Handlers for MoveLayer.
+ * \sa vtkMap::MoveLayer
+ */
+  void MoveUp(const vtkLayer* layer);
+  void MoveDown(const vtkLayer* layer);
+  void MoveToTop(const vtkLayer* layer);
+  void MoveToBottom(const vtkLayer* layer);
+///@}
+
 };
 
 #endif // __vtkMap_h
