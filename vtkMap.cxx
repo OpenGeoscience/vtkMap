@@ -24,12 +24,15 @@
 // VTK Includes
 #include <vtkCallbackCommand.h>
 #include <vtkCamera.h>
+#include <vtkCameraPass.h>
 #include <vtkCollection.h>
 #include <vtkMath.h>
 #include <vtkObjectFactory.h>
 #include <vtkRenderer.h>
+#include <vtkRenderPassCollection.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
+#include <vtkSequencePass.h>
 #include <vtksys/SystemTools.hxx>
 
 #include <algorithm>
@@ -39,7 +42,9 @@
 #include <math.h>
 #include <sstream>
 
+
 vtkStandardNewMacro(vtkMap)
+vtkCxxSetObjectMacro(vtkMap, Renderer, vtkRenderer);
 
 //----------------------------------------------------------------------------
 double computeCameraDistance(vtkCamera* cam, int zoomLevel)
@@ -75,6 +80,9 @@ static void StaticPollingCallback(
 
 //----------------------------------------------------------------------------
 vtkMap::vtkMap()
+: LayerCollection(vtkSmartPointer<vtkRenderPassCollection>::New())
+, LayerSequence(vtkSmartPointer<vtkSequencePass>::New())
+, CameraPass(vtkSmartPointer<vtkCameraPass>::New())
 {
   this->StorageDirectory = NULL;
   this->Renderer = NULL;
@@ -365,7 +373,7 @@ void vtkMap::AddLayer(vtkLayer* layer)
     }
   else
     {
-    std::vector<vtkLayer*>::iterator it =
+    LayerContainer::iterator it =
         std::find(this->Layers.begin(), this->Layers.end(), layer);
     if (it == this->Layers.end())
       {
@@ -376,6 +384,7 @@ void vtkMap::AddLayer(vtkLayer* layer)
     }
 
   layer->SetMap(this);
+  this->UpdateLayerSequence();
 }
 
 //----------------------------------------------------------------------------
@@ -406,6 +415,7 @@ void vtkMap::RemoveLayer(vtkLayer* layer)
 
   this->Layers.erase(std::remove(this->Layers.begin(),
                                  this->Layers.end(), layer));
+  this->UpdateLayerSequence();
   layer->Delete();
 }
 
@@ -419,7 +429,7 @@ vtkLayer *vtkMap::FindLayer(const char *name)
     return this->BaseLayer;
     }
 
-  std::vector<vtkLayer*>::iterator it = this->Layers.begin();
+  LayerContainer::iterator it = this->Layers.begin();
   for (; it != this->Layers.end(); it++)
     {
     vtkLayer *layer = *it;
@@ -473,76 +483,99 @@ void vtkMap::Update()
 }
 
 //----------------------------------------------------------------------------
+void vtkMap::Initialize()
+{
+  // Set camera projection
+  bool parallel = !this->PerspectiveProjection;
+  this->Renderer->GetActiveCamera()->SetParallelProjection(parallel);
+
+  // Make sure storage directory specified
+  if (!this->StorageDirectory ||
+      std::strlen(this->StorageDirectory) == 0)
+    {
+    std::string fullPath =
+      vtksys::SystemTools::CollapseFullPath(".vtkmap", "~/");
+    this->SetStorageDirectory(fullPath.c_str());
+    std::cerr << "Set map-tile storage directory to "
+              << this->StorageDirectory << std::endl;
+    }
+
+  // Make sure storage directory specified with unix separators
+  std::string strStorageDir(this->StorageDirectory);  // for convenience
+  vtksys::SystemTools::ConvertToUnixSlashes(strStorageDir);
+  // If trailing slash char, strip it off
+  if (*strStorageDir.rbegin() == '/')
+     {
+     strStorageDir.erase(strStorageDir.end()-1);
+     this->SetStorageDirectory(strStorageDir.c_str());
+     }
+
+  // Make sure storage directory exists
+  if(!vtksys::SystemTools::FileIsDirectory(this->StorageDirectory))
+    {
+    std::cerr << "Create map-tile storage directory "
+              << this->StorageDirectory << std::endl;
+    vtksys::SystemTools::MakeDirectory(this->StorageDirectory);
+    }
+
+  // Initialize polling timer if there are any asynchronous layers
+  LayerContainer allLayers(this->Layers);
+  allLayers.push_back(this->BaseLayer);
+  for (size_t i = 0; i < allLayers.size(); ++i)
+    {
+    if (allLayers[i]->IsAsynchronous())
+      {
+      this->PollingCallbackCommand = vtkCallbackCommand::New();
+      this->PollingCallbackCommand->SetClientData(this);
+      this->PollingCallbackCommand->SetCallback(StaticPollingCallback);
+
+      vtkRenderWindowInteractor *interactor
+        = this->Renderer->GetRenderWindow()->GetInteractor();
+      interactor->CreateRepeatingTimer(31);  // prime number > 30 fps
+      interactor->AddObserver(vtkCommand::TimerEvent,
+                              this->PollingCallbackCommand);
+
+      break;
+      }
+    }
+
+  // Initialize graphics
+  double x = this->Center[1];
+  double y = vtkMercator::lat2y(this->Center[0]);
+  double distance =
+    computeCameraDistance(this->Renderer->GetActiveCamera(), this->Zoom);
+  this->Renderer->GetActiveCamera()->SetPosition(x, y, distance);
+  this->Renderer->GetActiveCamera()->SetFocalPoint(x, y, 0.0);
+  this->Renderer->SetBackground(1.0, 1.0, 1.0);
+  this->Renderer->GetRenderWindow()->Render();
+
+  this->UpdateLayerSequence();
+  this->LayerSequence->SetPasses(LayerCollection);
+  CameraPass->SetDelegatePass(LayerSequence);
+  this->Renderer->SetPass(CameraPass);
+
+  this->Initialized = true;
+}
+
+//----------------------------------------------------------------------------
+void vtkMap::UpdateLayerSequence()
+{
+  this->LayerCollection->RemoveAllItems();
+  this->LayerCollection->AddItem(this->BaseLayer->GetRenderPass());
+  for (auto& layer : this->Layers)
+  {
+    this->LayerCollection->AddItem(layer->GetRenderPass());
+  }
+}
+
+//----------------------------------------------------------------------------
 void vtkMap::Draw()
 {
   if (!this->Initialized && this->Renderer)
-    {
-    this->Initialized = true;
+  {
+    this->Initialize();
+  }
 
-    // Set camera projection
-    bool parallel = !this->PerspectiveProjection;
-    this->Renderer->GetActiveCamera()->SetParallelProjection(parallel);
-
-    // Make sure storage directory specified
-    if (!this->StorageDirectory ||
-        std::strlen(this->StorageDirectory) == 0)
-      {
-      std::string fullPath =
-        vtksys::SystemTools::CollapseFullPath(".vtkmap", "~/");
-      this->SetStorageDirectory(fullPath.c_str());
-      std::cerr << "Set map-tile storage directory to "
-                << this->StorageDirectory << std::endl;
-      }
-
-    // Make sure storage directory specified with unix separators
-    std::string strStorageDir(this->StorageDirectory);  // for convenience
-    vtksys::SystemTools::ConvertToUnixSlashes(strStorageDir);
-    // If trailing slash char, strip it off
-    if (*strStorageDir.rbegin() == '/')
-       {
-       strStorageDir.erase(strStorageDir.end()-1);
-       this->SetStorageDirectory(strStorageDir.c_str());
-       }
-
-    // Make sure storage directory exists
-    if(!vtksys::SystemTools::FileIsDirectory(this->StorageDirectory))
-      {
-      std::cerr << "Create map-tile storage directory "
-                << this->StorageDirectory << std::endl;
-      vtksys::SystemTools::MakeDirectory(this->StorageDirectory);
-      }
-
-    // Initialize polling timer if there are any asynchronous layers
-    std::vector<vtkLayer*> allLayers(this->Layers);
-    allLayers.push_back(this->BaseLayer);
-    for (size_t i = 0; i < allLayers.size(); ++i)
-      {
-      if (allLayers[i]->IsAsynchronous())
-        {
-        this->PollingCallbackCommand = vtkCallbackCommand::New();
-        this->PollingCallbackCommand->SetClientData(this);
-        this->PollingCallbackCommand->SetCallback(StaticPollingCallback);
-
-        vtkRenderWindowInteractor *interactor
-          = this->Renderer->GetRenderWindow()->GetInteractor();
-        interactor->CreateRepeatingTimer(31);  // prime number > 30 fps
-        interactor->AddObserver(vtkCommand::TimerEvent,
-                                this->PollingCallbackCommand);
-
-        break;
-        }
-      }
-
-    // Initialize graphics
-    double x = this->Center[1];
-    double y = vtkMercator::lat2y(this->Center[0]);
-    double distance =
-      computeCameraDistance(this->Renderer->GetActiveCamera(), this->Zoom);
-    this->Renderer->GetActiveCamera()->SetPosition(x, y, distance);
-    this->Renderer->GetActiveCamera()->SetFocalPoint(x, y, 0.0);
-    this->Renderer->SetBackground(1.0, 1.0, 1.0);
-    this->Renderer->GetRenderWindow()->Render();
-    }
   this->Update();
   this->Renderer->GetRenderWindow()->Render();
 }
@@ -594,14 +627,17 @@ void vtkMap::ComputeLatLngCoords(double displayCoords[2], double elevation,
 //----------------------------------------------------------------------------
 void vtkMap::PickPoint(int displayCoords[2], vtkGeoMapSelection* result)
 {
+  this->Renderer->SetPass(nullptr);
   this->FeatureSelector->PickPoint(this->Renderer, displayCoords, result);
-
+  this->Renderer->SetPass(this->CameraPass);
 }
 
 //----------------------------------------------------------------------------
 void vtkMap::PickArea(int displayCoords[4], vtkGeoMapSelection* result)
 {
+  this->Renderer->SetPass(nullptr);
   this->FeatureSelector->PickArea(this->Renderer, displayCoords, result);
+  this->Renderer->SetPass(this->CameraPass);
 }
 
 //----------------------------------------------------------------------------
@@ -669,7 +705,7 @@ void vtkMap::PollingCallback()
   AsyncState newState = AsyncIdle;
 
   // Compute highest "state" of async layers
-  std::vector<vtkLayer*> allLayers(this->Layers);
+  LayerContainer allLayers(this->Layers);
   allLayers.push_back(this->BaseLayer);
   for (size_t i = 0; i < allLayers.size(); ++i)
     {
@@ -686,4 +722,79 @@ void vtkMap::PollingCallback()
     {
     this->Draw();
     }
+}
+
+//----------------------------------------------------------------------------
+void vtkMap::MoveLayer(const vtkLayer* layer, vtkMapType::Move direction)
+{
+  switch (direction)
+  {
+    case vtkMapType::Move::UP:     this->MoveUp(layer);       break;
+    case vtkMapType::Move::DOWN:   this->MoveDown(layer);     break;
+    case vtkMapType::Move::TOP:    this->MoveToTop(layer);    break;
+    case vtkMapType::Move::BOTTOM: this->MoveToBottom(layer); break;
+    default: vtkErrorMacro(<< "Move direction not supported!");
+  }
+
+  this->Draw();
+}
+
+//----------------------------------------------------------------------------
+void vtkMap::MoveUp(const vtkLayer* layer)
+{
+  auto result = std::find(this->Layers.begin(), this->Layers.end(), layer);
+  auto nextIt = result + 1;
+  if (result == this->Layers.cend() || nextIt == this->Layers.cend())
+  {
+    return;
+  }
+
+  std::iter_swap(result, nextIt);
+  this->UpdateLayerSequence();
+}
+
+//----------------------------------------------------------------------------
+void vtkMap::MoveDown(const vtkLayer* layer)
+{
+  auto result = std::find(this->Layers.begin(), this->Layers.end(), layer);
+  auto prevIt = result - 1;
+  if (result == this->Layers.cbegin() || prevIt == this->Layers.cbegin())
+  {
+    return;
+  }
+
+  std::iter_swap(result, prevIt);
+  this->UpdateLayerSequence();
+}
+
+//----------------------------------------------------------------------------
+void vtkMap::MoveToTop(const vtkLayer* layer)
+{
+  auto result = std::find(this->Layers.begin(), this->Layers.end(), layer);
+  if (result == this->Layers.cend())
+  {
+    return;
+  }
+
+  // rotation ccw
+  std::rotate(result, result + 1, this->Layers.end());
+  this->UpdateLayerSequence();
+}
+
+//----------------------------------------------------------------------------
+void vtkMap::MoveToBottom(const vtkLayer* layer)
+{
+  auto result = std::find(this->Layers.begin(), this->Layers.end(), layer);
+  if (result == this->Layers.cend())
+  {
+    return;
+  }
+
+  // rotation cw
+  // Note: when an iterator is reversed, the reversed version points
+  // to the one preceeding it, so it is decremented to point to the original
+  // element.
+  auto rresult = LayerContainer::reverse_iterator(result) - 1;
+  std::rotate(rresult, rresult + 1, this->Layers.rend());
+  this->UpdateLayerSequence();
 }

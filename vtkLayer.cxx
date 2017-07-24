@@ -11,13 +11,19 @@
    PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
+#include <vtkInformation.h>
+#include <vtkInformationIntegerKey.h>
 
+#include "vtkGeoMapLayerPass.h"
 #include "vtkLayer.h"
 
+
+vtkInformationKeyMacro(vtkLayer, ID, Integer);
 unsigned int vtkLayer::GlobalId = 0;
 
 //----------------------------------------------------------------------------
 vtkLayer::vtkLayer() : vtkObject()
+, RenderPass(vtkSmartPointer<vtkGeoMapLayerPass>::New())
 {
   this->Visibility = 1;
   this->Opacity = 1.0;
@@ -26,6 +32,8 @@ vtkLayer::vtkLayer() : vtkObject()
   this->Map = NULL;
   this->AsyncMode = false;
   this->Id = this->GlobalId + 1;
+  this->RenderPass->SetLayerId(this->Id);
+  this->GlobalId++;
 }
 
 //----------------------------------------------------------------------------
@@ -70,18 +78,6 @@ unsigned int vtkLayer::GetId()
 }
 
 //----------------------------------------------------------------------------
-void vtkLayer::SetId(const unsigned int& id)
-{
-  if (id == this->Id)
-    {
-    return;
-    }
-
-  this->Id = id;
-  this->Modified();
-}
-
-//----------------------------------------------------------------------------
 void vtkLayer::SetMap(vtkMap* map)
 {
   if (this->Map != map)
@@ -105,4 +101,56 @@ vtkMap::AsyncState vtkLayer::ResolveAsync()
   // (Otherwise they don't need to be asynchronous...)
   vtkWarningMacro(<<"vtkLayer::ResolveAsync() should not be called");
   return vtkMap::AsyncOff;
+}
+
+//----------------------------------------------------------------------------
+vtkRenderPass* vtkLayer::GetRenderPass()
+{
+  return this->RenderPass.GetPointer(); 
+}
+
+//----------------------------------------------------------------------------
+void vtkLayer::RemoveActor(vtkProp* prop)
+{
+  if (!this->Renderer || !prop)
+  {
+    vtkErrorMacro(<< "Could not remove vtkProp.");
+    return;
+  }
+
+  this->Renderer->RemoveActor(prop);
+}
+
+//----------------------------------------------------------------------------
+void vtkLayer::AddActor(vtkProp* prop)
+{
+  if (!this->Renderer || !prop)
+  {
+    vtkErrorMacro(<< "Could not register vtkProp.");
+    return;
+  }
+
+  this->Renderer->AddActor(prop);
+
+  vtkInformation* keys = vtkInformation::New();
+  keys->Set(vtkLayer::ID(), this->Id);
+  prop->SetPropertyKeys(keys);
+  keys->Delete();
+}
+
+//----------------------------------------------------------------------------
+void vtkLayer::AddActor2D(vtkProp* prop)
+{
+  if (!this->Renderer || !prop)
+  {
+    vtkErrorMacro(<< "Could not register vtkProp.");
+    return;
+  }
+
+  this->Renderer->AddActor2D(prop);
+
+  vtkInformation* keys = vtkInformation::New();
+  keys->Set(vtkLayer::ID(), this->Id);
+  prop->SetPropertyKeys(keys);
+  keys->Delete();
 }

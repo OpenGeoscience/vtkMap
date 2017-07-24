@@ -11,7 +11,6 @@
    PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
-
 #include "vtkPolydataFeature.h"
 
 #include <vtkObjectFactory.h>
@@ -36,9 +35,9 @@ vtkPolydataFeature::~vtkPolydataFeature()
 }
 
 //----------------------------------------------------------------------------
-void vtkPolydataFeature::PrintSelf(std::ostream&, vtkIndent)
+void vtkPolydataFeature::PrintSelf(std::ostream& os, vtkIndent indent)
 {
-  // TODO
+  Superclass::PrintSelf(os, indent);
 }
 
 //----------------------------------------------------------------------------
@@ -53,7 +52,8 @@ void vtkPolydataFeature::Init()
       this->Actor->SetMapper(this->Mapper);
       }
     }
-  this->Layer->GetRenderer()->AddActor(this->Actor);
+
+  this->Layer->AddActor(this->Actor);
 }
 
 //----------------------------------------------------------------------------
@@ -66,7 +66,7 @@ void vtkPolydataFeature::Update()
 //----------------------------------------------------------------------------
 void vtkPolydataFeature::CleanUp()
 {
-  this->Layer->GetRenderer()->RemoveActor(this->Actor);
+  this->Layer->RemoveActor(this->Actor);
   this->SetLayer(0);
 }
 

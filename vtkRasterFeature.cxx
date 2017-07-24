@@ -109,7 +109,7 @@ void vtkRasterFeature::Init()
   this->Mapper->SetInputData(displayImage);
   this->Actor->GetProperty()->UseLookupTableScalarRangeOn();
   this->Actor->Update();
-  this->Layer->GetRenderer()->AddActor(this->Actor);
+  this->Layer->AddActor(this->Actor);
 }
 
 //----------------------------------------------------------------------------
@@ -122,7 +122,7 @@ void vtkRasterFeature::Update()
 //----------------------------------------------------------------------------
 void vtkRasterFeature::CleanUp()
 {
-  this->Layer->GetRenderer()->RemoveActor(this->Actor);
+  this->Layer->RemoveActor(this->Actor);
   this->SetLayer(0);
 }
 

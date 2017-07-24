@@ -109,7 +109,7 @@ SetMapTileServer(const char *server, const char *attribution,
   for (; iter != this->CachedTiles.end(); iter++)
     {
     vtkMapTile *tile = *iter;
-    this->Renderer->RemoveActor(tile->GetActor());
+    this->RemoveActor(tile->GetActor());
     }
   this->RemoveTiles();
 
@@ -152,7 +152,7 @@ void vtkOsmLayer::Update()
     // Background properties available in vtk 6.2
     //textProperty->SetBackgroundColor(1, 1, 1);
     //textProperty->SetBackgroundOpacity(1.0);
-    this->Map->GetRenderer()->AddActor2D(this->AttributionActor);
+    this->AddActor2D(this->AttributionActor);
     }
 
   this->AddTiles();
@@ -411,13 +411,13 @@ void vtkOsmLayer::RenderTiles(std::vector<vtkMapTile*>& tiles)
     std::vector<vtkMapTile*>::iterator itr = this->CachedTiles.begin();
     for (; itr != this->CachedTiles.end(); ++itr)
       {
-      this->Renderer->RemoveActor((*itr)->GetActor());
+      this->RemoveActor((*itr)->GetActor());
       }
 
     // Add new tiles
     for (std::size_t i = 0; i < tiles.size(); ++i)
       {
-      this->Renderer->AddActor(tiles[i]->GetActor());
+      this->AddActor(tiles[i]->GetActor());
       }
 
     tiles.clear();

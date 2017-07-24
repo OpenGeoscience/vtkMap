@@ -46,6 +46,7 @@ endif()
 
 find_package(VTK NO_MODULE REQUIRED COMPONENTS ${VTK_REQUIRED_COMPONENTS})
 find_package(CURL REQUIRED)
+find_package(OpenGL REQUIRED)
 
 include(${VTK_USE_FILE})
 
@@ -79,6 +80,7 @@ set (SOURCES
     vtkGDALRasterReprojection.cxx
     vtkGeoJSONMapFeature.cxx
     vtkGeoMapFeatureSelector.cxx
+    vtkGeoMapLayerPass.cxx
     vtkGeoMapSelection.cxx
     vtkInteractorStyleGeoMap.cxx
     vtkMapMarkerSet.cxx
@@ -100,12 +102,14 @@ set (HEADERS
     vtkGDALRasterConverter.h
     vtkGDALRasterReprojection.h
     vtkGeoMapFeatureSelector.h
+    vtkGeoMapLayerPass.h
     vtkGeoMapSelection.h
     vtkInteractorStyleGeoMap.h
     vtkMapMarkerSet.h
     vtkMapTile.h
     vtkMapTileSpecInternal.h
     vtkMap.h
+    vtkMap_typedef.h
     vtkMercator.h
     vtkLayer.h
     vtkMultiThreadedOsmLayer.h
@@ -127,6 +131,7 @@ target_link_libraries(vtkMap
                       LINK_PRIVATE
                         ${CURL_LIBRARIES}
                         ${GDAL_LIBRARY}
+                        ${OPENGL_LIBRARIES}
                       )
 
 target_include_directories(vtkMap
@@ -135,6 +140,7 @@ target_include_directories(vtkMap
                            PRIVATE
                              ${CURL_INCLUDE_DIRS}
                              ${GDAL_INCLUDE_DIRS}
+                             ${OPENGL_INCLUDE_DIRS}
                           )
 
 #setup export header
@@ -165,8 +171,12 @@ set(CMAKE_CXX_VISIBILITY_PRESET)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN)
 
 #example does not need to installed
+#///TODO Move into a separate directory; enable/disable through a CMake var.
 add_executable(example example.cpp)
 target_link_libraries(example vtkMap)
+
+add_executable(exampleLayers exampleLayers.cxx)
+target_link_libraries(exampleLayers vtkMap)
 
 #both testing and Qt do need to exported or installed as they are for testing
 #and examples

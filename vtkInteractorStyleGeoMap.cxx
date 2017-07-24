@@ -87,7 +87,7 @@ void vtkInteractorStyleGeoMap::OnLeftButtonDown()
     }
 
   // fall back to built-in rubberband drawing if no renderer was given
-  if (!this->Map->GetRenderer())
+  if (this->UseDefaultRenderingMode || !this->Map->GetRenderer())
     {
     this->Superclass::OnLeftButtonDown();
     return;
@@ -177,20 +177,16 @@ void vtkInteractorStyleGeoMap::OnLeftButtonUp()
   vtkDebugMacro("EndPan()");
   //std::cout << "End Pan" << std::endl;
   this->EndPan();
-  this->Interaction = NONE;
 
   if (this->RubberBandMode == vtkInteractorStyleGeoMap::DisabledMode)
     {
     this->Interactor->GetRenderWindow()->SetCurrentCursor(VTK_CURSOR_DEFAULT);
     }
 
-  if (!this->RubberBandActor)
-    {
-    this->Superclass::OnLeftButtonUp();
-    return;
-    }
-
-  this->RubberBandActor->VisibilityOff();
+  if (!this->UseDefaultRenderingMode)
+  {
+    this->RubberBandActor->VisibilityOff();
+  }
 
   // Get corner points of interaction, sorted by min/max
   int boundCoords[4];
@@ -305,6 +301,12 @@ void vtkInteractorStyleGeoMap::OnMouseMove()
         break;
       }
     }
+
+  if (this->UseDefaultRenderingMode)
+  {
+    Superclass::OnMouseMove();
+    return;
+  }
 
   this->EndPosition[0] = this->Interactor->GetEventPosition()[0];
   this->EndPosition[1] = this->Interactor->GetEventPosition()[1];

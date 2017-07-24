@@ -14,23 +14,31 @@
 // .NAME vtkMap -
 // .SECTION Description
 //
+// Provides an API to manipulate the order in which different vtkLayer instances
+// are rendered.
+//
 
 #ifndef __vtkMap_h
 #define __vtkMap_h
 
 // VTK Includes
 #include <vtkObject.h>
-#include <vtkRenderer.h>
+#include <vtkSmartPointer.h>
 
 #include "vtkmap_export.h"
+#include "vtkMap_typedef.h"
 
 class vtkCallbackCommand;
+class vtkCameraPass;
 class vtkFeature;
 class vtkGeoMapFeatureSelector;
 class vtkGeoMapSelection;
 class vtkInteractorStyle;
 class vtkInteractorStyleGeoMap;
 class vtkLayer;
+class vtkRenderer;
+class vtkRenderPassCollection;
+class vtkSequencePass;
 
 #include <map>
 #include <string>
@@ -41,16 +49,18 @@ class vtkLayer;
 class VTKMAP_EXPORT vtkMap : public vtkObject
 {
 public:
+  using LayerContainer = std::vector<vtkLayer*>;
+
   // Description:
   // State of asynchronous layers
   enum AsyncState
-    {
+  {
     AsyncOff = 0,        // layer is not asynchronous
     AsyncIdle,           // no work scheduled
     AsyncPending,        // work in progress
     AsyncPartialUpdate,  // some work completed
     AsyncFullUpdate      // all work completed
-    };
+  };
 
   static vtkMap *New();
   virtual void PrintSelf(ostream &os, vtkIndent indent);
@@ -64,11 +74,11 @@ public:
 
   // Description:
   // Get/Set the renderer to which map content will be added
-  // vtkSetObjectMacro is used so that map takes reference to renderer.
+  // vtkCxxSetObjectMacro is used so that map takes reference to renderer.
   // This ensures that map can delete its contents before the renderer
   // is deleted.
   vtkGetMacro(Renderer, vtkRenderer*)
-  vtkSetObjectMacro(Renderer, vtkRenderer)
+  void SetRenderer(vtkRenderer* ren);
 
   // Description:
   // Get/Set the interactor style for the map renderer
@@ -163,6 +173,14 @@ public:
   // For internal debug/test use
   void ComputeDisplayCoords(double lanLngCoords[2], double elevation,
                             double displayCoords[3]);
+
+/**
+ * Change the order of layers in the stack. Supports move UP, DOWN,
+ * TOP, BOTTOM. Assumes 'layer' is valid.
+ * \sa vtkMapType::Move
+ */
+  void MoveLayer(const vtkLayer* layer, vtkMapType::Move direction);
+
 protected:
   vtkMap();
   ~vtkMap();
@@ -198,7 +216,10 @@ protected:
   // Directory for caching map files
   char* StorageDirectory;
 
-protected:
+  void Initialize();
+
+  void UpdateLayerSequence();
+
   bool Initialized;
 
   // Description:
@@ -208,7 +229,7 @@ protected:
 
   // Description:
   // List of layers attached to the map
-  std::vector<vtkLayer*> Layers;
+  LayerContainer Layers;
 
   // Description:
   // Helper class for selection
@@ -221,9 +242,32 @@ protected:
   // Description:
   // Current state of asynchronous layers
   AsyncState CurrentAsyncState;
+
+//@{
+/**
+ * Layer infrastructure. LayerCollection defines the order in which layers
+ * are rendered.
+ */
+  vtkSmartPointer<vtkRenderPassCollection> LayerCollection;
+  vtkSmartPointer<vtkSequencePass> LayerSequence;
+  vtkSmartPointer<vtkCameraPass> CameraPass;
+//@}
+  
 private:
-  vtkMap(const vtkMap&);  // Not implemented
-  vtkMap& operator=(const vtkMap&); // Not implemented
+  vtkMap(const vtkMap&) VTK_DELETE_FUNCTION;
+  vtkMap& operator=(const vtkMap&) VTK_DELETE_FUNCTION;
+
+///@{
+/**
+ * Handlers for MoveLayer.
+ * \sa vtkMap::MoveLayer
+ */
+  void MoveUp(const vtkLayer* layer);
+  void MoveDown(const vtkLayer* layer);
+  void MoveToTop(const vtkLayer* layer);
+  void MoveToBottom(const vtkLayer* layer);
+///@}
+
 };
 
 #endif // __vtkMap_h

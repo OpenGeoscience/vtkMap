@@ -14,6 +14,12 @@
 // .NAME vtkLayer -
 // .SECTION Description
 //
+// vtkLayer instances are rendered as vtkRenderPasses.  A sequence of render
+// passes is defined in vtkMap, which defines the order in which the layers
+// are rendered. vtkProps contained in a layer are marked as such through
+// a PropertyKey (ID), which is later used by the member vtkGeoMapLayerPass
+// at render time to filter these vtkProps from the global vtkRenderer::PropArray.
+//
 
 #ifndef __vtkLayer_h
 #define __vtkLayer_h
@@ -24,6 +30,12 @@
 // VTK Includes
 #include <vtkObject.h>
 #include <vtkRenderer.h>
+#include <vtkSmartPointer.h>
+
+
+class vtkGeoMapLayerPass;
+class vtkInformationIntegerKey;
+class vtkRenderPass;
 
 class VTKMAP_EXPORT vtkLayer : public vtkObject
 {
@@ -40,8 +52,9 @@ public:
   void SetName(const std::string& Name);
 
   // Description:
+  // Get the unique Layer Id.  The Id is defined internally at
+  // construction-time.
   unsigned int GetId();
-  void SetId(const unsigned int& id);
 
   // Description:
   vtkGetMacro(Opacity, double)
@@ -73,8 +86,27 @@ public:
   // Description:
   virtual void Update() = 0;
 
-protected:
+  vtkRenderPass* GetRenderPass();
 
+  // Description:
+  // Adds actor to vtkRenderer and sets the necessary PropertyKeys in the
+  // vtkProp (e.g. Layer Id).  It is imperative to add vtkProp instances to
+  // the renderer through this API (and not directly to the vtkRenderer) if
+  // a given vtkProp is to be displayed as part of a particular layer. Otherwise
+  // they might not be displayed at all,  this is because vtkRenderer actual
+  // rendering to vtkGeoMapLayerPass.
+  void AddActor(vtkProp* prop);
+  void AddActor2D(vtkProp* prop);
+  void RemoveActor(vtkProp* prop);
+
+  // Description:
+  // Information key containing the Id of this layer. This Id set as a
+  // PropertyKey in all the vtkProps (actors) contained within this layer.
+  // At render-time, vtkGeoMapLayerPass filters out the vtkProps of its
+  // particular layer by comparing Ids.
+  static vtkInformationIntegerKey* ID();
+
+protected:
   vtkLayer();
   virtual ~vtkLayer();
 
@@ -88,6 +120,7 @@ protected:
 
   vtkMap* Map;
   vtkRenderer* Renderer;
+  vtkSmartPointer<vtkGeoMapLayerPass> RenderPass;
 
   static unsigned int GlobalId;
 
