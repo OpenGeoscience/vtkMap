@@ -86,6 +86,11 @@ void vtkInteractorStyleGeoMap::OnLeftButtonDown()
     this->StartPan();
     }
 
+  this->StartPosition[0] = this->Interactor->GetEventPosition()[0];
+  this->StartPosition[1] = this->Interactor->GetEventPosition()[1];
+  this->EndPosition[0] = this->StartPosition[0];
+  this->EndPosition[1] = this->StartPosition[1];
+
   // fall back to built-in rubberband drawing if no renderer was given
   if (this->UseDefaultRenderingMode || !this->Map->GetRenderer())
     {
@@ -145,11 +150,6 @@ void vtkInteractorStyleGeoMap::OnLeftButtonDown()
     // will do that anyways.
     renderer->AddViewProp(this->RubberBandActor);
     }
-
-  this->StartPosition[0] = this->Interactor->GetEventPosition()[0];
-  this->StartPosition[1] = this->Interactor->GetEventPosition()[1];
-  this->EndPosition[0] = this->StartPosition[0];
-  this->EndPosition[1] = this->StartPosition[1];
 
   double pos[] =
     {
