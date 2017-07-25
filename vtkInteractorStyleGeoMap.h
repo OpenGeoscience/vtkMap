@@ -110,6 +110,17 @@ private:
   vtkMap *Map;
   int RubberBandMode;
   vtkPoints*  RubberBandPoints;
+
+/**
+ * vtkInteractorStyleGeoMap::Pan() can be called through a mouse movement
+ * or through vtkInteractorStyle::OnTimer(). Since vtkMap makes use of
+ * vtkCommand::TimerEvent for polling it is necessary to ensure panning does
+ * not take place if the mouse is static (trackball camera style). This flag
+ * is used to ensure vtkInteractorStyleGeoMap::Pan() calls due to TimerEvents
+ * are blocked.
+ * \sa vtkMap::Initialize vtkInteractorStyle::OnTimer
+ */
+  bool MouseMoved = false;
 };
 
 #endif // __vtkInteractorStyleGeoMap_h

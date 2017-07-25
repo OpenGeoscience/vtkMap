@@ -202,6 +202,7 @@ void vtkInteractorStyleGeoMap::OnMouseMove()
       case VTKIS_PAN:
         this->FindPokedRenderer(pos[0], pos[1]);
         this->Interactor->GetRenderWindow()->SetCurrentCursor(VTK_CURSOR_SIZEALL);
+        this->MouseMoved = true;
         this->Pan();
         break;
       }
@@ -359,10 +360,11 @@ void vtkInteractorStyleGeoMap::SetMap(vtkMap *map)
 //----------------------------------------------------------------------------
 void vtkInteractorStyleGeoMap::Pan()
 {
-  if (this->CurrentRenderer == nullptr || this->Map == nullptr)
-    {
+  if (this->CurrentRenderer == nullptr || this->Map == nullptr ||
+    !this->MouseMoved)
+  {
     return;
-    }
+  }
 
   // Following logic is copied from vtkInteractorStyleTrackballCamera:
 
@@ -409,4 +411,5 @@ void vtkInteractorStyleGeoMap::Pan()
                       motionVector[2] + viewPoint[2]);
 
   this->Map->Draw();
+  this->MouseMoved = false;
 }
