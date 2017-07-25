@@ -17,9 +17,6 @@
 #include "vtkGeoMapSelection.h"
 #include "vtkMap.h"
 
-//#include "vtkVgRendererUtils.h"
-
-// VTK includes.
 #include <vtkActor2D.h>
 #include <vtkCamera.h>
 #include <vtkCellArray.h>
@@ -36,7 +33,7 @@
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
 
-#include <algorithm>  // std::copy, std::max, std::min
+#include <algorithm>
 
 vtkStandardNewMacro(vtkInteractorStyleGeoMap);
 
@@ -46,26 +43,10 @@ vtkInteractorStyleGeoMap::vtkInteractorStyleGeoMap() :
 {
   this->Map = NULL;
   this->RubberBandMode = DisabledMode;
-  this->RubberBandSelectionWithCtrlKey = 0;
-  this->RubberBandActor = 0;
-  this->RubberBandPoints = 0;
-
-  // Default rubber band colors (RGBA)
-  double violet[] = {1.0, 0.6, 1.0, 0.2};
-  std::copy(violet, violet+4, this->OverlayColor);
-
-  double magenta[] = {1.0, 0.0, 1.0, 1.0};
-  std::copy(magenta, magenta+4, this->EdgeColor);
 }
 
 //-----------------------------------------------------------------------------
-vtkInteractorStyleGeoMap::~vtkInteractorStyleGeoMap()
-{
-  if (this->RubberBandActor)
-    {
-    this->RubberBandActor->Delete();
-    }
-}
+vtkInteractorStyleGeoMap::~vtkInteractorStyleGeoMap() = default;
 
 //-----------------------------------------------------------------------------
 void vtkInteractorStyleGeoMap::PrintSelf(ostream& os, vtkIndent indent)
@@ -86,107 +67,24 @@ void vtkInteractorStyleGeoMap::OnLeftButtonDown()
     this->StartPan();
     }
 
-  // fall back to built-in rubberband drawing if no renderer was given
-  if (this->UseDefaultRenderingMode || !this->Map->GetRenderer())
-    {
-    this->Superclass::OnLeftButtonDown();
-    return;
-    }
-
-  this->Interaction = SELECTING;
-  vtkRenderer *renderer = this->Map->GetRenderer();
-
-  // initialize the rubberband actor on first use
-  if (!this->RubberBandActor)
-    {
-    this->RubberBandActor = vtkActor2D::New();
-    this->RubberBandPoints = vtkPoints::New();
-    vtkPolyData* PD  = vtkPolyData::New();
-    vtkCellArray* CA = vtkCellArray::New();
-    vtkCellArray* CA2 = vtkCellArray::New();
-    vtkPolyDataMapper2D* PDM = vtkPolyDataMapper2D::New();
-    vtkDoubleArray* colorArray = vtkDoubleArray::New();
-
-    this->RubberBandPoints->SetNumberOfPoints(4);
-
-    vtkIdType ids[] = { 0, 1, 2, 3, 0 };
-    CA2->InsertNextCell(5, ids);
-    CA->InsertNextCell(4, ids);
-
-    colorArray->SetNumberOfComponents(4);
-    colorArray->SetName("Colors");
-    colorArray->InsertNextTypedTuple(this->EdgeColor);
-    colorArray->InsertNextTypedTuple(this->OverlayColor);
-
-    PD->GetCellData()->SetScalars(colorArray);
-    PD->SetPoints(this->RubberBandPoints);
-    PD->SetPolys(CA);
-    PD->SetLines(CA2);
-    PDM->SetInputData(PD);
-    PDM->SetColorModeToDirectScalars();
-
-    this->RubberBandActor->SetMapper(PDM);
-
-    renderer->AddViewProp(this->RubberBandActor);
-
-    CA->FastDelete();
-    CA2->FastDelete();
-    colorArray->FastDelete();
-    PD->FastDelete();
-    PDM->FastDelete();
-    this->RubberBandPoints->FastDelete();
-    }
-  else
-    {
-    this->RubberBandActor->VisibilityOn();
-
-    // Our actor may have been removed since it isn't in the scene graph.
-    // Don't bother checking if it has already been added, since the renderer
-    // will do that anyways.
-    renderer->AddViewProp(this->RubberBandActor);
-    }
-
   this->StartPosition[0] = this->Interactor->GetEventPosition()[0];
   this->StartPosition[1] = this->Interactor->GetEventPosition()[1];
   this->EndPosition[0] = this->StartPosition[0];
   this->EndPosition[1] = this->StartPosition[1];
 
-  double pos[] =
-    {
-    this->StartPosition[0] + 0.5,
-    this->StartPosition[1] + 0.5,
-    0.0
-    };
-
-  this->RubberBandPoints->SetPoint(0, pos);
-  this->RubberBandPoints->SetPoint(1, pos);
-  this->RubberBandPoints->SetPoint(2, pos);
-  this->RubberBandPoints->SetPoint(3, pos);
-
-  vtkPolyDataMapper2D::SafeDownCast(this->RubberBandActor->GetMapper())
-  ->GetInput()->Modified();
-
-  this->SetCurrentRenderer(renderer);
-  this->InvokeEvent(vtkCommand::StartInteractionEvent);
-  this->GetInteractor()->Render();
+  this->Superclass::OnLeftButtonDown();
 }
 
 //-----------------------------------------------------------------------------
 void vtkInteractorStyleGeoMap::OnLeftButtonUp()
 {
   vtkDebugMacro("EndPan()");
-  //std::cout << "End Pan" << std::endl;
   this->EndPan();
 
   if (this->RubberBandMode == vtkInteractorStyleGeoMap::DisabledMode)
     {
     this->Interactor->GetRenderWindow()->SetCurrentCursor(VTK_CURSOR_DEFAULT);
     }
-
-  if (!this->UseDefaultRenderingMode)
-  {
-    this->RubberBandActor->VisibilityOff();
-  }
 
   // Get corner points of interaction, sorted by min/max
   int boundCoords[4];
@@ -267,12 +165,18 @@ void vtkInteractorStyleGeoMap::OnLeftButtonUp()
       this->Map->SetVisibleBounds(latLonCoords);
       this->InvokeEvent(vtkInteractorStyleGeoMap::ZoomCompleteEvent,
                         latLonCoords);
-      }  // if (area)
-    }  // else if (zoom mode)
+      } 
+    }
 
   this->Map->Draw();
   this->Interaction = NONE;
   this->Superclass::OnLeftButtonUp();
+}
+
+//-----------------------------------------------------------------------------
+void vtkInteractorStyleGeoMap::OnRightButtonDown()
+{
+  // Zooming with the right-click is disabled in this interactor (do nothing).
 }
 
 //-----------------------------------------------------------------------------
@@ -282,6 +186,7 @@ void vtkInteractorStyleGeoMap::OnRightButtonUp()
   this->StartPosition[1] = this->Interactor->GetEventPosition()[1];
   this->EndPosition[0] = this->StartPosition[0];
   this->EndPosition[1] = this->StartPosition[1];
+  this->Interaction = NONE;
   this->InvokeEvent(vtkInteractorStyleGeoMap::RightButtonCompleteEvent, this->EndPosition);
 }
 
@@ -297,74 +202,16 @@ void vtkInteractorStyleGeoMap::OnMouseMove()
       case VTKIS_PAN:
         this->FindPokedRenderer(pos[0], pos[1]);
         this->Interactor->GetRenderWindow()->SetCurrentCursor(VTK_CURSOR_SIZEALL);
+        this->MouseMoved = true;
         this->Pan();
         break;
       }
     }
 
-  if (this->UseDefaultRenderingMode)
-  {
-    Superclass::OnMouseMove();
-    return;
-  }
-
   this->EndPosition[0] = this->Interactor->GetEventPosition()[0];
   this->EndPosition[1] = this->Interactor->GetEventPosition()[1];
 
-  int* size = this->Interactor->GetRenderWindow()->GetSize();
-  if (this->EndPosition[0] > (size[0] - 1))
-    {
-    this->EndPosition[0] = size[0] - 1;
-    }
-  if (this->EndPosition[0] < 0)
-    {
-    this->EndPosition[0] = 0;
-    }
-  if (this->EndPosition[1] > (size[1] - 1))
-    {
-    this->EndPosition[1] = size[1] - 1;
-    }
-  if (this->EndPosition[1] < 0)
-    {
-    this->EndPosition[1] = 0;
-    }
-
-  double pos1[] =
-    {
-    this->EndPosition[0] + 0.5,
-    this->StartPosition[1] + 0.5,
-    0.0
-    };
-
-  double pos2[] =
-    {
-    this->EndPosition[0] + 0.5,
-    this->EndPosition[1] + 0.5,
-    0.0
-    };
-
-  double pos3[] =
-    {
-    this->StartPosition[0] + 0.5,
-    this->EndPosition[1] + 0.5,
-    0.0
-    };
-
-  if (this->RubberBandPoints && this->RubberBandMode != DisabledMode)
-    {
-    this->RubberBandPoints->SetPoint(1, pos1);
-    this->RubberBandPoints->SetPoint(2, pos2);
-    this->RubberBandPoints->SetPoint(3, pos3);
-    }
-
-  if (this->RubberBandActor)
-    {
-    vtkPolyDataMapper2D::SafeDownCast(this->RubberBandActor->GetMapper())
-      ->GetInput()->Modified();
-    }
-
-  this->InvokeEvent(vtkCommand::InteractionEvent);
-  this->GetInteractor()->Render();
+  Superclass::OnMouseMove();
 }
 
 //----------------------------------------------------------------------------
@@ -513,15 +360,11 @@ void vtkInteractorStyleGeoMap::SetMap(vtkMap *map)
 //----------------------------------------------------------------------------
 void vtkInteractorStyleGeoMap::Pan()
 {
-  if (this->CurrentRenderer == NULL)
-    {
+  if (this->CurrentRenderer == nullptr || this->Map == nullptr ||
+    !this->MouseMoved)
+  {
     return;
-    }
-
-  if (this->Map == NULL)
-    {
-    return;
-    }
+  }
 
   // Following logic is copied from vtkInteractorStyleTrackballCamera:
 
@@ -568,58 +411,5 @@ void vtkInteractorStyleGeoMap::Pan()
                       motionVector[2] + viewPoint[2]);
 
   this->Map->Draw();
-}
-
-//-----------------------------------------------------------------------------
-void vtkInteractorStyleGeoMap::Zoom()
-{
-  int width, height;
-  width = abs(this->EndPosition[0] - this->StartPosition[0]);
-  height = abs(this->EndPosition[1] - this->StartPosition[1]);
-
-  // compute world position of lower left corner
-  double rbmin[3];
-  rbmin[0] = this->StartPosition[0] < this->EndPosition[0] ?
-             this->StartPosition[0] : this->EndPosition[0];
-  rbmin[1] = this->StartPosition[1] < this->EndPosition[1] ?
-             this->StartPosition[1] : this->EndPosition[1];
-  rbmin[2] = 0.0;
-
-  this->CurrentRenderer->SetDisplayPoint(rbmin);
-  this->CurrentRenderer->DisplayToView();
-  this->CurrentRenderer->ViewToWorld();
-
-  double invw;
-  double worldRBMin[4];
-  this->CurrentRenderer->GetWorldPoint(worldRBMin);
-  invw = 1.0 / worldRBMin[3];
-  worldRBMin[0] *= invw;
-  worldRBMin[1] *= invw;
-
-  // compute world position of upper right corner
-  double rbmax[3];
-  rbmax[0] = rbmin[0] + width;
-  rbmax[1] = rbmin[1] + height;
-  rbmax[2] = 0.0;
-
-  this->CurrentRenderer->SetDisplayPoint(rbmax);
-  this->CurrentRenderer->DisplayToView();
-  this->CurrentRenderer->ViewToWorld();
-
-  double worldRBMax[4];
-  this->CurrentRenderer->GetWorldPoint(worldRBMax);
-  invw = 1.0 / worldRBMax[3];
-  worldRBMax[0] *= invw;
-  worldRBMax[1] *= invw;
-
-  double extents[] =
-    {
-    worldRBMin[0],
-    worldRBMax[0],
-    worldRBMin[1],
-    worldRBMax[1]
-    };
-
-  // zoom
-  //this->ZoomToExtents(this->CurrentRenderer, extents);
+  this->MouseMoved = false;
 }
