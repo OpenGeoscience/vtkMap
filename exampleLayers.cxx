@@ -26,6 +26,50 @@
 
 
 // ------------------------------------------------------------
+class MoveCallback : public vtkCommand
+{
+public:
+  static MoveCallback *New()
+    { return new MoveCallback; }
+
+  virtual void Execute(vtkObject *caller, unsigned long event,
+    void* data)
+  {
+    switch (event)
+    {
+      case vtkCommand::KeyPressEvent:
+        {
+          auto interactor = vtkRenderWindowInteractor::SafeDownCast(caller);
+          const std::string key = interactor->GetKeySym();
+          vtkMapType::Move direction;
+          if (key == "Left")
+          {
+            direction = vtkMapType::Move::UP;
+          }
+          else if (key == "Right")
+          {
+            direction = vtkMapType::Move::DOWN;
+          }
+          else if (key == "Up")
+          {
+            direction = vtkMapType::Move::TOP;
+          }
+          else if (key == "Down")
+          {
+            direction = vtkMapType::Move::BOTTOM;
+          }
+
+          Map->MoveLayer(Layer, direction);
+        }
+        break;
+    }
+  }
+
+  vtkLayer* Layer = nullptr;
+  vtkMap* Map = nullptr;
+};
+
+// ------------------------------------------------------------
 class PickCallback : public vtkCommand
 {
 public:
@@ -274,6 +318,9 @@ int main(int argc, char *argv[])
   style->AddObserver(vtkInteractorStyleGeoMap::RightButtonCompleteEvent,
                     pickCallback.GetPointer());
 
+  vtkNew<MoveCallback> moveCallback;
+  intr->AddObserver(vtkCommand::KeyPressEvent, moveCallback.GetPointer());
+
   if (rubberBandDisplayOnly)
     {
     mapStyle->SetRubberBandModeToDisplayOnly();
@@ -375,19 +422,22 @@ int main(int argc, char *argv[])
   // Note: Always add vtkFeatureLayer to the map before adding features
   vtkNew<vtkRegularPolygonSource> polygon2;
   polygon2->SetNumberOfSides(50);
-  polygon2->SetRadius(3.0);
+  polygon2->SetRadius(5.0);
   vtkNew<vtkPolydataFeature> feature2;
   feature2->GetMapper()->SetInputConnection(polygon2->GetOutputPort());
   feature2->GetActor()->GetProperty()->SetColor(0.0, 1.0, 0.0);
   feature2->GetActor()->GetProperty()->SetOpacity(0.5);
 
-  feature2->GetActor()->SetPosition(-79.072205, vtkMercator::lat2y(35.911373), 0.0);
+  feature2->GetActor()->SetPosition(-76.072205, vtkMercator::lat2y(38.911373), 0.0);
   circle2->AddFeature(feature2.GetPointer());
 
   //////////////////////// Manipulate layers ///////////////////////////////////
   map->MoveLayer(circle.GetPointer(), vtkMapType::Move::DOWN);
   map->MoveLayer(circle2.GetPointer(), vtkMapType::Move::BOTTOM);
   map->MoveLayer(circle2.GetPointer(), vtkMapType::Move::UP);
+
+  moveCallback->Map = map.GetPointer();
+  moveCallback->Layer = circle.GetPointer();
 
   intr->Start();
   return 0;

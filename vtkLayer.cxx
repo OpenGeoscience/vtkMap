@@ -54,7 +54,7 @@ void vtkLayer::PrintSelf(ostream& os, vtkIndent indent)
 }
 
 //----------------------------------------------------------------------------
-const std::string& vtkLayer::GetName()
+const std::string& vtkLayer::GetName() const
 {
   return this->Name;
 }
