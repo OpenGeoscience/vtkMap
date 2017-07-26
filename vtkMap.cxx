@@ -743,7 +743,8 @@ void vtkMap::MoveLayer(const vtkLayer* layer, vtkMapType::Move direction)
 void vtkMap::MoveUp(const vtkLayer* layer)
 {
   auto result = std::find(this->Layers.begin(), this->Layers.end(), layer);
-  auto nextIt = result + 1;
+  auto nextIt = result;
+  nextIt++;
   if (result == this->Layers.cend() || nextIt == this->Layers.cend())
   {
     return;
@@ -757,12 +758,13 @@ void vtkMap::MoveUp(const vtkLayer* layer)
 void vtkMap::MoveDown(const vtkLayer* layer)
 {
   auto result = std::find(this->Layers.begin(), this->Layers.end(), layer);
-  auto prevIt = result - 1;
-  if (result == this->Layers.cbegin() || prevIt == this->Layers.cbegin())
+  if (result == this->Layers.cend() || result == this->Layers.cbegin())
   {
     return;
   }
 
+  auto prevIt = result;
+  prevIt--;
   std::iter_swap(result, prevIt);
   this->UpdateLayerSequence();
 }
