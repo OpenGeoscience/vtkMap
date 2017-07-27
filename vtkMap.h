@@ -20,13 +20,16 @@
 
 #ifndef __vtkMap_h
 #define __vtkMap_h
+#include <map>
+#include <string>
+#include <vector>
 
-// VTK Includes
 #include <vtkObject.h>
 #include <vtkSmartPointer.h>
 
 #include "vtkmap_export.h"
 #include "vtkMap_typedef.h"
+
 
 class vtkCallbackCommand;
 class vtkCameraPass;
@@ -35,16 +38,12 @@ class vtkGeoMapFeatureSelector;
 class vtkGeoMapSelection;
 class vtkInteractorStyle;
 class vtkInteractorStyleGeoMap;
+class vtkInteractorStyleDrawPolygon;
 class vtkLayer;
 class vtkRenderer;
 class vtkRenderPassCollection;
+class vtkRenderWindowInteractor;
 class vtkSequencePass;
-
-#include <map>
-#include <string>
-#include <vector>
-
-class vtkLayer;
 
 class VTKMAP_EXPORT vtkMap : public vtkObject
 {
@@ -80,11 +79,15 @@ public:
   vtkGetMacro(Renderer, vtkRenderer*)
   void SetRenderer(vtkRenderer* ren);
 
-  // Description:
-  // Get/Set the interactor style for the map renderer
-  // Note these are asymmetric on purpose
-  vtkSetMacro(InteractorStyle, vtkInteractorStyleGeoMap*)
-  vtkInteractorStyle *GetInteractorStyle();
+  /**
+   * Interactor where different InteractorStyles are set.
+   */
+  void SetInteractor(vtkRenderWindowInteractor* interactor);
+  
+  ///TODO Remove this
+  vtkInteractorStyle* GetInteractorStyle();
+
+  void SetInteractionMode(const vtkMapType::Interaction mode);
 
   // Description:
   // Get/Set the camera model to use perspective projection.
@@ -199,7 +202,10 @@ protected:
 
   // Description:
   // The interactor style used by the map
-  vtkInteractorStyleGeoMap* InteractorStyle;
+  ///TODO Make them vtkSmartPointer
+  vtkSmartPointer<vtkInteractorStyle> CurrentStyle;
+  vtkSmartPointer<vtkInteractorStyleGeoMap> RubberBandStyle;
+  vtkSmartPointer<vtkInteractorStyleDrawPolygon> DrawPolyStyle;
 
   // Description:
   bool PerspectiveProjection;
@@ -268,6 +274,7 @@ private:
   void MoveToBottom(const vtkLayer* layer);
 ///@}
 
+  vtkRenderWindowInteractor* Interactor = nullptr;
 };
 
 #endif // __vtkMap_h
