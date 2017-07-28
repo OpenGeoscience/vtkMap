@@ -111,6 +111,44 @@ PickPoint(vtkRenderer *renderer, int displayCoords[2],
 }
 
 //-----------------------------------------------------------------------------
+void vtkGeoMapFeatureSelector::PickPolygon(vtkRenderer* ren, int* polygonPoints,
+  vtkIdType count, vtkGeoMapSelection* result)
+{
+  vtkNew<vtkHardwareSelector> selector;
+  if (!this->PrepareSelect(ren, selector.GetPointer()))
+  {
+    return;
+  }
+
+  // For marker features
+  selector->SetFieldAssociation(vtkDataObject::FIELD_ASSOCIATION_POINTS);
+  selector->GeneratePolygonSelection(polygonPoints, count);
+  result = nullptr;
+}
+
+//-----------------------------------------------------------------------------
+bool vtkGeoMapFeatureSelector::PrepareSelect(vtkRenderer* ren,
+  vtkHardwareSelector* sel)
+{
+//  ///TODO Check timestaps first and render only if necessary
+//  if (this->NeedToRenderForSelection())
+//  {
+  int* size = ren->GetSize();
+  int* origin = ren->GetOrigin();
+  sel->SetArea(origin[0], origin[1], origin[0] + size[0] - 1,
+    origin[1] + size[1] - 1);
+  sel->SetRenderer(ren);
+
+//  this->CaptureTime.Modified();
+  if (sel->CaptureBuffers() == false)
+  {
+    return false;
+  }
+//  }
+  return true;
+}
+
+//-----------------------------------------------------------------------------
 void vtkGeoMapFeatureSelector::
 PickArea(vtkRenderer *renderer, int displayCoords[4],
          vtkGeoMapSelection *selection)

@@ -156,6 +156,9 @@ public:
   // in display coordinates)
   void PickArea(int displayCoords[4], vtkGeoMapSelection *selection);
 
+  void PickPolygon(int* polygonPoints, vtkIdType count,
+    vtkGeoMapSelection* result);
+
   // Description:
   // Periodically poll asynchronous layers
   void PollingCallback();

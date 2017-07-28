@@ -637,6 +637,15 @@ void vtkMap::PickArea(int displayCoords[4], vtkGeoMapSelection* result)
 }
 
 //----------------------------------------------------------------------------
+void vtkMap::PickPolygon(int* polygonPoints, vtkIdType count,
+  vtkGeoMapSelection* result)
+{
+  this->Renderer->SetPass(nullptr);
+  this->FeatureSelector->PickPolygon(this->Renderer, polygonPoints, count, result);
+  this->Renderer->SetPass(this->CameraPass);
+}
+
+//----------------------------------------------------------------------------
 void vtkMap::ComputeWorldCoords(double displayCoords[2], double z,
                                 double worldCoords[3])
 {

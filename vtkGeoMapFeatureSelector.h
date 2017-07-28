@@ -26,6 +26,7 @@
 
 class vtkFeature;
 class vtkGeoMapSelection;
+class vtkHardwareSelector;
 class vtkIdList;
 class vtkPlanes;
 class vtkProp;
@@ -46,6 +47,8 @@ class VTKMAP_NO_EXPORT vtkGeoMapFeatureSelector : public vtkObject
                  vtkGeoMapSelection *selection);
   void PickArea(vtkRenderer *renderer, int displayCoords[4],
                 vtkGeoMapSelection *selection);
+  void PickPolygon(vtkRenderer* ren, int* polygonPoints, vtkIdType count,
+    vtkGeoMapSelection* result);
 
  protected:
   vtkGeoMapFeatureSelector();
@@ -60,6 +63,8 @@ class VTKMAP_NO_EXPORT vtkGeoMapFeatureSelector : public vtkObject
     vtkRenderer *renderer,
     int displayCoords[4],
     vtkGeoMapSelection *selection);
+
+  bool PrepareSelect(vtkRenderer* ren, vtkHardwareSelector* sel);
 
  private:
   // Not implemented
