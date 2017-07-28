@@ -19,6 +19,7 @@
 #include "vtkInteractorStyleDrawPolygon.h"
 #include "vtkLayer.h"
 #include "vtkMapTile.h"
+#include "vtkMap_typedef.h"
 #include "vtkMercator.h"
 #include "vtkRasterFeature.h"
 
@@ -27,6 +28,7 @@
 #include <vtkCamera.h>
 #include <vtkCameraPass.h>
 #include <vtkCollection.h>
+#include <vtkEventForwarderCommand.h>
 #include <vtkMath.h>
 #include <vtkObjectFactory.h>
 #include <vtkRenderer.h>
@@ -93,7 +95,16 @@ vtkMap::vtkMap()
   this->FeatureSelector = vtkGeoMapFeatureSelector::New();
 
   ///TODO DrawPolyStyle might also need to have an instance of the map
-  this->RubberBandStyle->SetMap(this);
+  this->RubberBandStyle->SetMap(this);    
+
+  auto fwd = vtkEventForwarderCommand::New();
+  fwd->SetTarget(this);
+  this->RubberBandStyle->AddObserver(vtkInteractorStyleGeoMap::DisplayClickCompleteEvent, fwd);
+  this->RubberBandStyle->AddObserver(vtkInteractorStyleGeoMap::DisplayDrawCompleteEvent, fwd);
+  this->RubberBandStyle->AddObserver(vtkInteractorStyleGeoMap::SelectionCompleteEvent, fwd);
+  this->RubberBandStyle->AddObserver(vtkInteractorStyleGeoMap::ZoomCompleteEvent, fwd);
+  this->RubberBandStyle->AddObserver(vtkInteractorStyleGeoMap::RightButtonCompleteEvent, fwd);
+  this->DrawPolyStyle->AddObserver(vtkMapType::Event::SelectionCompleteEvent, fwd);
 
   this->PerspectiveProjection = false;
   this->Zoom = 1;

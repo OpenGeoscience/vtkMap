@@ -21,7 +21,7 @@ enum Interaction : unsigned short
   DrawPolyMode
 };
 
-enum class Event : unsigned short
+enum Event
 {
   SelectionCompleteEvent = vtkCommand::UserEvent + 1,
   DisplayClickCompleteEvent,   // DisplayOnlyMode && mouse click

@@ -3,7 +3,6 @@
 #include <vtkCollection.h>
 #include <vtkCommand.h>
 #include <vtkIdList.h>
-#include <vtkInteractorStyle.h>
 #include <vtkPolyData.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkProperty.h>
@@ -331,18 +330,17 @@ int main(int argc, char *argv[])
   map->SetInteractionMode(mode);
 
   // Picking Callback
-  vtkInteractorStyle *style = map->GetInteractorStyle();
   vtkNew<PickCallback> pickCallback;
   pickCallback->SetMap(map.GetPointer());
-  style->AddObserver(vtkInteractorStyleGeoMap::DisplayClickCompleteEvent,
+  map->AddObserver(vtkInteractorStyleGeoMap::DisplayClickCompleteEvent,
                     pickCallback.GetPointer());
-  style->AddObserver(vtkInteractorStyleGeoMap::DisplayDrawCompleteEvent,
+  map->AddObserver(vtkInteractorStyleGeoMap::DisplayDrawCompleteEvent,
                     pickCallback.GetPointer());
-  style->AddObserver(vtkInteractorStyleGeoMap::SelectionCompleteEvent,
+  map->AddObserver(vtkInteractorStyleGeoMap::SelectionCompleteEvent,
                     pickCallback.GetPointer());
-  style->AddObserver(vtkInteractorStyleGeoMap::ZoomCompleteEvent,
+  map->AddObserver(vtkInteractorStyleGeoMap::ZoomCompleteEvent,
                     pickCallback.GetPointer());
-  style->AddObserver(vtkInteractorStyleGeoMap::RightButtonCompleteEvent,
+  map->AddObserver(vtkInteractorStyleGeoMap::RightButtonCompleteEvent,
                     pickCallback.GetPointer());
 
 
