@@ -203,6 +203,9 @@ void vtkMapTile::DownloadImage(const char *url, const char *outfilename)
       return;
       }
 
+#ifdef DISABLE_CURL_SIGNALS
+  curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1);
+#endif
     curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errorBuffer);
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);

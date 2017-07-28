@@ -44,6 +44,12 @@ if (BUILD_QT_APPS)
   list(APPEND VTK_REQUIRED_COMPONENTS vtkGUISupportQt)
 endif()
 
+option(DISABLE_CURL_SIGNALS "Do not install libcurl signal handlers" OFF)
+mark_as_advanced(DISABLE_CURL_SIGNALS)
+if(DISABLE_CURL_SIGNALS)
+  add_definitions("-DDISABLE_CURL_SIGNALS")
+endif()
+
 find_package(VTK NO_MODULE REQUIRED COMPONENTS ${VTK_REQUIRED_COMPONENTS})
 find_package(CURL REQUIRED)
 find_package(OpenGL REQUIRED)

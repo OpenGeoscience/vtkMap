@@ -387,7 +387,9 @@ DownloadImageFile(std::string url, std::string filename)
     vtkErrorMacro( << "Cannot open file " << filename.c_str());
     return false;
     }
-
+#ifdef DISABLE_CURL_SIGNALS
+  curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1);
+#endif
   curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errorBuffer);
   curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
