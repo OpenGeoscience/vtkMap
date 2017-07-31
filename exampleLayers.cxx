@@ -168,10 +168,7 @@ public:
 
         case vtkInteractorStyleGeoMap::RightButtonCompleteEvent:
           {
-          vtkInteractorStyleGeoMap *style =
-            vtkInteractorStyleGeoMap::SafeDownCast(
-              this->Map->GetInteractorStyle());
-          int *coords = style->GetEndPosition();
+          int* coords = static_cast<int*>(data);
           std::cout << "Right mouse click at ("
                     << coords[0] << ", " << coords[1] << ")" << std::endl;
           }

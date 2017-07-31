@@ -48,10 +48,7 @@ int main(int argc, char *argv[])
 
   vtkNew<vtkRenderWindowInteractor> intr;
   intr->SetRenderWindow(wind.GetPointer());
-  vtkInteractorStyle *style = map->GetInteractorStyle();
-  vtkInteractorStyleGeoMap *mapStyle =
-    vtkInteractorStyleGeoMap::SafeDownCast(style);
-  intr->SetInteractorStyle(style);
+  map->SetInteractor(intr.GetPointer());
 
   intr->Initialize();
   map->Draw();

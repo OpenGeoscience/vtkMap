@@ -818,12 +818,6 @@ void vtkMap::MoveToBottom(const vtkLayer* layer)
 }
 
 //----------------------------------------------------------------------------
-vtkInteractorStyle* vtkMap::GetInteractorStyle()
-{
-  return this->CurrentStyle;
-}
-
-//----------------------------------------------------------------------------
 void vtkMap::SetInteractionMode(const vtkMapType::Interaction mode)
 {
   switch (mode)

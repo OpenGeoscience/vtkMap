@@ -83,10 +83,6 @@ public:
    * Interactor where different InteractorStyles are set.
    */
   void SetInteractor(vtkRenderWindowInteractor* interactor);
-  
-  ///TODO Remove this
-  vtkInteractorStyle* GetInteractorStyle();
-
   void SetInteractionMode(const vtkMapType::Interaction mode);
 
   // Description:

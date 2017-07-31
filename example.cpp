@@ -124,10 +124,7 @@ public:
 
         case vtkInteractorStyleGeoMap::RightButtonCompleteEvent:
           {
-          vtkInteractorStyleGeoMap *style =
-            vtkInteractorStyleGeoMap::SafeDownCast(
-              this->Map->GetInteractorStyle());
-          int *coords = style->GetEndPosition();
+          int* coords = static_cast<int*>(data);
           std::cout << "Right mouse click at ("
                     << coords[0] << ", " << coords[1] << ")" << std::endl;
           }
@@ -154,6 +151,7 @@ int main(int argc, char *argv[])
   bool perspective = false;
   bool rubberBandDisplayOnly = false;
   bool rubberBandSelection = false;
+  bool drawPolygonSelection = false;
   bool rubberBandZoom = false;
   bool singleThreaded = false;
   int zoomLevel = 2;
@@ -189,6 +187,9 @@ int main(int argc, char *argv[])
                   "set interactor to rubberband zoom mode");
   arg.AddArgument("-r", vtksys::CommandLineArguments::NO_ARGUMENT,
                   &rubberBandSelection,
+                  "set interactor to rubberband selection mode");
+  arg.AddArgument("-P", vtksys::CommandLineArguments::NO_ARGUMENT,
+                  &drawPolygonSelection,
                   "set interactor to rubberband selection mode");
   arg.AddArgument("-s", vtksys::CommandLineArguments::NO_ARGUMENT,
                   &singleThreaded, "use single-threaded map I/O");
@@ -257,23 +258,27 @@ int main(int argc, char *argv[])
 
   vtkNew<vtkRenderWindowInteractor> intr;
   intr->SetRenderWindow(wind.GetPointer());
-  vtkInteractorStyle *style = map->GetInteractorStyle();
-  vtkInteractorStyleGeoMap *mapStyle =
-    vtkInteractorStyleGeoMap::SafeDownCast(style);
+  map->SetInteractor(intr.GetPointer());
 
+  vtkMapType::Interaction mode;
   if (rubberBandDisplayOnly)
-    {
-    mapStyle->SetRubberBandModeToDisplayOnly();
-    }
+  {
+    mode = vtkMapType::Interaction::DisplayOnlyMode;
+  }
   else if (rubberBandSelection)
-    {
-    mapStyle->SetRubberBandModeToSelection();
-    }
+  {
+    mode = vtkMapType::Interaction::SelectionMode;
+  }
+  else if (drawPolygonSelection)
+  {
+    std::cout << "->> draw poly\n";
+    mode = vtkMapType::Interaction::DrawPolyMode;
+  }
   else if (rubberBandZoom)
-    {
-    mapStyle->SetRubberBandModeToZoom();
-    }
-  intr->SetInteractorStyle(style);
+  {
+    mode = vtkMapType::Interaction::ZoomMode;
+  }
+  map->SetInteractionMode(mode);
 
   intr->Initialize();
   map->Draw();
@@ -327,15 +332,15 @@ int main(int argc, char *argv[])
   // Set callbacks
   vtkNew<PickCallback> pickCallback;
   pickCallback->SetMap(map.GetPointer());
-  style->AddObserver(vtkInteractorStyleGeoMap::DisplayClickCompleteEvent,
+  map->AddObserver(vtkInteractorStyleGeoMap::DisplayClickCompleteEvent,
                     pickCallback.GetPointer());
-  style->AddObserver(vtkInteractorStyleGeoMap::DisplayDrawCompleteEvent,
+  map->AddObserver(vtkInteractorStyleGeoMap::DisplayDrawCompleteEvent,
                     pickCallback.GetPointer());
-  style->AddObserver(vtkInteractorStyleGeoMap::SelectionCompleteEvent,
+  map->AddObserver(vtkInteractorStyleGeoMap::SelectionCompleteEvent,
                     pickCallback.GetPointer());
-  style->AddObserver(vtkInteractorStyleGeoMap::ZoomCompleteEvent,
+  map->AddObserver(vtkInteractorStyleGeoMap::ZoomCompleteEvent,
                     pickCallback.GetPointer());
-  style->AddObserver(vtkInteractorStyleGeoMap::RightButtonCompleteEvent,
+  map->AddObserver(vtkInteractorStyleGeoMap::RightButtonCompleteEvent,
                     pickCallback.GetPointer());
 
   intr->Start();
