@@ -10,6 +10,15 @@ if(NOT DEFINED CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_EXTENSIONS FALSE)
 endif()
 
+# This is needed for compatibility with ES_Superbuild
+if (NOT WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  option(USE_CXX11_ABI_0 "Use the legacy GCC stdlib ABI" OFF)
+  mark_as_advanced(USE_CXX11_ABI_0)
+  if (USE_CXX11_ABI_0)
+    add_definitions("-D_GLIBCXX_USE_CXX11_ABI=0")
+  endif()
+endif ()
+
 
 # Add our Cmake directory to the module search path
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/CMake)
