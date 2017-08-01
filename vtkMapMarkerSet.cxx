@@ -51,6 +51,7 @@
 #include <cmath>
 #include <iostream>
 #include <iomanip>
+#include <iterator>  // std::back_inserter
 #include <vector>
 
 unsigned int vtkMapMarkerSet::NextMarkerHue = 0;
