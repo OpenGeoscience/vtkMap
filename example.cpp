@@ -260,23 +260,22 @@ int main(int argc, char *argv[])
   intr->SetRenderWindow(wind.GetPointer());
   map->SetInteractor(intr.GetPointer());
 
-  vtkMapType::Interaction mode;
+  vtkMapType::Interaction mode = vtkMapType::Interaction::Default;
   if (rubberBandDisplayOnly)
   {
-    mode = vtkMapType::Interaction::DisplayOnlyMode;
+    mode = vtkMapType::Interaction::RubberBandDisplayOnly;
   }
   else if (rubberBandSelection)
   {
-    mode = vtkMapType::Interaction::SelectionMode;
+    mode = vtkMapType::Interaction::RubberBandSelection;
   }
   else if (drawPolygonSelection)
   {
-    std::cout << "->> draw poly\n";
-    mode = vtkMapType::Interaction::DrawPolyMode;
+    mode = vtkMapType::Interaction::PolygonSelection;
   }
   else if (rubberBandZoom)
   {
-    mode = vtkMapType::Interaction::ZoomMode;
+    mode = vtkMapType::Interaction::RubberBandZoom;
   }
   map->SetInteractionMode(mode);
 

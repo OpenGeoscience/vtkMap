@@ -11,11 +11,29 @@
    PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
-// .NAME vtkMap -
+// .NAME vtkMap - Map representation using vtk rendering components.
+//
 // .SECTION Description
 //
 // Provides an API to manipulate the order in which different vtkLayer instances
 // are rendered.
+//
+// vtkMap uses different vtkInteractorStyle instances to manage different types
+// of interaction. The primary style is vtkInteractorStyleGeoMap, which supports
+// default interaction (panning/ zooming), single-click selection, rubber-band
+// selection and rubber-band zoom. Polygon-draw selection is supported through
+// the standard vtkInteractorStyleDrawPolygon.
+//
+// \note
+// Style switching is managed by this class, both style instances are currently
+// collaborating with vtkMap in different ways. vtkInteractorStyleGeoMap calls
+// vtkMap functions to actually make a selection and invokes an event with the
+// result (legacy).  vtkInteractorStyleDrawPolygon is only observed by vtkMap
+// and its internal events are caught to handle an actual selection.  The latter
+// approach is preferred and vtkInteractorStyleGeoMap will eventually be
+// refactored to comply.
+//
+// \sa vtkInteractorStyleGeoMap
 //
 
 #ifndef __vtkMap_h
@@ -152,8 +170,7 @@ public:
   // in display coordinates)
   void PickArea(int displayCoords[4], vtkGeoMapSelection *selection);
 
-  void PickPolygon(int* polygonPoints, vtkIdType count,
-    vtkGeoMapSelection* result);
+  void OnPolygonSelectionEvent();
 
   // Description:
   // Periodically poll asynchronous layers
@@ -200,9 +217,7 @@ protected:
   vtkRenderer* Renderer;
 
   // Description:
-  // The interactor style used by the map
-  ///TODO Make them vtkSmartPointer
-  vtkSmartPointer<vtkInteractorStyle> CurrentStyle;
+  // The interactor styles used by the map
   vtkSmartPointer<vtkInteractorStyleGeoMap> RubberBandStyle;
   vtkSmartPointer<vtkInteractorStyleDrawPolygon> DrawPolyStyle;
 

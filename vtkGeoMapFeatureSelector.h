@@ -17,20 +17,30 @@
 //
 // Note: this file is NOT exported, since it should only be used by
 // the vtkMap class.
+//
+// This class uses a vtkHardwareSelector instance to pick features visible
+// on vtkMap. It currently selects all of the markers/features lying within
+// an area (either a rectangle or an irregular polygon) regardless of whether
+// they are hidden behind of other features (see IncrementalSelect).
+//
 
 #ifndef __vtkGeoMapFeatureSelector_h
 #define __vtkGeoMapFeatureSelector_h
+#include <vector>
 
 #include <vtkObject.h>
+#include <vtkVector.h>
+
 #include "vtkmap_export.h"
+
 
 class vtkFeature;
 class vtkGeoMapSelection;
-class vtkHardwareSelector;
 class vtkIdList;
 class vtkPlanes;
 class vtkProp;
 class vtkRenderer;
+class vtkSelection;
 
 class VTKMAP_NO_EXPORT vtkGeoMapFeatureSelector : public vtkObject
 {
@@ -47,8 +57,8 @@ class VTKMAP_NO_EXPORT vtkGeoMapFeatureSelector : public vtkObject
                  vtkGeoMapSelection *selection);
   void PickArea(vtkRenderer *renderer, int displayCoords[4],
                 vtkGeoMapSelection *selection);
-  void PickPolygon(vtkRenderer* ren, int* polygonPoints, vtkIdType count,
-    vtkGeoMapSelection* result);
+  void PickPolygon(vtkRenderer* ren,
+    const std::vector<vtkVector2i>& polygonPoints, vtkGeoMapSelection* result);
 
  protected:
   vtkGeoMapFeatureSelector();
@@ -64,12 +74,17 @@ class VTKMAP_NO_EXPORT vtkGeoMapFeatureSelector : public vtkObject
     int displayCoords[4],
     vtkGeoMapSelection *selection);
 
-  bool PrepareSelect(vtkRenderer* ren, vtkHardwareSelector* sel);
+  bool PrepareSelect(vtkRenderer* ren);
 
  private:
-  // Not implemented
-  vtkGeoMapFeatureSelector(const vtkGeoMapFeatureSelector&);
-  vtkGeoMapFeatureSelector& operator=(const vtkGeoMapFeatureSelector&);
+  vtkGeoMapFeatureSelector(const vtkGeoMapFeatureSelector&) VTK_DELETE_FUNCTION;
+  vtkGeoMapFeatureSelector& operator=(const vtkGeoMapFeatureSelector&) VTK_DELETE_FUNCTION;
+
+  /**
+   * Runs mulitiple selection passes in order to capture markers hidden
+   * behind other markers.
+   */
+  void IncrementalSelect(vtkGeoMapSelection* selection, vtkRenderer* ren);
 
   class vtkGeoMapFeatureSelectorInternal;
   vtkGeoMapFeatureSelectorInternal *Internal;

@@ -20,6 +20,7 @@
 #include "vtkLayer.h"
 #include "vtkMapTile.h"
 #include "vtkMap_typedef.h"
+#include "vtkMemberFunctionCommand.h"
 #include "vtkMercator.h"
 #include "vtkRasterFeature.h"
 
@@ -48,7 +49,6 @@
 
 vtkStandardNewMacro(vtkMap)
 vtkCxxSetObjectMacro(vtkMap, Renderer, vtkRenderer);
-vtkCxxSetObjectMacro(vtkMap, Interactor, vtkRenderWindowInteractor);
 
 //----------------------------------------------------------------------------
 double computeCameraDistance(vtkCamera* cam, int zoomLevel)
@@ -104,7 +104,10 @@ vtkMap::vtkMap()
   this->RubberBandStyle->AddObserver(vtkInteractorStyleGeoMap::SelectionCompleteEvent, fwd);
   this->RubberBandStyle->AddObserver(vtkInteractorStyleGeoMap::ZoomCompleteEvent, fwd);
   this->RubberBandStyle->AddObserver(vtkInteractorStyleGeoMap::RightButtonCompleteEvent, fwd);
-  this->DrawPolyStyle->AddObserver(vtkMapType::Event::SelectionCompleteEvent, fwd);
+
+  vtkCommand* obsPoly =
+    vtkMakeMemberFunctionCommand(*this, &vtkMap::OnPolygonSelectionEvent);
+  this->DrawPolyStyle->AddObserver(vtkCommand::SelectionChangedEvent, obsPoly);
 
   this->PerspectiveProjection = false;
   this->Zoom = 1;
@@ -127,7 +130,6 @@ vtkMap::~vtkMap()
     {
     this->FeatureSelector->Delete();
     }
-
   if (this->PollingCallbackCommand)
     {
     this->PollingCallbackCommand->Delete();
@@ -648,12 +650,17 @@ void vtkMap::PickArea(int displayCoords[4], vtkGeoMapSelection* result)
 }
 
 //----------------------------------------------------------------------------
-void vtkMap::PickPolygon(int* polygonPoints, vtkIdType count,
-  vtkGeoMapSelection* result)
+void vtkMap::OnPolygonSelectionEvent()
 {
+  std::vector<vtkVector2i> points = this->DrawPolyStyle->GetPolygonPoints();
+  vtkNew<vtkGeoMapSelection> result;
+
   this->Renderer->SetPass(nullptr);
-  this->FeatureSelector->PickPolygon(this->Renderer, polygonPoints, count, result);
+  this->FeatureSelector->PickPolygon(this->Renderer, points, result.GetPointer());
   this->Renderer->SetPass(this->CameraPass);
+
+  this->InvokeEvent(vtkInteractorStyleGeoMap::SelectionCompleteEvent,
+    result.GetPointer());
 }
 
 //----------------------------------------------------------------------------
@@ -820,28 +827,51 @@ void vtkMap::MoveToBottom(const vtkLayer* layer)
 //----------------------------------------------------------------------------
 void vtkMap::SetInteractionMode(const vtkMapType::Interaction mode)
 {
+  vtkInteractorStyle* style = nullptr;
   switch (mode)
   {
-    case vtkMapType::Interaction::DisabledMode:
+    case vtkMapType::Interaction::Default:
       this->RubberBandStyle->SetRubberBandModeToDisabled();
-      this->CurrentStyle = this->RubberBandStyle;
+      style = this->RubberBandStyle;
       break;
-    case vtkMapType::Interaction::SelectionMode:
+    case vtkMapType::Interaction::RubberBandSelection:
       this->RubberBandStyle->SetRubberBandModeToSelection();
-      this->CurrentStyle = this->RubberBandStyle;
+      style = this->RubberBandStyle;
       break;
-    case vtkMapType::Interaction::ZoomMode:
+    case vtkMapType::Interaction::RubberBandZoom:
       this->RubberBandStyle->SetRubberBandModeToZoom();
-      this->CurrentStyle = this->RubberBandStyle;
+      style = this->RubberBandStyle;
       break;
-    case vtkMapType::Interaction::DisplayOnlyMode:
+    case vtkMapType::Interaction::RubberBandDisplayOnly:
       this->RubberBandStyle->SetRubberBandModeToDisplayOnly();
-      this->CurrentStyle = this->RubberBandStyle;
+      style = this->RubberBandStyle;
       break;
-    case vtkMapType::Interaction::DrawPolyMode:
-      this->CurrentStyle = this->DrawPolyStyle;
+    case vtkMapType::Interaction::PolygonSelection:
+      style = this->DrawPolyStyle;
       break;
   }
 
-  this->Interactor->SetInteractorStyle(this->CurrentStyle);
+  if (!this->Interactor)
+    return;
+
+  this->Interactor->SetInteractorStyle(style);
+}
+
+//----------------------------------------------------------------------------
+void vtkMap::SetInteractor(vtkRenderWindowInteractor* inter)
+{
+  if (this->Interactor != inter)
+  {
+    if (this->Interactor)
+      this->Interactor->UnRegister(this);
+
+    this->Interactor = inter;
+    if (this->Interactor)
+    {
+      this->Interactor->Register(this);
+      this->SetInteractionMode(vtkMapType::Interaction::Default);
+    }
+
+    this->Modified();
+  }
 }
