@@ -235,7 +235,7 @@ int main(int argc, char *argv[])
                   "set interactor to rubberband selection mode");
   arg.AddArgument("-P", vtksys::CommandLineArguments::NO_ARGUMENT,
                   &drawPolygonSelection,
-                  "set interactor to rubberband selection mode");
+                  "set interactor to polygon selection mode");
   arg.AddArgument("-s", vtksys::CommandLineArguments::NO_ARGUMENT,
                   &singleThreaded, "use single-threaded map I/O");
   arg.AddArgument("-z", vtksys::CommandLineArguments::SPACE_ARGUMENT,
@@ -376,7 +376,7 @@ int main(int argc, char *argv[])
     const double lon = latlonCoords[i][1];
     markerSet->AddMarker(lat, lon);
   }
-  
+
   ///////////////////// Layer 3 - Markers2 /////////////////////////////////////
   vtkNew<vtkFeatureLayer> markers2;
   markers2->SetName("markers2");

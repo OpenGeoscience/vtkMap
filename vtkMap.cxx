@@ -31,6 +31,7 @@
 #include <vtkCollection.h>
 #include <vtkEventForwarderCommand.h>
 #include <vtkMath.h>
+#include <vtkNew.h>
 #include <vtkObjectFactory.h>
 #include <vtkRenderer.h>
 #include <vtkRenderPassCollection.h>
@@ -94,8 +95,7 @@ vtkMap::vtkMap()
   this->Renderer = NULL;
   this->FeatureSelector = vtkGeoMapFeatureSelector::New();
 
-  ///TODO DrawPolyStyle might also need to have an instance of the map
-  this->RubberBandStyle->SetMap(this);    
+  this->RubberBandStyle->SetMap(this);
 
   auto fwd = vtkEventForwarderCommand::New();
   fwd->SetTarget(this);

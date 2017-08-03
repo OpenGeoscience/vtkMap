@@ -40,21 +40,18 @@ public:
   // Get mapper for the polydata
   vtkGetObjectMacro(Mapper, vtkPolyDataMapper);
 
-  // Description:
-  // Override
-  virtual void Init();
+  void Init() override;
 
-  // Description:
-  // Override
-  virtual void CleanUp();
+  void CleanUp() override;
 
-  // Description:
-  // Override
-  virtual void Update();
+  void Update() override;
 
-  // Description:
-  // Override
-  virtual vtkProp *PickProp();
+  vtkProp* PickProp() override;
+
+  /**
+   * Maps a cellId to a locally defined Id.
+   */
+  virtual vtkIdType CellIdToLocalId(vtkIdType cellId);
 
 protected:
   vtkPolydataFeature();

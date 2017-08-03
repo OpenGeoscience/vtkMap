@@ -19,9 +19,15 @@
 // the vtkMap class.
 //
 // This class uses a vtkHardwareSelector instance to pick features visible
-// on vtkMap. It currently selects all of the markers/features lying within
+// in vtkMap. It currently selects all of the markers/features lying within
 // an area (either a rectangle or an irregular polygon) regardless of whether
 // they are hidden behind of other features (see IncrementalSelect).
+//
+// \note
+// Currently, rubber-band selection (PickArea) and polygon selection
+// (PickPolygon) do not fully share the same code path. The plan is to unify
+// them such that they both fully rely on vtkHardwareSelector (PickPolygon
+// already does).
 //
 
 #ifndef __vtkGeoMapFeatureSelector_h
@@ -41,6 +47,7 @@ class vtkPlanes;
 class vtkProp;
 class vtkRenderer;
 class vtkSelection;
+class vtkSelectionNode;
 
 class VTKMAP_NO_EXPORT vtkGeoMapFeatureSelector : public vtkObject
 {
@@ -85,6 +92,10 @@ class VTKMAP_NO_EXPORT vtkGeoMapFeatureSelector : public vtkObject
    * behind other markers.
    */
   void IncrementalSelect(vtkGeoMapSelection* selection, vtkRenderer* ren);
+  bool SelectMarkerSet(vtkGeoMapSelection* selection, vtkSelectionNode* node,
+    vtkFeature* feature);
+  bool SelectPolyData(vtkGeoMapSelection* selection, vtkSelectionNode* node,
+    vtkFeature* feature);
 
   class vtkGeoMapFeatureSelectorInternal;
   vtkGeoMapFeatureSelectorInternal *Internal;
