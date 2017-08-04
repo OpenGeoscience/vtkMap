@@ -16,8 +16,11 @@
 #include "vtkGeoMapFeatureSelector.h"
 #include "vtkGeoMapSelection.h"
 #include "vtkInteractorStyleGeoMap.h"
+#include "vtkInteractorStyleDrawPolygon.h"
 #include "vtkLayer.h"
 #include "vtkMapTile.h"
+#include "vtkMap_typedef.h"
+#include "vtkMemberFunctionCommand.h"
 #include "vtkMercator.h"
 #include "vtkRasterFeature.h"
 
@@ -26,7 +29,9 @@
 #include <vtkCamera.h>
 #include <vtkCameraPass.h>
 #include <vtkCollection.h>
+#include <vtkEventForwarderCommand.h>
 #include <vtkMath.h>
+#include <vtkNew.h>
 #include <vtkObjectFactory.h>
 #include <vtkRenderer.h>
 #include <vtkRenderPassCollection.h>
@@ -83,12 +88,27 @@ vtkMap::vtkMap()
 : LayerCollection(vtkSmartPointer<vtkRenderPassCollection>::New())
 , LayerSequence(vtkSmartPointer<vtkSequencePass>::New())
 , CameraPass(vtkSmartPointer<vtkCameraPass>::New())
+, RubberBandStyle(vtkSmartPointer<vtkInteractorStyleGeoMap>::New())
+, DrawPolyStyle(vtkSmartPointer<vtkInteractorStyleDrawPolygon>::New())
 {
   this->StorageDirectory = NULL;
   this->Renderer = NULL;
   this->FeatureSelector = vtkGeoMapFeatureSelector::New();
-  this->InteractorStyle = vtkInteractorStyleGeoMap::New();
-  this->InteractorStyle->SetMap(this);
+
+  this->RubberBandStyle->SetMap(this);
+
+  auto fwd = vtkEventForwarderCommand::New();
+  fwd->SetTarget(this);
+  this->RubberBandStyle->AddObserver(vtkInteractorStyleGeoMap::DisplayClickCompleteEvent, fwd);
+  this->RubberBandStyle->AddObserver(vtkInteractorStyleGeoMap::DisplayDrawCompleteEvent, fwd);
+  this->RubberBandStyle->AddObserver(vtkInteractorStyleGeoMap::SelectionCompleteEvent, fwd);
+  this->RubberBandStyle->AddObserver(vtkInteractorStyleGeoMap::ZoomCompleteEvent, fwd);
+  this->RubberBandStyle->AddObserver(vtkInteractorStyleGeoMap::RightButtonCompleteEvent, fwd);
+
+  vtkCommand* obsPoly =
+    vtkMakeMemberFunctionCommand(*this, &vtkMap::OnPolygonSelectionEvent);
+  this->DrawPolyStyle->AddObserver(vtkCommand::SelectionChangedEvent, obsPoly);
+
   this->PerspectiveProjection = false;
   this->Zoom = 1;
   this->Center[0] = this->Center[1] = 0.0;
@@ -96,7 +116,6 @@ vtkMap::vtkMap()
   this->BaseLayer = NULL;
   this->PollingCallbackCommand = NULL;
   this->CurrentAsyncState = AsyncOff;
-
 
   // Set default storage directory to ~/.vtkmap
   std::string fullPath =
@@ -110,10 +129,6 @@ vtkMap::~vtkMap()
   if (this->FeatureSelector)
     {
     this->FeatureSelector->Delete();
-    }
-  if (this->InteractorStyle)
-    {
-    this->InteractorStyle->Delete();
     }
   if (this->PollingCallbackCommand)
     {
@@ -165,12 +180,6 @@ void vtkMap::PrintSelf(ostream &os, vtkIndent indent)
      << "  Focal Position: " << focalPosition[0] << " "
      << focalPosition[1] << " " << focalPosition[2] << "\n"
      << std::endl;
-}
-
-//----------------------------------------------------------------------------
-vtkInteractorStyle *vtkMap::GetInteractorStyle()
-{
-  return this->InteractorStyle;
 }
 
 //----------------------------------------------------------------------------
@@ -641,6 +650,20 @@ void vtkMap::PickArea(int displayCoords[4], vtkGeoMapSelection* result)
 }
 
 //----------------------------------------------------------------------------
+void vtkMap::OnPolygonSelectionEvent()
+{
+  std::vector<vtkVector2i> points = this->DrawPolyStyle->GetPolygonPoints();
+  vtkNew<vtkGeoMapSelection> result;
+
+  this->Renderer->SetPass(nullptr);
+  this->FeatureSelector->PickPolygon(this->Renderer, points, result.GetPointer());
+  this->Renderer->SetPass(this->CameraPass);
+
+  this->InvokeEvent(vtkInteractorStyleGeoMap::SelectionCompleteEvent,
+    result.GetPointer());
+}
+
+//----------------------------------------------------------------------------
 void vtkMap::ComputeWorldCoords(double displayCoords[2], double z,
                                 double worldCoords[3])
 {
@@ -799,4 +822,56 @@ void vtkMap::MoveToBottom(const vtkLayer* layer)
   auto rresult = LayerContainer::reverse_iterator(result) - 1;
   std::rotate(rresult, rresult + 1, this->Layers.rend());
   this->UpdateLayerSequence();
+}
+
+//----------------------------------------------------------------------------
+void vtkMap::SetInteractionMode(const vtkMapType::Interaction mode)
+{
+  vtkInteractorStyle* style = nullptr;
+  switch (mode)
+  {
+    case vtkMapType::Interaction::Default:
+      this->RubberBandStyle->SetRubberBandModeToDisabled();
+      style = this->RubberBandStyle;
+      break;
+    case vtkMapType::Interaction::RubberBandSelection:
+      this->RubberBandStyle->SetRubberBandModeToSelection();
+      style = this->RubberBandStyle;
+      break;
+    case vtkMapType::Interaction::RubberBandZoom:
+      this->RubberBandStyle->SetRubberBandModeToZoom();
+      style = this->RubberBandStyle;
+      break;
+    case vtkMapType::Interaction::RubberBandDisplayOnly:
+      this->RubberBandStyle->SetRubberBandModeToDisplayOnly();
+      style = this->RubberBandStyle;
+      break;
+    case vtkMapType::Interaction::PolygonSelection:
+      style = this->DrawPolyStyle;
+      break;
+  }
+
+  if (!this->Interactor)
+    return;
+
+  this->Interactor->SetInteractorStyle(style);
+}
+
+//----------------------------------------------------------------------------
+void vtkMap::SetInteractor(vtkRenderWindowInteractor* inter)
+{
+  if (this->Interactor != inter)
+  {
+    if (this->Interactor)
+      this->Interactor->UnRegister(this);
+
+    this->Interactor = inter;
+    if (this->Interactor)
+    {
+      this->Interactor->Register(this);
+      this->SetInteractionMode(vtkMapType::Interaction::Default);
+    }
+
+    this->Modified();
+  }
 }

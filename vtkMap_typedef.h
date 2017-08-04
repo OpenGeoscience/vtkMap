@@ -12,5 +12,14 @@ enum class Move : unsigned short
   BOTTOM
 };
 
+enum Interaction : unsigned short
+{
+  Default = 0,         // standard map interaction (select/pan)
+  RubberBandSelection,
+  RubberBandZoom,
+  RubberBandDisplayOnly,
+  PolygonSelection
+};
+
 }
 #endif // __vtkMap_typedef_h

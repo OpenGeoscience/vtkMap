@@ -76,7 +76,7 @@ int TestOsmLayer(int argc, char* argv[])
 
   vtkNew<vtkRenderWindowInteractor> interactor;
   interactor->SetRenderWindow(renderWindow.GetPointer());
-  interactor->SetInteractorStyle(map->GetInteractorStyle());
+  map->SetInteractor(interactor.GetPointer());
   interactor->Initialize();
   map->Draw();
 

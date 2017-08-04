@@ -28,6 +28,7 @@
 #include <vtkIdList.h>
 #include <vtkIdTypeArray.h>
 #include <vtkInformation.h>
+#include <vtkIntArray.h>
 #include <vtkMatrix4x4.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
@@ -50,9 +51,109 @@ vtkStandardNewMacro(vtkGeoMapFeatureSelector);
 class vtkGeoMapFeatureSelector::vtkGeoMapFeatureSelectorInternal
 {
 public:
+  enum Selection : unsigned char {
+    POLYGON,
+    RUBBER_BAND
+  };
+
+  vtkGeoMapFeatureSelectorInternal ()
+  : Selector(vtkSmartPointer<vtkHardwareSelector>::New())
+  , Mode(Selection::RUBBER_BAND) {
+  }
+
+  /**
+   * Pick rendered items either doing a rubber-band or polygon selection.
+   */
+  vtkSelection* DoSelect(vtkRenderer* ren)
+  {
+    if (!this->PrepareSelect(ren))
+    {
+      return nullptr;
+    }
+
+    vtkSelection* sel;
+    switch (this->Mode)
+    {
+      case Selection::POLYGON:
+        sel = this->Selector->GeneratePolygonSelection(
+          this->PolygonPoints, this->PolygonPointsCount);
+        break;
+      case Selection::RUBBER_BAND:
+        sel = this->Selector->GenerateSelection(
+          this->PolygonPoints[0], this->PolygonPoints[1],
+          this->PolygonPoints[2], this->PolygonPoints[3]);
+        break;
+    }
+
+    return sel;
+  }
+
+  /**
+   * Setup vtkHardwareSelector and capture rendered buffers.
+   */
+  bool PrepareSelect(vtkRenderer* ren)
+  {
+    int* size = ren->GetSize();
+    int* origin = ren->GetOrigin();
+
+    auto sel = this->Selector;
+    sel->SetArea(origin[0], origin[1], origin[0] + size[0] - 1,
+      origin[1] + size[1] - 1);
+    sel->SetRenderer(ren);
+
+    if (!sel->CaptureBuffers())
+    {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Transform a std::vector into a vtkDataArray
+   */
+  bool VectorToArray(const std::vector<vtkVector2i>& vec, vtkIntArray* arr)
+  {
+    if (vec.size() >= 3)
+    {
+      arr->SetNumberOfComponents(2);
+      arr->SetNumberOfTuples(vec.size());
+
+      for (unsigned int j = 0; j < vec.size(); j++)
+      {
+        const vtkVector2i& v = vec[j];
+        int pos[2] = { v[0], v[1] };
+        arr->SetTypedTuple(j, pos);
+      }
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Bounding box of a polygon. Implemented in vtkHardwareSelector.
+   */
+  void ComputePolygonBounds(int* polygonPoints, vtkIdType count, int* bounds)
+  {
+    bounds[0] = VTK_INT_MAX; bounds[2] = VTK_INT_MIN; // x_min, x_max
+    bounds[1] = VTK_INT_MAX, bounds[3] =VTK_INT_MIN;  // y_min, y_max
+    for(vtkIdType i = 0; i < count; i += 2)
+    {
+      bounds[0] = std::min(polygonPoints[i], bounds[0]);     // x_min
+      bounds[2] = std::max(polygonPoints[i], bounds[2]);     // x_max
+      bounds[1] = std::min(polygonPoints[i + 1], bounds[1]); // y_min
+      bounds[3] = std::max(polygonPoints[i + 1], bounds[3]); // y_max
+    }
+  }
+
   // Map vtkProp to vtkFeature
   std::map<vtkProp*, vtkFeature*> FeaturePickMap;
-
+  Selection Mode;
+  int* PolygonPoints = nullptr;
+  int PolygonBounds[4];
+  vtkIdType PolygonPointsCount = 0;
+  vtkSmartPointer<vtkHardwareSelector> Selector;
 };
 
 //-----------------------------------------------------------------------------
@@ -108,6 +209,35 @@ PickPoint(vtkRenderer *renderer, int displayCoords[2],
   boundCoords[2] = displayCoords[0] + offset;
   boundCoords[3] = displayCoords[1] + offset;
   this->PickArea(renderer, boundCoords, selection);
+}
+
+//-----------------------------------------------------------------------------
+void vtkGeoMapFeatureSelector::PickPolygon(vtkRenderer* ren,
+  const std::vector<vtkVector2i>& polygonPoints, vtkGeoMapSelection* result)
+{
+  vtkNew<vtkIntArray> array;
+  if (!this->Internal->VectorToArray(polygonPoints, array.GetPointer()))
+  {
+    vtkErrorMacro("Vector to array failed!");
+    return;
+  }
+
+  this->Internal->PolygonPoints = static_cast<int*>(array->GetVoidPointer(0));
+  this->Internal->PolygonPointsCount = array->GetNumberOfValues();
+  this->Internal->Mode = vtkGeoMapFeatureSelectorInternal::Selection::POLYGON;
+  this->Internal->ComputePolygonBounds(this->Internal->PolygonPoints,
+    this->Internal->PolygonPointsCount, this->Internal->PolygonBounds);
+
+  // For marker features
+  this->Internal->Selector->SetFieldAssociation(
+    vtkDataObject::FIELD_ASSOCIATION_POINTS);
+  this->IncrementalSelect(result, ren);
+
+  // For polygon features
+  this->Internal->Selector->SetFieldAssociation(
+    vtkDataObject::FIELD_ASSOCIATION_CELLS);
+
+  this->IncrementalSelect(result, ren);
 }
 
 //-----------------------------------------------------------------------------
@@ -311,25 +441,27 @@ void vtkGeoMapFeatureSelector::PickMarkers(
     return;
     }
 
+  this->Internal->Selector->SetFieldAssociation(
+    vtkDataObject::FIELD_ASSOCIATION_POINTS);
+  this->Internal->Mode =
+    vtkGeoMapFeatureSelectorInternal::Selection::RUBBER_BAND;
+  this->Internal->PolygonPoints = displayCoords;
+
+  this->IncrementalSelect(selection, renderer);
+}
+
+// ------------------------------------------------------------
+void vtkGeoMapFeatureSelector::IncrementalSelect(vtkGeoMapSelection* selection,
+  vtkRenderer* ren)
+{
   std::set<vtkProp*> propSet;  // remembers props marked unpickable
-  vtkNew<vtkIdList> markerIdList;
-  vtkNew<vtkIdList> clusterIdList;
-
-  // For marker features, use vtkHardwareSelector
-  vtkNew<vtkHardwareSelector> hwSelector;
-  hwSelector->SetRenderer(renderer);
-  hwSelector->SetArea(
-    displayCoords[0], displayCoords[1],
-    displayCoords[2], displayCoords[3]);
-  hwSelector->SetFieldAssociation(vtkDataObject::FIELD_ASSOCIATION_POINTS);
-
-  vtkSelection *hwSelection;
-  vtkProp *prop;
-  // Use mulitiple passes because markers can be hidden behind other markers
   bool done = false;
+
+  // Selection passes
   while (!done)
     {
-    hwSelection = hwSelector->Select();
+    vtkSelection* hwSelection = this->Internal->DoSelect(ren);
+
     if (!hwSelection)  // null if grahpics < 24 bit
       {
       vtkWarningMacro("vtkHardwareSelector::Select() returned null.");
@@ -344,6 +476,7 @@ void vtkGeoMapFeatureSelector::PickMarkers(
       break;
       }
 
+    // Process picked props
     for (int i=0; i<hwSelection->GetNumberOfNodes(); i++)
       {
       vtkSelectionNode *node = hwSelection->GetNode(i);
@@ -359,50 +492,102 @@ void vtkGeoMapFeatureSelector::PickMarkers(
 #endif
         continue;
         }
-      prop = vtkProp::SafeDownCast(base);
+      vtkProp* prop = vtkProp::SafeDownCast(base);
       propSet.insert(prop);
       prop->PickableOff();  // don't pick again (in this method)
 
       std::map<vtkProp*, vtkFeature*>::iterator findIter =
         this->Internal->FeaturePickMap.find(prop);
       vtkFeature *feature = findIter->second;
-      vtkMapMarkerSet *markerFeature = vtkMapMarkerSet::SafeDownCast(feature);
-      if (!markerFeature)
-        {
-        continue;
-        }
 
-      markerIdList->Reset();
-      clusterIdList->Reset();
+///TODO Uncomment this once both rubber-band & polygon selection paths unify
+//      auto raster = vtkRasterFeature::SafeDownCast(feature);
+//      if (raster)
+//      {
+//        selection->AddFeature(feature);
+//        continue;
+//      }
 
-      vtkAbstractArray *abs = node->GetSelectionList();
-      vtkIdTypeArray *ids = vtkIdTypeArray::SafeDownCast(abs);
-      for (vtkIdType id=0; id<ids->GetNumberOfTuples(); id++)
-        {
-        vtkIdType displayId = ids->GetValue(id);
-        vtkIdType markerId = markerFeature->GetMarkerId(displayId);
-        if (markerId >= 0)
-          {
-          markerIdList->InsertNextId(markerId);
-          }
-        else
-          {
-          vtkIdType clusterId = markerFeature->GetClusterId(displayId);
-          clusterIdList->InsertNextId(clusterId);
-          }
-        }  // for (id)
+      bool selected = false;
+      if (this->Internal->Selector->GetFieldAssociation() ==
+        vtkDataObject::FIELD_ASSOCIATION_POINTS)
+        selected |= this->SelectMarkerSet(selection, node, feature);
 
-      selection->AddFeature(feature, markerIdList.GetPointer(),
-                            clusterIdList.GetPointer());
-      }  // for (i)
+      if (this->Internal->Selector->GetFieldAssociation() ==
+        vtkDataObject::FIELD_ASSOCIATION_CELLS)
+        selected |= this->SelectPolyData(selection, node, feature);
+
+///TODO Uncomment this once both rubber-band & polygon selection paths unify
+//      if (!selected)
+//      {
+//        feature->PickItems(ren, this->Internal->PolygonBounds, selection);
+//      }
+
+      }
     hwSelection->Delete();
-    }  // while
+    }
 
   // Restore pickable state on all props
   std::set<vtkProp*>::iterator iter = propSet.begin();
   for (; iter != propSet.end(); iter++)
     {
-    prop = *iter;
+    vtkProp* prop = *iter;
     prop->PickableOn();
     }
+}
+
+// ------------------------------------------------------------
+bool vtkGeoMapFeatureSelector::SelectPolyData(vtkGeoMapSelection* selection,
+  vtkSelectionNode* node, vtkFeature* feature)
+{
+  vtkPolydataFeature* polyFeature = dynamic_cast<vtkPolydataFeature*>(feature);
+  if (!polyFeature)
+    return false;
+
+  vtkNew<vtkIdList> polyIdList;
+  vtkAbstractArray *abs = node->GetSelectionList();
+  vtkIdTypeArray *ids = vtkIdTypeArray::SafeDownCast(abs);
+
+  for (vtkIdType id = 0; id < ids->GetNumberOfTuples(); id++)
+  {
+    const vtkIdType primitiveId = ids->GetValue(id);
+    const vtkIdType localId = polyFeature->CellIdToLocalId(primitiveId);
+    polyIdList->InsertNextId(localId);
+  }
+
+  selection->AddFeature(feature, polyIdList.GetPointer());
+  return true;
+}
+
+// ------------------------------------------------------------
+bool vtkGeoMapFeatureSelector::SelectMarkerSet(vtkGeoMapSelection* selection,
+  vtkSelectionNode* node, vtkFeature* feature)
+{
+  vtkMapMarkerSet *markerFeature = vtkMapMarkerSet::SafeDownCast(feature);
+  if (!markerFeature)
+    return false;
+
+  vtkNew<vtkIdList> markerIdList;
+  vtkNew<vtkIdList> clusterIdList;
+
+  vtkAbstractArray *abs = node->GetSelectionList();
+  vtkIdTypeArray *ids = vtkIdTypeArray::SafeDownCast(abs);
+  for (vtkIdType id=0; id<ids->GetNumberOfTuples(); id++)
+  {
+    vtkIdType displayId = ids->GetValue(id);
+    vtkIdType markerId = markerFeature->GetMarkerId(displayId);
+    if (markerId >= 0)
+    {
+      markerIdList->InsertNextId(markerId);
+    }
+    else
+    {
+      vtkIdType clusterId = markerFeature->GetClusterId(displayId);
+      clusterIdList->InsertNextId(clusterId);
+    }
+  }
+
+  selection->AddFeature(feature, markerIdList.GetPointer(),
+                        clusterIdList.GetPointer());
+  return true;
 }

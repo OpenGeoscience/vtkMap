@@ -75,3 +75,9 @@ vtkProp *vtkPolydataFeature::PickProp()
 {
   return this->Actor;
 }
+
+//----------------------------------------------------------------------------
+vtkIdType vtkPolydataFeature::CellIdToLocalId(vtkIdType cellId)
+{
+  return cellId;
+}

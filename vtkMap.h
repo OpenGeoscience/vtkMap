@@ -11,22 +11,43 @@
    PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
-// .NAME vtkMap -
+// .NAME vtkMap - Map representation using vtk rendering components.
+//
 // .SECTION Description
 //
 // Provides an API to manipulate the order in which different vtkLayer instances
 // are rendered.
 //
+// vtkMap uses different vtkInteractorStyle instances to manage different types
+// of interaction. The primary style is vtkInteractorStyleGeoMap, which supports
+// default interaction (panning/ zooming), single-click selection, rubber-band
+// selection and rubber-band zoom. Polygon-draw selection is supported through
+// the standard vtkInteractorStyleDrawPolygon.
+//
+// \note
+// Style switching is managed by this class, both style instances are currently
+// collaborating with vtkMap in different ways. vtkInteractorStyleGeoMap calls
+// vtkMap functions to actually make a selection and invokes an event with the
+// result (legacy).  vtkInteractorStyleDrawPolygon is only observed by vtkMap
+// and its internal events are caught to handle an actual selection.  The latter
+// approach is preferred and vtkInteractorStyleGeoMap will eventually be
+// refactored to comply.
+//
+// \sa vtkInteractorStyleGeoMap
+//
 
 #ifndef __vtkMap_h
 #define __vtkMap_h
+#include <map>
+#include <string>
+#include <vector>
 
-// VTK Includes
 #include <vtkObject.h>
 #include <vtkSmartPointer.h>
 
 #include "vtkmap_export.h"
 #include "vtkMap_typedef.h"
+
 
 class vtkCallbackCommand;
 class vtkCameraPass;
@@ -35,16 +56,12 @@ class vtkGeoMapFeatureSelector;
 class vtkGeoMapSelection;
 class vtkInteractorStyle;
 class vtkInteractorStyleGeoMap;
+class vtkInteractorStyleDrawPolygon;
 class vtkLayer;
 class vtkRenderer;
 class vtkRenderPassCollection;
+class vtkRenderWindowInteractor;
 class vtkSequencePass;
-
-#include <map>
-#include <string>
-#include <vector>
-
-class vtkLayer;
 
 class VTKMAP_EXPORT vtkMap : public vtkObject
 {
@@ -80,11 +97,11 @@ public:
   vtkGetMacro(Renderer, vtkRenderer*)
   void SetRenderer(vtkRenderer* ren);
 
-  // Description:
-  // Get/Set the interactor style for the map renderer
-  // Note these are asymmetric on purpose
-  vtkSetMacro(InteractorStyle, vtkInteractorStyleGeoMap*)
-  vtkInteractorStyle *GetInteractorStyle();
+  /**
+   * Interactor where different InteractorStyles are set.
+   */
+  void SetInteractor(vtkRenderWindowInteractor* interactor);
+  void SetInteractionMode(const vtkMapType::Interaction mode);
 
   // Description:
   // Get/Set the camera model to use perspective projection.
@@ -153,6 +170,8 @@ public:
   // in display coordinates)
   void PickArea(int displayCoords[4], vtkGeoMapSelection *selection);
 
+  void OnPolygonSelectionEvent();
+
   // Description:
   // Periodically poll asynchronous layers
   void PollingCallback();
@@ -198,8 +217,9 @@ protected:
   vtkRenderer* Renderer;
 
   // Description:
-  // The interactor style used by the map
-  vtkInteractorStyleGeoMap* InteractorStyle;
+  // The interactor styles used by the map
+  vtkSmartPointer<vtkInteractorStyleGeoMap> RubberBandStyle;
+  vtkSmartPointer<vtkInteractorStyleDrawPolygon> DrawPolyStyle;
 
   // Description:
   bool PerspectiveProjection;
@@ -268,6 +288,7 @@ private:
   void MoveToBottom(const vtkLayer* layer);
 ///@}
 
+  vtkRenderWindowInteractor* Interactor = nullptr;
 };
 
 #endif // __vtkMap_h

@@ -3,7 +3,6 @@
 #include <vtkCollection.h>
 #include <vtkCommand.h>
 #include <vtkIdList.h>
-#include <vtkInteractorStyle.h>
 #include <vtkPolyData.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkProperty.h>
@@ -169,10 +168,7 @@ public:
 
         case vtkInteractorStyleGeoMap::RightButtonCompleteEvent:
           {
-          vtkInteractorStyleGeoMap *style =
-            vtkInteractorStyleGeoMap::SafeDownCast(
-              this->Map->GetInteractorStyle());
-          int *coords = style->GetEndPosition();
+          int* coords = static_cast<int*>(data);
           std::cout << "Right mouse click at ("
                     << coords[0] << ", " << coords[1] << ")" << std::endl;
           }
@@ -200,6 +196,7 @@ int main(int argc, char *argv[])
   bool perspective = false;
   bool rubberBandDisplayOnly = false;
   bool rubberBandSelection = false;
+  bool drawPolygonSelection = false;
   bool rubberBandZoom = false;
   bool singleThreaded = false;
   int zoomLevel = 2;
@@ -236,6 +233,9 @@ int main(int argc, char *argv[])
   arg.AddArgument("-r", vtksys::CommandLineArguments::NO_ARGUMENT,
                   &rubberBandSelection,
                   "set interactor to rubberband selection mode");
+  arg.AddArgument("-P", vtksys::CommandLineArguments::NO_ARGUMENT,
+                  &drawPolygonSelection,
+                  "set interactor to polygon selection mode");
   arg.AddArgument("-s", vtksys::CommandLineArguments::NO_ARGUMENT,
                   &singleThreaded, "use single-threaded map I/O");
   arg.AddArgument("-z", vtksys::CommandLineArguments::SPACE_ARGUMENT,
@@ -300,40 +300,46 @@ int main(int argc, char *argv[])
 
   vtkNew<vtkRenderWindowInteractor> intr;
   intr->SetRenderWindow(wind.GetPointer());
-  vtkInteractorStyle *style = map->GetInteractorStyle();
-  vtkInteractorStyleGeoMap *mapStyle =
-    vtkInteractorStyleGeoMap::SafeDownCast(style);
+  map->SetInteractor(intr.GetPointer());
 
   // Interactor observer
-  vtkNew<PickCallback> pickCallback;
-  pickCallback->SetMap(map.GetPointer());
-  style->AddObserver(vtkInteractorStyleGeoMap::DisplayClickCompleteEvent,
-                    pickCallback.GetPointer());
-  style->AddObserver(vtkInteractorStyleGeoMap::DisplayDrawCompleteEvent,
-                    pickCallback.GetPointer());
-  style->AddObserver(vtkInteractorStyleGeoMap::SelectionCompleteEvent,
-                    pickCallback.GetPointer());
-  style->AddObserver(vtkInteractorStyleGeoMap::ZoomCompleteEvent,
-                    pickCallback.GetPointer());
-  style->AddObserver(vtkInteractorStyleGeoMap::RightButtonCompleteEvent,
-                    pickCallback.GetPointer());
-
   vtkNew<MoveCallback> moveCallback;
   intr->AddObserver(vtkCommand::KeyPressEvent, moveCallback.GetPointer());
 
+  vtkMapType::Interaction mode = vtkMapType::Interaction::Default;
   if (rubberBandDisplayOnly)
-    {
-    mapStyle->SetRubberBandModeToDisplayOnly();
-    }
+  {
+    mode = vtkMapType::Interaction::RubberBandDisplayOnly;
+  }
   else if (rubberBandSelection)
-    {
-    mapStyle->SetRubberBandModeToSelection();
-    }
+  {
+    mode = vtkMapType::Interaction::RubberBandSelection;
+  }
+  else if (drawPolygonSelection)
+  {
+    mode = vtkMapType::Interaction::PolygonSelection;
+  }
   else if (rubberBandZoom)
-    {
-    mapStyle->SetRubberBandModeToZoom();
-    }
-  intr->SetInteractorStyle(style);
+  {
+    mode = vtkMapType::Interaction::RubberBandZoom;
+  }
+  map->SetInteractionMode(mode);
+
+  // Picking Callback
+  vtkNew<PickCallback> pickCallback;
+  pickCallback->SetMap(map.GetPointer());
+  map->AddObserver(vtkInteractorStyleGeoMap::DisplayClickCompleteEvent,
+                    pickCallback.GetPointer());
+  map->AddObserver(vtkInteractorStyleGeoMap::DisplayDrawCompleteEvent,
+                    pickCallback.GetPointer());
+  map->AddObserver(vtkInteractorStyleGeoMap::SelectionCompleteEvent,
+                    pickCallback.GetPointer());
+  map->AddObserver(vtkInteractorStyleGeoMap::ZoomCompleteEvent,
+                    pickCallback.GetPointer());
+  map->AddObserver(vtkInteractorStyleGeoMap::RightButtonCompleteEvent,
+                    pickCallback.GetPointer());
+
+
   intr->Initialize();
   map->Draw();
 
@@ -370,7 +376,7 @@ int main(int argc, char *argv[])
     const double lon = latlonCoords[i][1];
     markerSet->AddMarker(lat, lon);
   }
-  
+
   ///////////////////// Layer 3 - Markers2 /////////////////////////////////////
   vtkNew<vtkFeatureLayer> markers2;
   markers2->SetName("markers2");
