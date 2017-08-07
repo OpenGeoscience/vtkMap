@@ -56,6 +56,7 @@ void vtkGeoMapLayerPass::Render(const vtkRenderState* state)
   // the depth buffer for every layer and enable depth testing.
   this->RenderTranslucentGeometry(state);
   this->RenderOpaqueGeometry(state);
+  this->RenderOverlay(state);
 }
 
 void vtkGeoMapLayerPass::FilterLayerProps(const vtkRenderState* state)
