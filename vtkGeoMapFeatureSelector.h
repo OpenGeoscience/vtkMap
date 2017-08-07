@@ -32,6 +32,7 @@
 
 #ifndef __vtkGeoMapFeatureSelector_h
 #define __vtkGeoMapFeatureSelector_h
+#include <unordered_map>
 #include <vector>
 
 #include <vtkObject.h>
@@ -87,15 +88,17 @@ class VTKMAP_NO_EXPORT vtkGeoMapFeatureSelector : public vtkObject
   vtkGeoMapFeatureSelector(const vtkGeoMapFeatureSelector&) VTK_DELETE_FUNCTION;
   vtkGeoMapFeatureSelector& operator=(const vtkGeoMapFeatureSelector&) VTK_DELETE_FUNCTION;
 
+  using FeatureMap = std::unordered_map<vtkProp*, vtkFeature*>;
   /**
    * Runs mulitiple selection passes in order to capture markers hidden
    * behind other markers.
    */
-  void IncrementalSelect(vtkGeoMapSelection* selection, vtkRenderer* ren);
+  void IncrementalSelect(vtkGeoMapSelection* selection, vtkRenderer* ren,
+    FeatureMap& featMap);
   bool SelectMarkerSet(vtkGeoMapSelection* selection, vtkSelectionNode* node,
-    vtkFeature* feature);
+    FeatureMap& map, FeatureMap::const_iterator& it);
   bool SelectPolyData(vtkGeoMapSelection* selection, vtkSelectionNode* node,
-    vtkFeature* feature);
+    FeatureMap& map, FeatureMap::const_iterator& it);
 
   class vtkGeoMapFeatureSelectorInternal;
   vtkGeoMapFeatureSelectorInternal *Internal;
