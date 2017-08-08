@@ -21,15 +21,20 @@
 //
 #ifndef __vtkInteractorStyleGeoMap_h
 #define __vtkInteractorStyleGeoMap_h
+#include <memory>
 
 #include <vtkCommand.h>
 #include <vtkInteractorStyleRubberBand2D.h>
 
-#include <vtkmap_export.h>
+#include "vtkmap_export.h"
 
 class vtkActor2D;
 class vtkMap;
 class vtkPoints;
+
+namespace vtkMapType {
+  class Timer;
+}
 
 class VTKMAP_EXPORT vtkInteractorStyleGeoMap
   : public vtkInteractorStyleRubberBand2D
@@ -97,6 +102,8 @@ public:
   void SetRubberBandModeToDisabled()
     {this->SetRubberBandMode(DisabledMode);}
 
+  vtkSetMacro(DoubleClickDelay, size_t);
+
   // Map
   void SetMap(vtkMap* map);
 
@@ -107,9 +114,16 @@ private:
   vtkInteractorStyleGeoMap(const vtkInteractorStyleGeoMap&) = delete;
   void operator=(const vtkInteractorStyleGeoMap&) = delete;
 
+  bool IsDoubleClick();
+
   vtkMap *Map;
   int RubberBandMode;
   vtkPoints*  RubberBandPoints;
+
+  std::unique_ptr<vtkMapType::Timer> Timer;
+  size_t DoubleClickDelay = 500;
+  unsigned char MouseClicks = 0;
+  bool DoubleClicked = false;
 
 /**
  * vtkInteractorStyleGeoMap::Pan() can be called through a mouse movement

@@ -12,7 +12,7 @@
    PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
-
+#include "Timer.h"
 #include "vtkInteractorStyleGeoMap.h"
 #include "vtkGeoMapSelection.h"
 #include "vtkMap.h"
@@ -39,7 +39,8 @@ vtkStandardNewMacro(vtkInteractorStyleGeoMap);
 
 //-----------------------------------------------------------------------------
 vtkInteractorStyleGeoMap::vtkInteractorStyleGeoMap() :
-  vtkInteractorStyleRubberBand2D()
+   vtkInteractorStyleRubberBand2D()
+,  Timer(std::unique_ptr<vtkMapType::Timer>(new vtkMapType::Timer))
 {
   this->Map = NULL;
   this->RubberBandMode = DisabledMode;
@@ -57,6 +58,12 @@ void vtkInteractorStyleGeoMap::PrintSelf(ostream& os, vtkIndent indent)
 //-----------------------------------------------------------------------------
 void vtkInteractorStyleGeoMap::OnLeftButtonDown()
 {
+  if (this->IsDoubleClick())
+  {
+    std::cout << " ->>> Left Double Clicked! -> Zoom-In ";
+    return;
+  }
+
   if (this->RubberBandMode == vtkInteractorStyleGeoMap::DisabledMode)
     {
     // Default map interaction == select feature & start pan
@@ -74,6 +81,38 @@ void vtkInteractorStyleGeoMap::OnLeftButtonDown()
 
   this->Superclass::OnLeftButtonDown();
 }
+
+//-----------------------------------------------------------------------------
+bool vtkInteractorStyleGeoMap::IsDoubleClick()
+{
+  const size_t elapsed = this->Timer->elapsed<std::chrono::milliseconds>();
+  const bool onTime = elapsed < this->DoubleClickDelay;
+
+  if (!onTime || this->MouseClicks == 0)
+  {
+    this->MouseClicks = 1;
+    this->DoubleClicked = false;
+    this->Timer->reset();
+  }
+  else
+    this->MouseClicks++;
+
+  if (this->MouseClicks == 1)
+  {
+    this->DoubleClicked = false;
+    this->Timer->reset();
+  }
+  else if (this->MouseClicks == 2)
+  {
+    std::cout << "->>> elapsed : " << elapsed << " / " << onTime << std::endl;
+
+    this->DoubleClicked = onTime;
+    this->MouseClicks = 0;
+  }
+
+  return this->DoubleClicked;
+}
+
 
 //-----------------------------------------------------------------------------
 void vtkInteractorStyleGeoMap::OnLeftButtonUp()
@@ -177,6 +216,12 @@ void vtkInteractorStyleGeoMap::OnLeftButtonUp()
 void vtkInteractorStyleGeoMap::OnRightButtonDown()
 {
   // Zooming with the right-click is disabled in this interactor (do nothing).
+
+  if (this->IsDoubleClick())
+  {
+    std::cout << " ->>> Right Double Clicked! -> Zoom-Out ";
+    return;
+  }
 }
 
 //-----------------------------------------------------------------------------
