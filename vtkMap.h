@@ -80,7 +80,7 @@ public:
   };
 
   static vtkMap *New();
-  virtual void PrintSelf(ostream &os, vtkIndent indent);
+  void PrintSelf(ostream &os, vtkIndent indent) override;
   vtkTypeMacro(vtkMap, vtkObject)
 
   // Description

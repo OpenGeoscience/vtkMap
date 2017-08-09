@@ -46,7 +46,8 @@ class MapCallback : public vtkCallbackCommand
 public:
   MapCallback(vtkMap *map) : Map(map), MouseDown(false) {}
 
-  virtual void Execute(vtkObject *caller, unsigned long eventId, void *callData)
+  void Execute(vtkObject *caller, unsigned long eventId,
+    void *callData) override
   {
     switch (eventId)
       {

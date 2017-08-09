@@ -37,7 +37,7 @@ public:
     Visible = 100,
     };
 
-  virtual void PrintSelf(ostream &os, vtkIndent indent);
+  void PrintSelf(ostream &os, vtkIndent indent) override;
   vtkTypeMacro(vtkFeature, vtkObject);
 
   // Expecting it to EPSG codes (EPSG4326)
@@ -59,7 +59,7 @@ public:
   // Build feature when added to the feature layer.
   // Init should be called by the feature layer and
   // not directly by the application code.
-  virtual void Init() { }
+  virtual void Init() = 0;
 
   // Description:
   // Perform any clean up operation related to rendering.

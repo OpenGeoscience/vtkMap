@@ -29,7 +29,7 @@ class VTKMAP_EXPORT vtkGDALRasterConverter : public vtkObject
 {
 public:
   static vtkGDALRasterConverter* New();
-  virtual void PrintSelf(ostream &os, vtkIndent indent);
+  void PrintSelf(ostream &os, vtkIndent indent) override;
   vtkTypeMacro(vtkGDALRasterConverter, vtkObject);
 
   // Description

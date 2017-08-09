@@ -43,10 +43,10 @@ class VTKMAP_EXPORT vtkMultiThreadedOsmLayer : public vtkOsmLayer
 public:
   static vtkMultiThreadedOsmLayer *New();
   vtkTypeMacro(vtkMultiThreadedOsmLayer, vtkOsmLayer)
-  virtual void PrintSelf(ostream &os, vtkIndent indent);
+  void PrintSelf(ostream &os, vtkIndent indent) override;
 
   // Description:
-  virtual void Update();
+  void Update() override;
 
   // Description:
   // Threaded method for managing tile requests, to prevent blocking.
@@ -59,15 +59,15 @@ public:
   // Description:
   // Override vtkLayer::ResolveAsync()
   // Update tile cache with any new tiles
-  virtual vtkMap::AsyncState ResolveAsync();
+  vtkMap::AsyncState ResolveAsync() override;
 
 protected:
   vtkMultiThreadedOsmLayer();
-  ~vtkMultiThreadedOsmLayer();
+  ~vtkMultiThreadedOsmLayer() override;
 
   // Description:
   // Update needed tiles to draw current map display
-  virtual void AddTiles();
+  void AddTiles() override;
 
   // Description:
   // Download image file, returns boolean indicating success

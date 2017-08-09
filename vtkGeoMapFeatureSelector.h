@@ -54,7 +54,7 @@ class VTKMAP_NO_EXPORT vtkGeoMapFeatureSelector : public vtkObject
 {
  public:
   static vtkGeoMapFeatureSelector* New();
-  virtual void PrintSelf(ostream &os, vtkIndent indent);
+  void PrintSelf(ostream &os, vtkIndent indent) override;
   vtkTypeMacro(vtkGeoMapFeatureSelector, vtkObject);
 
   // As features get added/removed, they are passed on to this class

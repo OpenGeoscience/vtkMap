@@ -28,7 +28,7 @@ class VTKMAP_EXPORT vtkGDALRasterReprojection : public vtkObject
 {
 public:
   static vtkGDALRasterReprojection *New();
-  virtual void PrintSelf(ostream &os, vtkIndent indent);
+  void PrintSelf(ostream &os, vtkIndent indent) override;
   vtkTypeMacro(vtkGDALRasterReprojection, vtkObject)
 
   // Description:

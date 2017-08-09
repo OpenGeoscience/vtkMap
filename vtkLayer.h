@@ -40,7 +40,7 @@ class vtkRenderPass;
 class VTKMAP_EXPORT vtkLayer : public vtkObject
 {
 public:
-  virtual void PrintSelf(ostream &os, vtkIndent indent);
+  void PrintSelf(ostream &os, vtkIndent indent) override;
   vtkTypeMacro(vtkLayer, vtkObject)
 
   // Description:

@@ -34,7 +34,7 @@ class VTKMAP_EXPORT vtkMapMarkerSet : public vtkPolydataFeature
 {
 public:
   static vtkMapMarkerSet *New();
-  virtual void PrintSelf(ostream &os, vtkIndent indent);
+  void PrintSelf(ostream &os, vtkIndent indent) override;
   vtkTypeMacro(vtkMapMarkerSet, vtkPolydataFeature);
 
   // Description:
@@ -141,16 +141,16 @@ public:
 
   // Description:
   // Override
-  virtual void Init();
+  void Init() override;
 
   // Description:
   // Update the marker geometry to draw the map
   //void Update(int zoomLevel);
-  virtual void Update();
+  void Update() override;
 
   // Description:
   // Override
-  virtual void CleanUp();
+  void CleanUp() override;
 
   // Description:
   // Return cluster id for display id at current zoom level.

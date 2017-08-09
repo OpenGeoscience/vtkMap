@@ -27,7 +27,7 @@ class VTKMAP_EXPORT vtkGeoJSONMapFeature : public vtkPolydataFeature
 {
 public:
   static vtkGeoJSONMapFeature* New();
-  virtual void PrintSelf(ostream &os, vtkIndent indent);
+  void PrintSelf(ostream &os, vtkIndent indent) override;
   vtkTypeMacro(vtkGeoJSONMapFeature, vtkPolydataFeature)
 
   // Description:
@@ -38,15 +38,7 @@ public:
 
   // Description:
   // Override
-  virtual void Init();
-
-  // Description:
-  // Override
-  //virtual void CleanUp();
-
-  // Description:
-  // Override
-  //virtual void Update();
+  void Init() override;
 
 protected:
   vtkGeoJSONMapFeature();

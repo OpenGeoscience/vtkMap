@@ -28,7 +28,7 @@ class VTKMAP_EXPORT vtkFeatureLayer : public vtkLayer
 {
 public:
   static vtkFeatureLayer* New();
-  virtual void PrintSelf(ostream &os, vtkIndent indent);
+  void PrintSelf(ostream &os, vtkIndent indent) override;
   vtkTypeMacro(vtkFeatureLayer, vtkLayer)
 
 
@@ -36,7 +36,7 @@ public:
   // Override vtkObject::Delete()
   // Needed in order to delete features, which use a weak pointer to
   // to their vtkFeatureLayer instance,
-  virtual void Delete();
+  void Delete() override;
 
   // Description:
   // Add a new feature to the layer
@@ -53,11 +53,11 @@ public:
 
   // Description:
   // Update features and prepare them for rendering
-  virtual void Update();
+  void Update() override;
 
 protected:
   vtkFeatureLayer();
-  ~vtkFeatureLayer();
+  ~vtkFeatureLayer() override;
 
 protected:
   class vtkInternal;

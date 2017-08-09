@@ -39,7 +39,7 @@ class vtkMercator : vtkObject
   };
 
 public:
-  virtual void PrintSelf(ostream &, vtkIndent) {}
+  void PrintSelf(ostream &, vtkIndent) override {}
   vtkTypeMacro(vtkMercator, vtkObject);
 
   //----------------------------------------------------------------------------

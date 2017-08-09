@@ -27,7 +27,7 @@ class VTKMAP_EXPORT vtkTeardropSource : public vtkPolyDataAlgorithm
 {
 public:
   vtkTypeMacro(vtkTeardropSource,vtkPolyDataAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   // Description:
   // Construct with default resolution 6, tail-length 0.75, head-radius 0.25.
@@ -91,7 +91,8 @@ protected:
   vtkTeardropSource(int res=12);
   ~vtkTeardropSource() {}
 
-  virtual int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *);
+  int RequestData(vtkInformation *, vtkInformationVector **,
+    vtkInformationVector *) override;
 
   double TailHeight;
   double TipStrength;

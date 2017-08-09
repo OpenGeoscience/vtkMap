@@ -41,7 +41,7 @@ class qtWeatherStations : public QMainWindow
   Q_OBJECT
  public:
   qtWeatherStations(QWidget *parent = 0);
-  virtual ~qtWeatherStations();
+  ~qtWeatherStations() override;
 
   void drawMap();
   void updateMap();
@@ -55,7 +55,7 @@ class qtWeatherStations : public QMainWindow
   std::vector<StationReport> ParseStationData(Json::Value data);
   void DisplayStationData(std::vector<StationReport> statonList);
   void DisplayStationMarkers(std::vector<StationReport> statonList);
-  virtual void resizeEvent(QResizeEvent *event);
+  void resizeEvent(QResizeEvent *event) override;
 
   vtkMap *Map;               /// Map instance
   vtkMapMarkerSet *MapMarkers;  // Map markers

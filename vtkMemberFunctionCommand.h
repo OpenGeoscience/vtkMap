@@ -49,7 +49,8 @@
  * @sa
  * vtkCallbackCommand
 */
-
+#ifndef __vtkMemberFunctionCommand_h
+#define __vtkMemberFunctionCommand_h
 #include "vtkCommand.h"
 
 template <class ClassT>
@@ -60,7 +61,8 @@ class vtkMemberFunctionCommand : public vtkCommand
 public:
   typedef vtkCommand Superclass;
 
-  virtual const char* GetClassNameInternal() const { return "vtkMemberFunctionCommand"; }
+  const char* GetClassNameInternal() const override
+    { return "vtkMemberFunctionCommand"; }
 
   static ThisT* SafeDownCast(vtkObjectBase* o) { return dynamic_cast<ThisT*>(o); }
 
@@ -86,7 +88,7 @@ public:
     this->Method2 = method2;
   }
 
-  virtual void Execute(vtkObject* caller, unsigned long event, void* calldata)
+  void Execute(vtkObject* caller, unsigned long event, void* calldata) override
   {
     if (this->Object && this->Method)
     {
@@ -154,5 +156,7 @@ vtkMemberFunctionCommand<ClassT>* vtkMakeMemberFunctionCommand(
   result->SetCallback(object, method);
   return result;
 }
+
 //-----------------------------------------------------------------------------
 // VTK-HeaderTest-Exclude: vtkMemberFunctionCommand.h
+#endif // __vtkMemberFunctionCommand_h

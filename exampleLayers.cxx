@@ -31,8 +31,7 @@ public:
   static MoveCallback *New()
     { return new MoveCallback; }
 
-  virtual void Execute(vtkObject *caller, unsigned long event,
-    void* data)
+  void Execute(vtkObject *caller, unsigned long event, void* data) override
   {
     switch (event)
     {
@@ -74,7 +73,7 @@ class PickCallback : public vtkCommand
 public:
   static PickCallback *New()
     { return new PickCallback; }
-  virtual void Execute(vtkObject *caller, unsigned long event, void* data)
+  void Execute(vtkObject *caller, unsigned long event, void* data) override
     {
       switch (event)
         {

@@ -31,7 +31,7 @@ class VTKMAP_EXPORT vtkMapTile : public vtkFeature
 {
 public:
   static vtkMapTile* New();
-  virtual void PrintSelf(ostream &os, vtkIndent indent);
+   void PrintSelf(ostream &os, vtkIndent indent);
   vtkTypeMacro (vtkMapTile, vtkFeature)
 
   // Description:
@@ -70,16 +70,16 @@ public:
   // Description:
   // Create the geometry and download
   // the image if necessary
-  virtual void Init();
+  void Init() override;
 
   // Description:
   // Remove drawables from the renderer and
   // perform any other clean up operations
-  virtual void CleanUp();
+  void CleanUp() override;
 
   // Description:
   // Update the map tile
-  virtual void Update();
+  void Update() override;
 
 
 protected:

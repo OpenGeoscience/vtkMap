@@ -28,7 +28,7 @@ class VTKMAP_EXPORT vtkRasterFeature : public vtkFeature
 {
 public:
   static vtkRasterFeature* New();
-  virtual void PrintSelf(ostream &os, vtkIndent indent);
+  void PrintSelf(ostream &os, vtkIndent indent) override;
   vtkTypeMacro(vtkRasterFeature, vtkFeature);
 
   // Description
@@ -70,19 +70,19 @@ public:
 
   // Description:
   // Override
-  virtual void Init();
+  void Init() override;
 
   // Description:
   // Override
-  virtual void CleanUp();
+  void CleanUp() override;
 
   // Description:
   // Override
-  virtual void Update();
+  void Update() override;
 
   // Description:
   // Override
-  virtual vtkProp *PickProp();
+  vtkProp *PickProp() override;
 
 protected:
   vtkRasterFeature();

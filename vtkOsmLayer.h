@@ -37,7 +37,7 @@ class VTKMAP_EXPORT vtkOsmLayer : public vtkFeatureLayer
 {
 public:
   static vtkOsmLayer* New();
-  virtual void PrintSelf(ostream &os, vtkIndent indent);
+  void PrintSelf(ostream &os, vtkIndent indent) override;
   vtkTypeMacro(vtkOsmLayer, vtkFeatureLayer)
 
   // Set the map tile server and corresponding attribute text.
@@ -54,7 +54,7 @@ public:
   vtkGetStringMacro(CacheDirectory);
 
   // Description:
-  virtual void Update();
+  void Update() override;
 
   // Description:
   // Set the subdirectory used for caching map files.
@@ -64,7 +64,7 @@ public:
 
 protected:
   vtkOsmLayer();
-  virtual ~vtkOsmLayer();
+  ~vtkOsmLayer() override;
 
   vtkSetStringMacro(CacheDirectory);
 

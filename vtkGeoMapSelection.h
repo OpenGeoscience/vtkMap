@@ -32,7 +32,7 @@ class VTKMAP_EXPORT vtkGeoMapSelection : public vtkObject
 {
  public:
   static vtkGeoMapSelection* New();
-  virtual void PrintSelf(ostream &os, vtkIndent indent);
+  void PrintSelf(ostream &os, vtkIndent indent) override;
   vtkTypeMacro(vtkGeoMapSelection, vtkObject);
 
   bool IsEmpty();

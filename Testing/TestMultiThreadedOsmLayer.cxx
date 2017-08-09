@@ -38,9 +38,9 @@ public:
     { return new TimerCallback; }
 
   // Output all changes in map AsyncState
-  virtual void Execute(vtkObject *vtkNotUsed(caller),
+  void Execute(vtkObject *vtkNotUsed(caller),
                        unsigned long vtkNotUsed(eventId),
-                       void *vtkNotUsed(clientData))
+                       void *vtkNotUsed(clientData)) override
     {
       vtkMap::AsyncState state = this->Map->GetAsyncState();
       if (state != this->MapAsyncState)
