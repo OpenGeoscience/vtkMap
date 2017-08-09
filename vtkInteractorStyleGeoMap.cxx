@@ -12,7 +12,7 @@
    PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
-
+#include "Timer.h"
 #include "vtkInteractorStyleGeoMap.h"
 #include "vtkGeoMapSelection.h"
 #include "vtkMap.h"
@@ -39,7 +39,8 @@ vtkStandardNewMacro(vtkInteractorStyleGeoMap);
 
 //-----------------------------------------------------------------------------
 vtkInteractorStyleGeoMap::vtkInteractorStyleGeoMap() :
-  vtkInteractorStyleRubberBand2D()
+   vtkInteractorStyleRubberBand2D()
+,  Timer(std::unique_ptr<vtkMapType::Timer>(new vtkMapType::Timer))
 {
   this->Map = NULL;
   this->RubberBandMode = DisabledMode;
@@ -57,6 +58,12 @@ void vtkInteractorStyleGeoMap::PrintSelf(ostream& os, vtkIndent indent)
 //-----------------------------------------------------------------------------
 void vtkInteractorStyleGeoMap::OnLeftButtonDown()
 {
+  if (this->IsDoubleClick())
+  {
+    this->ZoomIn(2);
+    return;
+  }
+
   if (this->RubberBandMode == vtkInteractorStyleGeoMap::DisabledMode)
     {
     // Default map interaction == select feature & start pan
@@ -176,7 +183,11 @@ void vtkInteractorStyleGeoMap::OnLeftButtonUp()
 //-----------------------------------------------------------------------------
 void vtkInteractorStyleGeoMap::OnRightButtonDown()
 {
-  // Zooming with the right-click is disabled in this interactor (do nothing).
+  if (this->IsDoubleClick())
+  {
+    this->ZoomOut(2);
+    return;
+  }
 }
 
 //-----------------------------------------------------------------------------
@@ -189,6 +200,35 @@ void vtkInteractorStyleGeoMap::OnRightButtonUp()
   this->Interaction = NONE;
   this->InvokeEvent(vtkInteractorStyleGeoMap::RightButtonCompleteEvent, this->EndPosition);
 }
+
+//-----------------------------------------------------------------------------
+bool vtkInteractorStyleGeoMap::IsDoubleClick()
+{
+  const size_t elapsed = this->Timer->elapsed<std::chrono::milliseconds>();
+  const bool onTime = elapsed < this->DoubleClickDelay;
+
+  bool doubleClicked = false;
+  if (!onTime || this->MouseClicks == 0)
+  {
+    this->MouseClicks = 1;
+    this->Timer->reset();
+  }
+  else
+    this->MouseClicks++;
+
+  if (this->MouseClicks == 1)
+  {
+    this->Timer->reset();
+  }
+  else if (this->MouseClicks == 2)
+  {
+    doubleClicked = onTime;
+    this->MouseClicks = 0;
+  }
+
+  return doubleClicked;
+}
+
 
 //--------------------------------------------------------------------------
 void vtkInteractorStyleGeoMap::OnMouseMove()
@@ -217,12 +257,26 @@ void vtkInteractorStyleGeoMap::OnMouseMove()
 //----------------------------------------------------------------------------
 void vtkInteractorStyleGeoMap::OnMouseWheelForward()
 {
+  this->ZoomIn(1);
+  this->Superclass::OnMouseWheelForward();
+}
+
+//----------------------------------------------------------------------------
+void vtkInteractorStyleGeoMap::OnMouseWheelBackward()
+{
+  this->ZoomOut(1);
+  this->Superclass::OnMouseWheelBackward();
+}
+
+//-----------------------------------------------------------------------------
+void vtkInteractorStyleGeoMap::ZoomIn(int levels)
+{
   if (this->Map)
-    {
+  {
     int zoom = this->Map->GetZoom();
     if (zoom < 19)
-      {
-      zoom++;
+    {
+      zoom += levels;
       this->Map->SetZoom(zoom);
       this->SetCurrentRenderer(this->Map->GetRenderer());
 
@@ -241,7 +295,7 @@ void vtkInteractorStyleGeoMap::OnMouseWheelForward()
       camera->GetPosition(cameraCoords);
 
       if (this->Map->GetPerspectiveProjection())
-        {
+      {
         // Apply the dolly operation (move closer to focal point)
         camera->Dolly(2.0);
 
@@ -258,15 +312,15 @@ void vtkInteractorStyleGeoMap::OnMouseWheelForward()
         nextCameraCoords[0] = cameraCoords[0] + losVector[0];
         nextCameraCoords[1] = cameraCoords[1] + losVector[1];
         camera->SetPosition(nextCameraCoords);
-        }
+      }
       else
-        {
+      {
         double camZ = cameraCoords[2];
         vtkMath::Add(zoomCoords, cameraCoords, nextCameraCoords);
         vtkMath::MultiplyScalar(nextCameraCoords, 0.5);
         nextCameraCoords[2] = camZ;
         camera->SetPosition(nextCameraCoords);
-        }
+      }
 
       // Set same xy coords for the focal point
       nextCameraCoords[2] = 0.0;
@@ -274,21 +328,19 @@ void vtkInteractorStyleGeoMap::OnMouseWheelForward()
 
       // Redraw the map
       this->Map->Draw();
-      }
     }
-  this->Superclass::OnMouseWheelForward();
+  }
 }
 
-//----------------------------------------------------------------------------
-void vtkInteractorStyleGeoMap::OnMouseWheelBackward()
+//-----------------------------------------------------------------------------
+void vtkInteractorStyleGeoMap::ZoomOut(int levels)
 {
   if (this->Map)
-    {
+  {
     int zoom = this->Map->GetZoom();
     if (zoom > 0)
-      {
-      zoom--;
-
+    {
+      zoom -= levels;
       this->Map->SetZoom(zoom);
       this->SetCurrentRenderer(this->Map->GetRenderer());
 
@@ -307,7 +359,7 @@ void vtkInteractorStyleGeoMap::OnMouseWheelBackward()
       camera->GetPosition(cameraCoords);
 
       if (this->Map->GetPerspectiveProjection())
-        {
+      {
         // Apply the dolly operation (move away from focal point)
         camera->Dolly(0.5);
 
@@ -323,9 +375,9 @@ void vtkInteractorStyleGeoMap::OnMouseWheelBackward()
         nextCameraCoords[0] = cameraCoords[0] + losVector[0];
         nextCameraCoords[1] = cameraCoords[1] + losVector[1];
         camera->SetPosition(nextCameraCoords);
-        }
-        else
-        {
+      }
+      else
+      {
         double camZ = cameraCoords[2];
         cameraCoords[2] = 0.0;
         zoomCoords[2] = 0.0;
@@ -337,7 +389,7 @@ void vtkInteractorStyleGeoMap::OnMouseWheelBackward()
         vtkMath::Add(cameraCoords, losVector, nextCameraCoords);
         nextCameraCoords[2] = camZ;
         camera->SetPosition(nextCameraCoords);
-        }
+      }
 
       // Set same xy coords for the focal point
       nextCameraCoords[2] = 0.0;
@@ -345,9 +397,8 @@ void vtkInteractorStyleGeoMap::OnMouseWheelBackward()
 
       // Redraw the map
       this->Map->Draw();
-      }
     }
-  this->Superclass::OnMouseWheelBackward();
+  }
 }
 
 //-----------------------------------------------------------------------------

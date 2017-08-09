@@ -112,6 +112,7 @@ set (SOURCES
 
 #headers that we are going to install
 set (HEADERS
+    Timer.h
     vtkFeature.h
     vtkFeatureLayer.h
     vtkGDALRasterConverter.h

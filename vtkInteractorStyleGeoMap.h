@@ -14,6 +14,10 @@
 =========================================================================*/
 // .NAME vtkInteractorStyleGeoMap - interactor style specifically for map views
 // .SECTION Description
+//
+// This interactor style supports panning, zooming (mouse-wheel or double-click)
+// and picking (single-click or rubber-band).
+//
 // InteractorStyleGeoMap defaults for now to its base class approach which does
 // not render anything through the vtkRenderer OnMouseMove() but rather just
 // does it in the CPU caching the current frame to restore it after selection
@@ -21,28 +25,33 @@
 //
 #ifndef __vtkInteractorStyleGeoMap_h
 #define __vtkInteractorStyleGeoMap_h
+#include <memory>
 
 #include <vtkCommand.h>
 #include <vtkInteractorStyleRubberBand2D.h>
 
-#include <vtkmap_export.h>
+#include "vtkmap_export.h"
 
 class vtkActor2D;
 class vtkMap;
 class vtkPoints;
+
+namespace vtkMapType {
+  class Timer;
+}
 
 class VTKMAP_EXPORT vtkInteractorStyleGeoMap
   : public vtkInteractorStyleRubberBand2D
 {
 public:
   enum Commands
-    {
+  {
     SelectionCompleteEvent = vtkCommand::UserEvent + 1,
     DisplayClickCompleteEvent,   // DisplayOnlyMode && mouse click
     DisplayDrawCompleteEvent,    // DisplayOnlyMode && rectangle draw
     ZoomCompleteEvent,
     RightButtonCompleteEvent     // for application-context menus
-    };
+  };
 
 public:
   // Description:
@@ -97,6 +106,8 @@ public:
   void SetRubberBandModeToDisabled()
     {this->SetRubberBandMode(DisabledMode);}
 
+  vtkSetMacro(DoubleClickDelay, size_t);
+
   // Map
   void SetMap(vtkMap* map);
 
@@ -107,9 +118,21 @@ private:
   vtkInteractorStyleGeoMap(const vtkInteractorStyleGeoMap&) = delete;
   void operator=(const vtkInteractorStyleGeoMap&) = delete;
 
+  bool IsDoubleClick();
+
+/**
+ * Zoom handlers.
+ */
+  void ZoomIn(int levels);
+  void ZoomOut(int levels);
+
   vtkMap *Map;
   int RubberBandMode;
   vtkPoints*  RubberBandPoints;
+
+  std::unique_ptr<vtkMapType::Timer> Timer;
+  size_t DoubleClickDelay = 500;
+  unsigned char MouseClicks = 0;
 
 /**
  * vtkInteractorStyleGeoMap::Pan() can be called through a mouse movement
