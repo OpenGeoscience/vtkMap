@@ -14,6 +14,10 @@
 =========================================================================*/
 // .NAME vtkInteractorStyleGeoMap - interactor style specifically for map views
 // .SECTION Description
+//
+// This interactor style supports panning, zooming (mouse-wheel or double-click)
+// and picking (single-click or rubber-band).
+//
 // InteractorStyleGeoMap defaults for now to its base class approach which does
 // not render anything through the vtkRenderer OnMouseMove() but rather just
 // does it in the CPU caching the current frame to restore it after selection
@@ -41,13 +45,13 @@ class VTKMAP_EXPORT vtkInteractorStyleGeoMap
 {
 public:
   enum Commands
-    {
+  {
     SelectionCompleteEvent = vtkCommand::UserEvent + 1,
     DisplayClickCompleteEvent,   // DisplayOnlyMode && mouse click
     DisplayDrawCompleteEvent,    // DisplayOnlyMode && rectangle draw
     ZoomCompleteEvent,
     RightButtonCompleteEvent     // for application-context menus
-    };
+  };
 
 public:
   // Description:
@@ -116,6 +120,12 @@ private:
 
   bool IsDoubleClick();
 
+/**
+ * Zoom handlers.
+ */
+  void ZoomIn(int levels);
+  void ZoomOut(int levels);
+
   vtkMap *Map;
   int RubberBandMode;
   vtkPoints*  RubberBandPoints;
@@ -123,7 +133,6 @@ private:
   std::unique_ptr<vtkMapType::Timer> Timer;
   size_t DoubleClickDelay = 500;
   unsigned char MouseClicks = 0;
-  bool DoubleClicked = false;
 
 /**
  * vtkInteractorStyleGeoMap::Pan() can be called through a mouse movement
