@@ -32,7 +32,6 @@
 #include <vtkRenderer.h>
 #include <vtkSmartPointer.h>
 
-
 class vtkGeoMapLayerPass;
 class vtkInformationIntegerKey;
 class vtkRenderPass;
@@ -40,15 +39,15 @@ class vtkRenderPass;
 class VTKMAPCORE_EXPORT vtkLayer : public vtkObject
 {
 public:
-  void PrintSelf(ostream &os, vtkIndent indent) override;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
   vtkTypeMacro(vtkLayer, vtkObject)
 
-  // Description:
-  // Get the renderer for the layer
-  vtkGetMacro(Renderer, vtkRenderer*)
+    // Description:
+    // Get the renderer for the layer
+    vtkGetMacro(Renderer, vtkRenderer*)
 
-  // Description:
-  const std::string& GetName() const;
+    // Description:
+    const std::string& GetName() const;
   void SetName(const std::string& Name);
 
   // Description:
@@ -57,22 +56,17 @@ public:
   unsigned int GetId();
 
   // Description:
-  vtkGetMacro(Opacity, double)
-  vtkSetMacro(Opacity, double)
+  vtkGetMacro(Opacity, double) vtkSetMacro(Opacity, double)
 
-  // Description:
-  vtkBooleanMacro(Visibility, int)
-  vtkGetMacro(Visibility, int)
-  vtkSetMacro(Visibility, int)
+    // Description:
+    vtkBooleanMacro(Visibility, int) vtkGetMacro(Visibility, int)
+      vtkSetMacro(Visibility, int)
 
-  // Description:
-  vtkBooleanMacro(Base, int)
-  vtkGetMacro(Base, int)
-  vtkSetMacro(Base, int)
+    // Description:
+    vtkBooleanMacro(Base, int) vtkGetMacro(Base, int) vtkSetMacro(Base, int)
 
-  // Description:
-  vtkGetObjectMacro(Map, vtkMap)
-  void SetMap(vtkMap* map);
+    // Description:
+    vtkGetObjectMacro(Map, vtkMap) void SetMap(vtkMap* map);
 
   // Description:
   bool IsAsynchronous();
@@ -116,7 +110,7 @@ protected:
 
   std::string Name;
   unsigned int Id;
-  bool AsyncMode;  // layer has defered (asynchronous) updates
+  bool AsyncMode; // layer has defered (asynchronous) updates
 
   vtkMap* Map;
   vtkRenderer* Renderer;
@@ -125,9 +119,8 @@ protected:
   static unsigned int GlobalId;
 
 private:
-  vtkLayer(const vtkLayer&);  // Not implemented
+  vtkLayer(const vtkLayer&);            // Not implemented
   vtkLayer& operator=(const vtkLayer&); // Not implemented
 };
 
 #endif // __vtkLayer_h
-

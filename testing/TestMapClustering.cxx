@@ -20,30 +20,27 @@
 #include <vtkInteractorStyle.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
-#include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
+#include <vtkRenderer.h>
 #include <vtksys/CommandLineArguments.hxx>
 
 #include <iostream>
-#include <vector>
 #include <utility>
-
+#include <vector>
 
 //----------------------------------------------------------------------------
 void scrollCallback(vtkObject* caller, long unsigned int vtkNotUsed(eventId),
-                    void* clientData, void* vtkNotUsed(callData) )
+  void* clientData, void* vtkNotUsed(callData))
 {
   vtkMap* map = static_cast<vtkMap*>(clientData);
   map->Draw();
 }
 
-
-
 //----------------------------------------------------------------------------
 int main(int argc, char* argv[])
 {
- // Setup command line arguments
+  // Setup command line arguments
   std::string inputFile;
   int clusteringOff = false;
   bool debugMode = false;
@@ -54,29 +51,26 @@ int main(int argc, char* argv[])
   vtksys::CommandLineArguments arg;
   arg.Initialize(argc, argv);
   arg.StoreUnusedArguments(true);
-  arg.AddArgument("-h", vtksys::CommandLineArguments::NO_ARGUMENT,
-                  &showHelp, "show help message");
+  arg.AddArgument("-h", vtksys::CommandLineArguments::NO_ARGUMENT, &showHelp,
+    "show help message");
   arg.AddArgument("--help", vtksys::CommandLineArguments::NO_ARGUMENT,
-                  &showHelp, "show help message");
+    &showHelp, "show help message");
   arg.AddArgument("-c", vtksys::CommandLineArguments::MULTI_ARGUMENT,
-                  &centerLatLon, "initial center (latitude longitude)");
-  arg.AddArgument("-d", vtksys::CommandLineArguments::NO_ARGUMENT,
-                  &debugMode, "sets vtkMapMarkerSet::DebugOn()");
+    &centerLatLon, "initial center (latitude longitude)");
+  arg.AddArgument("-d", vtksys::CommandLineArguments::NO_ARGUMENT, &debugMode,
+    "sets vtkMapMarkerSet::DebugOn()");
   arg.AddArgument("-i", vtksys::CommandLineArguments::SPACE_ARGUMENT,
-                  &inputFile, "input file with \"latitude, longitude\" pairs");
+    &inputFile, "input file with \"latitude, longitude\" pairs");
   arg.AddArgument("-o", vtksys::CommandLineArguments::NO_ARGUMENT,
-                  &clusteringOff, "turn clustering off");
+    &clusteringOff, "turn clustering off");
   arg.AddArgument("-z", vtksys::CommandLineArguments::SPACE_ARGUMENT,
-                  &zoomLevel, "initial zoom level (1-20)");
+    &zoomLevel, "initial zoom level (1-20)");
 
   if (!arg.Parse() || showHelp)
-    {
-    std::cout << "\n"
-              << arg.GetHelp()
-              << std::endl;
+  {
+    std::cout << "\n" << arg.GetHelp() << std::endl;
     return -1;
-    }
-
+  }
 
   vtkNew<vtkMap> map;
   // Always set map's renderer *before* adding layers
@@ -87,11 +81,11 @@ int main(int argc, char* argv[])
   map->AddLayer(osmLayer.GetPointer());
 
   if (centerLatLon.size() < 2)
-    {
+  {
     // Use KHQ coordinates
     centerLatLon.push_back(42.849604);
     centerLatLon.push_back(-73.758345);
-    }
+  }
   map->SetCenter(centerLatLon[0], centerLatLon[1]);
   map->SetZoom(zoomLevel);
 
@@ -114,36 +108,36 @@ int main(int argc, char* argv[])
   std::pair<double, double> latLon;
   std::vector<std::pair<double, double> > latLonPairs;
   if (inputFile == "")
-    {
+  {
     //std::cout << "Test" << std::endl;
     double latLonCoords[][2] = {
-      42.915081,  -73.805122,  // Country Knolls
-      42.902851,  -73.687340,  // Mechanicville
-      42.792580,  -73.681229,  // Waterford
-      42.774239,  -73.700119,  // Cohoes
-      42.779800,  -73.845680   // Niskayuna
+      42.915081, -73.805122, // Country Knolls
+      42.902851, -73.687340, // Mechanicville
+      42.792580, -73.681229, // Waterford
+      42.774239, -73.700119, // Cohoes
+      42.779800, -73.845680  // Niskayuna
     };
     unsigned numMarkers = sizeof(latLonCoords) / sizeof(double) / 2;
-    for (unsigned i=0; i<numMarkers; ++i)
-      {
+    for (unsigned i = 0; i < numMarkers; ++i)
+    {
       latLon.first = latLonCoords[i][0];
       latLon.second = latLonCoords[i][1];
       latLonPairs.push_back(latLon);
-      }
     }
+  }
   else
-    {
+  {
     // Read input file to populate latLonCoords
     double lat;
     double lon;
     std::ifstream in(inputFile.c_str());
-    while(in >> lat >> lon)
-      {
+    while (in >> lat >> lon)
+    {
       latLon.first = lat;
       latLon.second = lon;
       latLonPairs.push_back(latLon);
-      }
     }
+  }
 
   vtkNew<vtkMapMarkerSet> markerSet;
   markerSet->SetDebug(debugMode);
@@ -151,12 +145,12 @@ int main(int argc, char* argv[])
   markerSet->SetClustering(clusteringOn);
   featureLayer->AddFeature(markerSet.GetPointer());
   std::vector<std::pair<double, double> >::const_iterator iter;
-  for (iter=latLonPairs.begin(); iter != latLonPairs.end(); iter++)
-    {
+  for (iter = latLonPairs.begin(); iter != latLonPairs.end(); iter++)
+  {
     double lat = iter->first;
     double lon = iter->second;
     markerSet->AddMarker(lat, lon);
-    }
+  }
 
   map->Draw();
 

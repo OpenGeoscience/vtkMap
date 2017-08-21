@@ -30,9 +30,9 @@
 #include <iostream>
 
 //----------------------------------------------------------------------------
-int TestRasterReprojectionFilter(const char *inputFilename)
+int TestRasterReprojectionFilter(const char* inputFilename)
 {
-  GDALAllRegister();  // shouldn't need this
+  GDALAllRegister(); // shouldn't need this
 
   // Load input file
   vtkNew<vtkGDALRasterReader> reader;
@@ -52,19 +52,20 @@ int TestRasterReprojectionFilter(const char *inputFilename)
   accumulator->SetComponentExtent(0, 1, 0, 1, 0, 0);
   accumulator->Update();
 
-  double *min = accumulator->GetMin();
-  double *mean = accumulator->GetMean();
-  double *max = accumulator->GetMax();
-  double *std = accumulator->GetStandardDeviation();
+  double* min = accumulator->GetMin();
+  double* mean = accumulator->GetMean();
+  double* max = accumulator->GetMax();
+  double* std = accumulator->GetStandardDeviation();
   vtkIdType count = accumulator->GetVoxelCount();
 
-  std::cout << "Accumulator results:" << "\n"
+  std::cout << "Accumulator results:"
+            << "\n"
             << "  Voxel count: " << count
-            << "  Min, Mean, Max StdDev:  " << min[0]
-            << ", " << mean[0] << ", " << max[0] << ", " << std[0] << "\n";
+            << "  Min, Mean, Max StdDev:  " << min[0] << ", " << mean[0] << ", "
+            << max[0] << ", " << std[0] << "\n";
 
   // Write image to file
-  const char *outputFilename = "image.vti";
+  const char* outputFilename = "image.vti";
   vtkNew<vtkXMLImageDataWriter> writer;
   writer->SetFileName(outputFilename);
   writer->SetInputConnection(filter->GetOutputPort());
@@ -73,30 +74,30 @@ int TestRasterReprojectionFilter(const char *inputFilename)
   std::cout << "Wrote " << outputFilename << std::endl;
 
   // Display input image
-  vtkImageData *inputImage = reader->GetOutput();
-  double *scalarRange = inputImage->GetScalarRange();
-  double colorLevel = 0.5*(scalarRange[0] + scalarRange[1]);
+  vtkImageData* inputImage = reader->GetOutput();
+  double* scalarRange = inputImage->GetScalarRange();
+  double colorLevel = 0.5 * (scalarRange[0] + scalarRange[1]);
   double colorRange = scalarRange[1] - scalarRange[0];
 
-  vtkImageViewer2 *inputViewer = vtkImageViewer2::New();
+  vtkImageViewer2* inputViewer = vtkImageViewer2::New();
   inputViewer->SetInputData(inputImage);
   inputViewer->SetColorLevel(colorLevel);
   inputViewer->SetColorWindow(colorRange);
   inputViewer->Render();
-  int *inputDims = inputImage->GetDimensions();
-  std::cout << "Input image " << inputDims[0]
-            << " x " << inputDims[1] << std::endl;
+  int* inputDims = inputImage->GetDimensions();
+  std::cout << "Input image " << inputDims[0] << " x " << inputDims[1]
+            << std::endl;
 
   // Display reprojected image
-  vtkImageData *outputImage = filter->GetOutput();
-  vtkImageViewer2 *outputViewer = vtkImageViewer2::New();
+  vtkImageData* outputImage = filter->GetOutput();
+  vtkImageViewer2* outputViewer = vtkImageViewer2::New();
   outputViewer->SetInputData(outputImage);
   outputViewer->SetColorLevel(colorLevel);
   outputViewer->SetColorWindow(colorRange);
   outputViewer->Render();
-  int *outputDims = outputImage->GetDimensions();
-  std::cout << "Output image " << outputDims[0]
-            << " x " << outputDims[1] << std::endl;
+  int* outputDims = outputImage->GetDimensions();
+  std::cout << "Output image " << outputDims[0] << " x " << outputDims[1]
+            << std::endl;
 
   std::cout << "Hit any key plus <ENTER> to exit: ";
   char c;
@@ -112,17 +113,17 @@ int TestRasterReprojectionFilter(const char *inputFilename)
   return 0;
 }
 
-
 //----------------------------------------------------------------------------
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
   if (argc < 2)
-    {
+  {
     std::cout << "\n"
-              << "Usage: TestRasterReprojectionFilter  inputfile" << "\n"
+              << "Usage: TestRasterReprojectionFilter  inputfile"
+              << "\n"
               << std::endl;
     return -1;
-     }
+  }
 
   int result = TestRasterReprojectionFilter(argv[1]);
   std::cout << "Finis" << std::endl;

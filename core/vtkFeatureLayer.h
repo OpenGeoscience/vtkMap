@@ -28,15 +28,14 @@ class VTKMAPCORE_EXPORT vtkFeatureLayer : public vtkLayer
 {
 public:
   static vtkFeatureLayer* New();
-  void PrintSelf(ostream &os, vtkIndent indent) override;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
   vtkTypeMacro(vtkFeatureLayer, vtkLayer)
 
-
-  // Description:
-  // Override vtkObject::Delete()
-  // Needed in order to delete features, which use a weak pointer to
-  // to their vtkFeatureLayer instance,
-  void Delete() override;
+    // Description:
+    // Override vtkObject::Delete()
+    // Needed in order to delete features, which use a weak pointer to
+    // to their vtkFeatureLayer instance,
+    void Delete() override;
 
   // Description:
   // Add a new feature to the layer
@@ -49,7 +48,7 @@ public:
 
   // Description:
   // Return all features contained here
-  vtkCollection *GetFeatures();
+  vtkCollection* GetFeatures();
 
   // Description:
   // Update features and prepare them for rendering
@@ -64,7 +63,7 @@ protected:
   vtkInternal* Impl;
 
 private:
-  vtkFeatureLayer(const vtkFeatureLayer&);  // Not implemented
+  vtkFeatureLayer(const vtkFeatureLayer&);            // Not implemented
   vtkFeatureLayer& operator=(const vtkFeatureLayer&); // Not implemented
 };
 

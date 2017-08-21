@@ -19,23 +19,23 @@
 #define __vtkGDALRasterReprojection_h
 
 // VTK Includes
-#include <vtkObject.h>
 #include "vtkmapgdal_export.h"
+#include <vtkObject.h>
 
 class GDALDataset;
 
 class VTKMAPGDAL_EXPORT vtkGDALRasterReprojection : public vtkObject
 {
 public:
-  static vtkGDALRasterReprojection *New();
-  void PrintSelf(ostream &os, vtkIndent indent) override;
+  static vtkGDALRasterReprojection* New();
+  void PrintSelf(ostream& os, vtkIndent indent) override;
   vtkTypeMacro(vtkGDALRasterReprojection, vtkObject)
 
-  // Description:
-  // The maximum error measured in input pixels that is allowed
-  // in approximating the reprojection transformation
-  // (0.0 for exact calculations).
-  vtkSetClampMacro(MaxError, double, 0.0, VTK_DOUBLE_MAX);
+    // Description:
+    // The maximum error measured in input pixels that is allowed
+    // in approximating the reprojection transformation
+    // (0.0 for exact calculations).
+    vtkSetClampMacro(MaxError, double, 0.0, VTK_DOUBLE_MAX);
 
   // Description:
   // Pixel resampling algorithm, between 0 and 6
@@ -55,18 +55,16 @@ public:
   // definition, or shorter commonly-used names such as "EPSG:4326" or
   // "WGS84".
   // Returns boolean indicating if computed dimensions are valid.
-  bool SuggestOutputDimensions(GDALDataset *inputDataset,
-                               const char *outputProjection,
-                               double geoTransform[6],
-                               int *nPixels, int *nLines,
-                               double maxError = 0.0);
+  bool SuggestOutputDimensions(GDALDataset* inputDataset,
+    const char* outputProjection, double geoTransform[6], int* nPixels,
+    int* nLines, double maxError = 0.0);
 
   // Description
   // Compute the reprojection of the input dataset.
   // The output dataset must have its projection initialized to the
   // desired result, as well as its raster dimensions.
   // Returns boolean indicating if the result is valid.
-  bool Reproject(GDALDataset *input, GDALDataset *output);
+  bool Reproject(GDALDataset* input, GDALDataset* output);
 
 protected:
   vtkGDALRasterReprojection();

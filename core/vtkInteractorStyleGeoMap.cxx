@@ -12,8 +12,8 @@
    PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
-#include "Timer.h"
 #include "vtkInteractorStyleGeoMap.h"
+#include "Timer.h"
 #include "vtkGeoMapSelection.h"
 #include "vtkMap.h"
 
@@ -26,21 +26,21 @@
 #include <vtkMath.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
+#include <vtkPoints.h>
 #include <vtkPolyData.h>
 #include <vtkPolyDataMapper2D.h>
-#include <vtkPoints.h>
-#include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
+#include <vtkRenderer.h>
 
 #include <algorithm>
 
 vtkStandardNewMacro(vtkInteractorStyleGeoMap);
 
 //-----------------------------------------------------------------------------
-vtkInteractorStyleGeoMap::vtkInteractorStyleGeoMap() :
-   vtkInteractorStyleRubberBand2D()
-,  Timer(std::unique_ptr<vtkMapType::Timer>(new vtkMapType::Timer))
+vtkInteractorStyleGeoMap::vtkInteractorStyleGeoMap()
+  : vtkInteractorStyleRubberBand2D()
+  , Timer(std::unique_ptr<vtkMapType::Timer>(new vtkMapType::Timer))
 {
   this->Map = NULL;
   this->RubberBandMode = DisabledMode;
@@ -65,14 +65,14 @@ void vtkInteractorStyleGeoMap::OnLeftButtonDown()
   }
 
   if (this->RubberBandMode == vtkInteractorStyleGeoMap::DisabledMode)
-    {
+  {
     // Default map interaction == select feature & start pan
-    int *pos = this->Interactor->GetEventPosition();
+    int* pos = this->Interactor->GetEventPosition();
 
     vtkDebugMacro("StartPan()");
     this->Interaction = PANNING;
     this->StartPan();
-    }
+  }
 
   this->StartPosition[0] = this->Interactor->GetEventPosition()[0];
   this->StartPosition[1] = this->Interactor->GetEventPosition()[1];
@@ -89,9 +89,9 @@ void vtkInteractorStyleGeoMap::OnLeftButtonUp()
   this->EndPan();
 
   if (this->RubberBandMode == vtkInteractorStyleGeoMap::DisabledMode)
-    {
+  {
     this->Interactor->GetRenderWindow()->SetCurrentCursor(VTK_CURSOR_DEFAULT);
-    }
+  }
 
   // Get corner points of interaction, sorted by min/max
   int boundCoords[4];
@@ -99,14 +99,13 @@ void vtkInteractorStyleGeoMap::OnLeftButtonUp()
   boundCoords[1] = std::min(this->StartPosition[1], this->EndPosition[1]);
   boundCoords[2] = std::max(this->StartPosition[0], this->EndPosition[0]);
   boundCoords[3] = std::max(this->StartPosition[1], this->EndPosition[1]);
-  int area = (boundCoords[2] - boundCoords[0]) *
-    (boundCoords[3] - boundCoords[1]);
+  int area =
+    (boundCoords[2] - boundCoords[0]) * (boundCoords[3] - boundCoords[1]);
   // Use threshold to distinguish between click and movement
   bool moved = area > 25;
   vtkDebugMacro("RubberBand complete with points:"
-                << " " << boundCoords[0] << ", " << boundCoords[1]
-                << "  " << boundCoords[2] << ", " << boundCoords[3]
-                << ", area  " << area << ", moved " << moved);
+    << " " << boundCoords[0] << ", " << boundCoords[1] << "  " << boundCoords[2]
+    << ", " << boundCoords[3] << ", area  " << area << ", moved " << moved);
 
   // Compute lat-lon coordinates
   double latLonCoords[4];
@@ -126,9 +125,9 @@ void vtkInteractorStyleGeoMap::OnLeftButtonUp()
 
   // Default mode
   if (this->RubberBandMode == vtkInteractorStyleGeoMap::DisabledMode)
+  {
+    if (!moved) // treat as mouse click
     {
-    if (!moved)  // treat as mouse click
-      {
       vtkNew<vtkGeoMapSelection> pickResult;
       pickResult->SetLatLngBounds(latLonCoords);
 
@@ -144,36 +143,36 @@ void vtkInteractorStyleGeoMap::OnLeftButtonUp()
 
       this->Map->PickArea(boundCoords, pickResult.GetPointer());
       this->InvokeEvent(SelectionCompleteEvent, pickResult.GetPointer());
-      }
     }
+  }
 
   // Display-only mode
   else if (this->RubberBandMode == vtkInteractorStyleGeoMap::DisplayOnlyMode)
-    {
+  {
     int command = moved ? DisplayDrawCompleteEvent : DisplayClickCompleteEvent;
     this->InvokeEvent(command, latLonCoords);
-    }
+  }
 
   // Selection mode
   else if (this->RubberBandMode == vtkInteractorStyleGeoMap::SelectionMode)
-    {
+  {
     vtkNew<vtkGeoMapSelection> pickResult;
     pickResult->SetLatLngBounds(latLonCoords);
     this->Map->PickArea(boundCoords, pickResult.GetPointer());
     this->InvokeEvent(SelectionCompleteEvent, pickResult.GetPointer());
-    }
+  }
 
   // Zoom mode
   else if (this->RubberBandMode == vtkInteractorStyleGeoMap::ZoomMode)
-    {
+  {
     if (moved)
-      {
+    {
       // Change visible bounds and send event
       this->Map->SetVisibleBounds(latLonCoords);
-      this->InvokeEvent(vtkInteractorStyleGeoMap::ZoomCompleteEvent,
-                        latLonCoords);
-      } 
+      this->InvokeEvent(
+        vtkInteractorStyleGeoMap::ZoomCompleteEvent, latLonCoords);
     }
+  }
 
   this->Map->Draw();
   this->Interaction = NONE;
@@ -198,7 +197,8 @@ void vtkInteractorStyleGeoMap::OnRightButtonUp()
   this->EndPosition[0] = this->StartPosition[0];
   this->EndPosition[1] = this->StartPosition[1];
   this->Interaction = NONE;
-  this->InvokeEvent(vtkInteractorStyleGeoMap::RightButtonCompleteEvent, this->EndPosition);
+  this->InvokeEvent(
+    vtkInteractorStyleGeoMap::RightButtonCompleteEvent, this->EndPosition);
 }
 
 //-----------------------------------------------------------------------------
@@ -229,24 +229,24 @@ bool vtkInteractorStyleGeoMap::IsDoubleClick()
   return doubleClicked;
 }
 
-
 //--------------------------------------------------------------------------
 void vtkInteractorStyleGeoMap::OnMouseMove()
 {
   if (this->RubberBandMode == DisabledMode)
-    {
+  {
     // Original map interaction == pan
-    int *pos = this->Interactor->GetEventPosition();
+    int* pos = this->Interactor->GetEventPosition();
     switch (this->State)
-      {
+    {
       case VTKIS_PAN:
         this->FindPokedRenderer(pos[0], pos[1]);
-        this->Interactor->GetRenderWindow()->SetCurrentCursor(VTK_CURSOR_SIZEALL);
+        this->Interactor->GetRenderWindow()->SetCurrentCursor(
+          VTK_CURSOR_SIZEALL);
         this->MouseMoved = true;
         this->Pan();
         break;
-      }
     }
+  }
 
   this->EndPosition[0] = this->Interactor->GetEventPosition()[0];
   this->EndPosition[1] = this->Interactor->GetEventPosition()[1];
@@ -280,10 +280,10 @@ void vtkInteractorStyleGeoMap::ZoomIn(int levels)
       this->Map->SetZoom(zoom);
       this->SetCurrentRenderer(this->Map->GetRenderer());
 
-      vtkCamera *camera = this->Map->GetRenderer()->GetActiveCamera();
+      vtkCamera* camera = this->Map->GetRenderer()->GetActiveCamera();
 
       // Get current mouse coordinates (to make that screen position constant)
-      int *pos = this->Interactor->GetEventPosition();
+      int* pos = this->Interactor->GetEventPosition();
 
       // Get corresponding world coordinates
       double zoomCoords[4];
@@ -304,7 +304,7 @@ void vtkInteractorStyleGeoMap::ZoomIn(int levels)
 
         // Adjust xy position to be proportional to change in z
         // That way, the zoom point remains stationary
-        const double f = 0.5;   // fraction that camera moved closer to origin
+        const double f = 0.5; // fraction that camera moved closer to origin
         double losVector[3];  // line-of-sight vector, from camera to zoomCoords
         vtkMath::Subtract(zoomCoords, cameraCoords, losVector);
         vtkMath::Normalize(losVector);
@@ -344,10 +344,10 @@ void vtkInteractorStyleGeoMap::ZoomOut(int levels)
       this->Map->SetZoom(zoom);
       this->SetCurrentRenderer(this->Map->GetRenderer());
 
-      vtkCamera *camera = this->Map->GetRenderer()->GetActiveCamera();
+      vtkCamera* camera = this->Map->GetRenderer()->GetActiveCamera();
 
       // Get current mouse coordinates (to make that screen position constant)
-      int *pos = this->Interactor->GetEventPosition();
+      int* pos = this->Interactor->GetEventPosition();
 
       // Get corresponding world coordinates
       double zoomCoords[4];
@@ -368,7 +368,7 @@ void vtkInteractorStyleGeoMap::ZoomOut(int levels)
 
         // Adjust xy position to be proportional to change in z
         // That way, the zoom point remains stationary
-        double losVector[3];  // line-of-sight vector, from camera to zoomCoords
+        double losVector[3]; // line-of-sight vector, from camera to zoomCoords
         vtkMath::Subtract(zoomCoords, cameraCoords, losVector);
         vtkMath::Normalize(losVector);
         vtkMath::MultiplyScalar(losVector, -1.0 * cameraCoords[2]);
@@ -384,7 +384,7 @@ void vtkInteractorStyleGeoMap::ZoomOut(int levels)
 
         // Adjust xy position to be proportional to change in z
         // That way, the zoom point remains stationary
-        double losVector[3];  // line-of-sight vector, from camera to zoomCoords
+        double losVector[3]; // line-of-sight vector, from camera to zoomCoords
         vtkMath::Subtract(cameraCoords, zoomCoords, losVector);
         vtkMath::Add(cameraCoords, losVector, nextCameraCoords);
         nextCameraCoords[2] = camZ;
@@ -402,7 +402,7 @@ void vtkInteractorStyleGeoMap::ZoomOut(int levels)
 }
 
 //-----------------------------------------------------------------------------
-void vtkInteractorStyleGeoMap::SetMap(vtkMap *map)
+void vtkInteractorStyleGeoMap::SetMap(vtkMap* map)
 {
   this->Map = map;
   this->SetCurrentRenderer(map->GetRenderer());
@@ -419,31 +419,27 @@ void vtkInteractorStyleGeoMap::Pan()
 
   // Following logic is copied from vtkInteractorStyleTrackballCamera:
 
-  vtkRenderWindowInteractor *rwi = this->Interactor;
+  vtkRenderWindowInteractor* rwi = this->Interactor;
 
   double viewFocus[4], focalDepth, viewPoint[3];
   double newPickPoint[4], oldPickPoint[4], motionVector[3];
 
   // Calculate the focal depth since we'll be using it a lot
 
-  vtkCamera *camera = this->CurrentRenderer->GetActiveCamera();
+  vtkCamera* camera = this->CurrentRenderer->GetActiveCamera();
   camera->GetFocalPoint(viewFocus);
-  this->ComputeWorldToDisplay(viewFocus[0], viewFocus[1], viewFocus[2],
-                              viewFocus);
+  this->ComputeWorldToDisplay(
+    viewFocus[0], viewFocus[1], viewFocus[2], viewFocus);
   focalDepth = viewFocus[2];
 
   this->ComputeDisplayToWorld(rwi->GetEventPosition()[0],
-                              rwi->GetEventPosition()[1],
-                              focalDepth,
-                              newPickPoint);
+    rwi->GetEventPosition()[1], focalDepth, newPickPoint);
 
   // Has to recalc old mouse point since the viewport has moved,
   // so can't move it outside the loop
 
   this->ComputeDisplayToWorld(rwi->GetLastEventPosition()[0],
-                              rwi->GetLastEventPosition()[1],
-                              focalDepth,
-                              oldPickPoint);
+    rwi->GetLastEventPosition()[1], focalDepth, oldPickPoint);
 
   // Camera motion is reversed
 
@@ -454,12 +450,10 @@ void vtkInteractorStyleGeoMap::Pan()
   camera->GetFocalPoint(viewFocus);
   camera->GetPosition(viewPoint);
   camera->SetFocalPoint(motionVector[0] + viewFocus[0],
-                        motionVector[1] + viewFocus[1],
-                        motionVector[2] + viewFocus[2]);
+    motionVector[1] + viewFocus[1], motionVector[2] + viewFocus[2]);
 
   camera->SetPosition(motionVector[0] + viewPoint[0],
-                      motionVector[1] + viewPoint[1],
-                      motionVector[2] + viewPoint[2]);
+    motionVector[1] + viewPoint[1], motionVector[2] + viewPoint[2]);
 
   this->Map->Draw();
   this->MouseMoved = false;

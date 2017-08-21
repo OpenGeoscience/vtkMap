@@ -19,28 +19,28 @@
 #include <vtkInteractorStyle.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
-#include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
+#include <vtkRenderer.h>
 #include <vtksys/SystemTools.hxx>
 
-#include <cstdlib>  // for system()
+#include <cstdlib> // for system()
 #include <iostream>
 #include <string>
 
 //----------------------------------------------------------------------------
-void SetupCacheDirectory(vtkMap *map, std::string& dirname)
+void SetupCacheDirectory(vtkMap* map, std::string& dirname)
 {
   // Setup cache directory for testing
   std::string storageDir = map->GetStorageDirectory();
   std::string testDir = storageDir + "/" + dirname;
 
   // Create directory if it doesn't already exist
-  if(!vtksys::SystemTools::FileIsDirectory(testDir.c_str()))
-    {
+  if (!vtksys::SystemTools::FileIsDirectory(testDir.c_str()))
+  {
     std::cerr << "Creating test directory " << testDir << std::endl;
     vtksys::SystemTools::MakeDirectory(testDir.c_str());
-    }
+  }
 
   // Make sure directory is empty
   std::string command = "exec rm -rf " + testDir + "/*";
@@ -63,9 +63,9 @@ int TestOsmLayer(int argc, char* argv[])
 
   // Argument 1 specifies test directory (optional)
   if (argc > 1)
-    {
+  {
     map->SetStorageDirectory(argv[1]);
-    }
+  }
   std::string cacheDir = "test";
   SetupCacheDirectory(map.GetPointer(), cacheDir);
   osmLayer->SetCacheSubDirectory(cacheDir.c_str());

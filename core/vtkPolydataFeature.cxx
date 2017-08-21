@@ -18,7 +18,8 @@
 vtkStandardNewMacro(vtkPolydataFeature);
 
 //----------------------------------------------------------------------------
-vtkPolydataFeature::vtkPolydataFeature() : vtkFeature()
+vtkPolydataFeature::vtkPolydataFeature()
+  : vtkFeature()
 {
   this->Actor = vtkActor::New();
   this->Mapper = vtkPolyDataMapper::New();
@@ -44,14 +45,14 @@ void vtkPolydataFeature::PrintSelf(std::ostream& os, vtkIndent indent)
 void vtkPolydataFeature::Init()
 {
   if (this->GetMTime() > this->BuildTime.GetMTime())
-    {
+  {
     this->Mapper->Update();
 
     if (!this->Actor->GetMapper())
-      {
+    {
       this->Actor->SetMapper(this->Mapper);
-      }
     }
+  }
 
   this->Layer->AddActor(this->Actor);
 }
@@ -71,7 +72,7 @@ void vtkPolydataFeature::CleanUp()
 }
 
 //----------------------------------------------------------------------------
-vtkProp *vtkPolydataFeature::PickProp()
+vtkProp* vtkPolydataFeature::PickProp()
 {
   return this->Actor;
 }

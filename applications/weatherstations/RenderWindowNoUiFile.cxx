@@ -25,9 +25,9 @@
 #include <vtkInteractorStyleImage.h>
 #include <vtkNew.h>
 #include <vtkPolyDataMapper.h>
-#include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
+#include <vtkRenderer.h>
 #include <vtkSmartPointer.h>
 #include <vtkSphereSource.h>
 
@@ -36,21 +36,23 @@
 #include <QMainWindow>
 #include <QPushButton>
 
-
-
 // ------------------------------------------------------------
 // Callback command for handling mouse events
 // In the future, will be replaced by interactor style
 class MapCallback : public vtkCallbackCommand
 {
 public:
-  MapCallback(vtkMap *map) : Map(map), MouseDown(false) {}
+  MapCallback(vtkMap* map)
+    : Map(map)
+    , MouseDown(false)
+  {
+  }
 
-  void Execute(vtkObject *caller, unsigned long eventId,
-    void *callData) override
+  void Execute(
+    vtkObject* caller, unsigned long eventId, void* callData) override
   {
     switch (eventId)
-      {
+    {
       case vtkCommand::MiddleButtonPressEvent:
         this->MouseDown = true;
         break;
@@ -59,20 +61,19 @@ public:
         break;
       case vtkCommand::MouseMoveEvent:
         if (this->MouseDown)
-          {
+        {
           this->Map->Draw();
-          }
+        }
       case vtkCommand::MouseWheelForwardEvent:
       case vtkCommand::MouseWheelBackwardEvent:
         this->Map->Draw();
-      }
+    }
   }
 
 protected:
-  vtkMap *Map;
+  vtkMap* Map;
   bool MouseDown;
 };
-
 
 // ------------------------------------------------------------
 int main(int argc, char** argv)
@@ -83,10 +84,10 @@ int main(int argc, char** argv)
   mainWindow.setCentralWidget(&frame);
 
   // Setup push button (plain Qt widget)
-  QPushButton *button = new QPushButton("Test", &frame);
+  QPushButton* button = new QPushButton("Test", &frame);
   button->move(50, 50);
 
-  int mapWidth = 900;  // default (when sphere widget not included)
+  int mapWidth = 900; // default (when sphere widget not included)
 #if 0
   // Setup sphere (QVTKWidget) from VTK wiki
   QVTKWidget widget(&frame);
@@ -132,12 +133,11 @@ int main(int argc, char** argv)
   mapRenderWindow->AddRenderer(mapRenderer.GetPointer());
   mapWidget.SetRenderWindow(mapRenderWindow.GetPointer());
 
-  vtkRenderWindowInteractor *intr = mapWidget.GetInteractor();
+  vtkRenderWindowInteractor* intr = mapWidget.GetInteractor();
   intr->SetInteractorStyle((map->GetInteractorStyle()));
   intr->Initialize();
 
-
-  MapCallback *mapCallback = new MapCallback(map.GetPointer());
+  MapCallback* mapCallback = new MapCallback(map.GetPointer());
   intr->AddObserver(vtkCommand::AnyEvent, mapCallback);
   intr->Start();
 

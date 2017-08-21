@@ -16,30 +16,30 @@
 #ifndef __vtkMercator_h
 #define __vtkMercator_h
 
-#include <vtkObject.h>
 #include <cmath>
+#include <vtkObject.h>
 
 #define WEB_MERCATOR_EXTENT 20037508.34
 
 class vtkMercator : vtkObject
 {
-//by default visual studio doesn't provide the M_PI define as it is a
-//non standard function, but with the around defines it does. It is far to
-//complicated to make sure everything gets included in the right order for
-//that to happen for a header only class. Instead we provide our own
-//M_PI define if it isn't already defined. The value we have chose is the
-//one that math.h uses on compilers that support M_PI.
+  //by default visual studio doesn't provide the M_PI define as it is a
+  //non standard function, but with the around defines it does. It is far to
+  //complicated to make sure everything gets included in the right order for
+  //that to happen for a header only class. Instead we provide our own
+  //M_PI define if it isn't already defined. The value we have chose is the
+  //one that math.h uses on compilers that support M_PI.
   static double m_pi()
   {
 #ifndef M_PI
-  return 3.14159265358979323846;
+    return 3.14159265358979323846;
 #else
-  return M_PI;
+    return M_PI;
 #endif
   };
 
 public:
-  void PrintSelf(ostream &, vtkIndent) override {}
+  void PrintSelf(ostream&, vtkIndent) override {}
   vtkTypeMacro(vtkMercator, vtkObject);
 
   //----------------------------------------------------------------------------
@@ -51,8 +51,11 @@ public:
   //----------------------------------------------------------------------------
   static int lat2tiley(double lat, int z)
   {
-    return (int)(floor((1.0 - log( tan(lat * m_pi()/180.0) + 1.0 /
-      cos(lat * m_pi()/180.0)) / m_pi()) / 2.0 * std::pow(2.0, z)));
+    return (int)(floor(
+      (1.0 -
+        log(tan(lat * m_pi() / 180.0) + 1.0 / cos(lat * m_pi() / 180.0)) /
+          m_pi()) /
+      2.0 * std::pow(2.0, z)));
   }
 
   //----------------------------------------------------------------------------
@@ -87,13 +90,13 @@ public:
     // Truncated value from y2lat(90):
     const double MAX_LATITUDE = 66.513;
     if (lat > MAX_LATITUDE)
-      {
+    {
       return MAX_LATITUDE;
-      }
+    }
     else if (lat < -MAX_LATITUDE)
-      {
+    {
       return -MAX_LATITUDE;
-      }
+    }
 
     return lat;
   }
@@ -104,13 +107,13 @@ public:
   {
     const double MAX_LONGITUDE = 179.999;
     if (lon > MAX_LONGITUDE)
-      {
+    {
       return MAX_LONGITUDE;
-      }
+    }
     else if (lon < -MAX_LONGITUDE)
-      {
+    {
       return -MAX_LONGITUDE;
-      }
+    }
 
     return lon;
   }
@@ -133,7 +136,5 @@ protected:
   vtkMercator() {}
   virtual ~vtkMercator() {}
 };
-
-
 
 #endif // __vtkMercator_h

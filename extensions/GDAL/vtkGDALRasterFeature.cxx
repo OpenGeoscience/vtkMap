@@ -20,10 +20,9 @@
 #include "vtkMercator.h"
 #include "vtkRasterReprojectionFilter.h"
 
-
 vtkStandardNewMacro(vtkGDALRasterFeature);
 
-void vtkGDALRasterFeature::SetGDALDataDirectory(char *path)
+void vtkGDALRasterFeature::SetGDALDataDirectory(char* path)
 {
   CPLSetConfigOption("GDAL_DATA", path);
 }
@@ -39,23 +38,23 @@ void vtkGDALRasterFeature::Reproject()
   vtkNew<vtkRasterReprojectionFilter> reprojector;
   reprojector->SetInputData(this->ImageData);
   reprojector->SetInputProjection(this->InputProjection);
-  reprojector->SetOutputProjection("EPSG:3857");  // (web mercator)
+  reprojector->SetOutputProjection("EPSG:3857"); // (web mercator)
   reprojector->Update();
-  vtkImageData *displayImage = reprojector->GetOutput();
+  vtkImageData* displayImage = reprojector->GetOutput();
 
   // Can release input image now
   this->ImageData->Delete();
   this->ImageData = NULL;
 
   // Convert image origin from web-mercator to kitware-mercator projection
-  double *origin = displayImage->GetOrigin();
+  double* origin = displayImage->GetOrigin();
   origin[0] = vtkMercator::web2vtk(origin[0]);
   origin[1] = vtkMercator::web2vtk(origin[1]);
   origin[2] = this->ZCoord;
   displayImage->SetOrigin(origin);
 
   // Convert image spacing from web-mercator to kitware-mercator projection
-  double *spacing = displayImage->GetSpacing();
+  double* spacing = displayImage->GetSpacing();
   spacing[0] = vtkMercator::web2vtk(spacing[0]);
   spacing[1] = vtkMercator::web2vtk(spacing[1]);
   displayImage->SetSpacing(spacing);

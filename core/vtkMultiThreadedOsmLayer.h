@@ -29,8 +29,8 @@
 #ifndef __vtkMultiThreadedOsmLayer_h
 #define __vtkMultiThreadedOsmLayer_h
 
-#include "vtkOsmLayer.h"
 #include "vtkMapTileSpecInternal.h"
+#include "vtkOsmLayer.h"
 #include <string>
 #include <vector>
 
@@ -41,9 +41,9 @@ typedef std::vector<vtkMapTileSpecInternal> TileSpecList;
 class VTKMAPCORE_EXPORT vtkMultiThreadedOsmLayer : public vtkOsmLayer
 {
 public:
-  static vtkMultiThreadedOsmLayer *New();
-  vtkTypeMacro(vtkMultiThreadedOsmLayer, vtkOsmLayer)
-  void PrintSelf(ostream &os, vtkIndent indent) override;
+  static vtkMultiThreadedOsmLayer* New();
+  vtkTypeMacro(vtkMultiThreadedOsmLayer, vtkOsmLayer) void PrintSelf(
+    ostream& os, vtkIndent indent) override;
 
   // Description:
   void Update() override;
@@ -75,10 +75,8 @@ protected:
 
   // Description:
   // Instantiate and initialize vtkMapTile
-  vtkMapTile *CreateTile(
-    vtkMapTileSpecInternal& spec,
-    const std::string& localPath,
-    const std::string& remoteUrl);
+  vtkMapTile* CreateTile(vtkMapTileSpecInternal& spec,
+    const std::string& localPath, const std::string& remoteUrl);
 
   // Description:
   // Assign tile specs evenly across request threads
@@ -92,18 +90,18 @@ protected:
   // Separate tile specs from threads into two lists,
   // depending on whether they have initialized tile or not.
   // Does not clear lists, but appends data to them.
-  void CollateThreadResults(TileSpecList& newTiles,
-                            TileSpecList& tileSpecs);
+  void CollateThreadResults(TileSpecList& newTiles, TileSpecList& tileSpecs);
 
   // Description:
   // Copies new tiles to shared list.
   void UpdateNewTiles(TileSpecList& newTiles);
 
   class vtkMultiThreadedOsmLayerInternals;
-  vtkMultiThreadedOsmLayerInternals *Internals;
+  vtkMultiThreadedOsmLayerInternals* Internals;
+
 private:
-  vtkMultiThreadedOsmLayer(const vtkMultiThreadedOsmLayer&);  // Not implemented
-  void operator=(const vtkMultiThreadedOsmLayer&); // Not implemented
+  vtkMultiThreadedOsmLayer(const vtkMultiThreadedOsmLayer&); // Not implemented
+  void operator=(const vtkMultiThreadedOsmLayer&);           // Not implemented
 };
 
 #endif // __vtkMultiThreadedOsmLayer_h

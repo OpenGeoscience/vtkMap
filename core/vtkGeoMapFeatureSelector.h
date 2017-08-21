@@ -40,7 +40,6 @@
 
 #include "vtkmapcore_export.h"
 
-
 class vtkFeature;
 class vtkGeoMapSelection;
 class vtkIdList;
@@ -52,56 +51,52 @@ class vtkSelectionNode;
 
 class VTKMAPCORE_NO_EXPORT vtkGeoMapFeatureSelector : public vtkObject
 {
- public:
+public:
   static vtkGeoMapFeatureSelector* New();
-  void PrintSelf(ostream &os, vtkIndent indent) override;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
   vtkTypeMacro(vtkGeoMapFeatureSelector, vtkObject);
 
   // As features get added/removed, they are passed on to this class
-  void AddFeature(vtkFeature *feature);
-  void RemoveFeature(vtkFeature *feature);
+  void AddFeature(vtkFeature* feature);
+  void RemoveFeature(vtkFeature* feature);
 
-  void PickPoint(vtkRenderer *renderer, int displayCoords[2],
-                 vtkGeoMapSelection *selection);
-  void PickArea(vtkRenderer *renderer, int displayCoords[4],
-                vtkGeoMapSelection *selection);
+  void PickPoint(
+    vtkRenderer* renderer, int displayCoords[2], vtkGeoMapSelection* selection);
+  void PickArea(
+    vtkRenderer* renderer, int displayCoords[4], vtkGeoMapSelection* selection);
   void PickPolygon(vtkRenderer* ren,
     const std::vector<vtkVector2i>& polygonPoints, vtkGeoMapSelection* result);
 
- protected:
+protected:
   vtkGeoMapFeatureSelector();
   ~vtkGeoMapFeatureSelector();
 
-  void PickPolyDataCells(
-    vtkProp *prop,
-    vtkPlanes *frustum,
-    vtkIdList *idList);
+  void PickPolyDataCells(vtkProp* prop, vtkPlanes* frustum, vtkIdList* idList);
 
   void PickMarkers(
-    vtkRenderer *renderer,
-    int displayCoords[4],
-    vtkGeoMapSelection *selection);
+    vtkRenderer* renderer, int displayCoords[4], vtkGeoMapSelection* selection);
 
   bool PrepareSelect(vtkRenderer* ren);
 
- private:
+private:
   vtkGeoMapFeatureSelector(const vtkGeoMapFeatureSelector&) VTK_DELETE_FUNCTION;
-  vtkGeoMapFeatureSelector& operator=(const vtkGeoMapFeatureSelector&) VTK_DELETE_FUNCTION;
+  vtkGeoMapFeatureSelector& operator=(
+    const vtkGeoMapFeatureSelector&) VTK_DELETE_FUNCTION;
 
   using FeatureMap = std::unordered_map<vtkProp*, vtkFeature*>;
   /**
    * Runs mulitiple selection passes in order to capture markers hidden
    * behind other markers.
    */
-  void IncrementalSelect(vtkGeoMapSelection* selection, vtkRenderer* ren,
-    FeatureMap& featMap);
+  void IncrementalSelect(
+    vtkGeoMapSelection* selection, vtkRenderer* ren, FeatureMap& featMap);
   bool SelectMarkerSet(vtkGeoMapSelection* selection, vtkSelectionNode* node,
     FeatureMap& map, FeatureMap::const_iterator& it);
   bool SelectPolyData(vtkGeoMapSelection* selection, vtkSelectionNode* node,
     FeatureMap& map, FeatureMap::const_iterator& it);
 
   class vtkGeoMapFeatureSelectorInternal;
-  vtkGeoMapFeatureSelectorInternal *Internal;
+  vtkGeoMapFeatureSelectorInternal* Internal;
 };
 
-#endif   // __vtkGeoMapFeatureSelector_h
+#endif // __vtkGeoMapFeatureSelector_h

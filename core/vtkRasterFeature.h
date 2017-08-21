@@ -27,7 +27,7 @@
 class VTKMAPCORE_EXPORT vtkRasterFeature : public vtkFeature
 {
 public:
-  void PrintSelf(ostream &os, vtkIndent indent) override;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
   vtkTypeMacro(vtkRasterFeature, vtkFeature);
 
   // Description
@@ -74,7 +74,7 @@ public:
 
   // Description:
   // Override
-  vtkProp *PickProp() override;
+  vtkProp* PickProp() override;
 
 protected:
   vtkRasterFeature();
@@ -83,13 +83,13 @@ protected:
   virtual void Reproject() = 0;
 
   double ZCoord;
-  vtkImageData *ImageData;
-  char *InputProjection;
-  vtkImageActor *Actor;
-  vtkImageMapper3D *Mapper;
+  vtkImageData* ImageData;
+  char* InputProjection;
+  vtkImageActor* Actor;
+  vtkImageMapper3D* Mapper;
 
 private:
-  vtkRasterFeature(const vtkRasterFeature&); // Not implemented
+  vtkRasterFeature(const vtkRasterFeature&);            // Not implemented
   vtkRasterFeature& operator=(const vtkRasterFeature&); // Not implemented
 };
 

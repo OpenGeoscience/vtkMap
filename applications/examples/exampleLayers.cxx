@@ -3,63 +3,61 @@
 #include <vtkCollection.h>
 #include <vtkCommand.h>
 #include <vtkIdList.h>
+#include <vtkNew.h>
 #include <vtkPolyData.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkProperty.h>
-#include <vtkNew.h>
-#include <vtkRenderWindow.h>
-#include <vtkRenderer.h>
-#include <vtkRenderWindowInteractor.h>
 #include <vtkRegularPolygonSource.h>
+#include <vtkRenderWindow.h>
+#include <vtkRenderWindowInteractor.h>
+#include <vtkRenderer.h>
 #include <vtksys/CommandLineArguments.hxx>
 
-#include "vtkMap.h"
 #include "vtkFeatureLayer.h"
 #include "vtkGeoMapSelection.h"
 #include "vtkInteractorStyleGeoMap.h"
+#include "vtkMap.h"
 #include "vtkMapMarkerSet.h"
 #include "vtkMercator.h"
 #include "vtkMultiThreadedOsmLayer.h"
 #include "vtkOsmLayer.h"
 #include "vtkPolydataFeature.h"
 
-
 // ------------------------------------------------------------
 class MoveCallback : public vtkCommand
 {
 public:
-  static MoveCallback *New()
-    { return new MoveCallback; }
+  static MoveCallback* New() { return new MoveCallback; }
 
-  void Execute(vtkObject *caller, unsigned long event, void* data) override
+  void Execute(vtkObject* caller, unsigned long event, void* data) override
   {
     switch (event)
     {
       case vtkCommand::KeyPressEvent:
+      {
+        auto interactor = vtkRenderWindowInteractor::SafeDownCast(caller);
+        const std::string key = interactor->GetKeySym();
+        vtkMapType::Move direction;
+        if (key == "Left")
         {
-          auto interactor = vtkRenderWindowInteractor::SafeDownCast(caller);
-          const std::string key = interactor->GetKeySym();
-          vtkMapType::Move direction;
-          if (key == "Left")
-          {
-            direction = vtkMapType::Move::UP;
-          }
-          else if (key == "Right")
-          {
-            direction = vtkMapType::Move::DOWN;
-          }
-          else if (key == "Up")
-          {
-            direction = vtkMapType::Move::TOP;
-          }
-          else if (key == "Down")
-          {
-            direction = vtkMapType::Move::BOTTOM;
-          }
-
-          Map->MoveLayer(Layer, direction);
+          direction = vtkMapType::Move::UP;
         }
-        break;
+        else if (key == "Right")
+        {
+          direction = vtkMapType::Move::DOWN;
+        }
+        else if (key == "Up")
+        {
+          direction = vtkMapType::Move::TOP;
+        }
+        else if (key == "Down")
+        {
+          direction = vtkMapType::Move::BOTTOM;
+        }
+
+        Map->MoveLayer(Layer, direction);
+      }
+      break;
     }
   }
 
@@ -71,122 +69,118 @@ public:
 class PickCallback : public vtkCommand
 {
 public:
-  static PickCallback *New()
-    { return new PickCallback; }
-  void Execute(vtkObject *caller, unsigned long event, void* data) override
+  static PickCallback* New() { return new PickCallback; }
+  void Execute(vtkObject* caller, unsigned long event, void* data) override
+  {
+    switch (event)
     {
-      switch (event)
+      case vtkInteractorStyleGeoMap::DisplayClickCompleteEvent:
+      {
+        double* latLonCoords = static_cast<double*>(data);
+        std::cout << "Point coordinates: \n"
+                  << "  " << latLonCoords[0] << ", " << latLonCoords[1]
+                  << std::endl;
+      }
+      break;
+
+      case vtkInteractorStyleGeoMap::DisplayDrawCompleteEvent:
+      {
+        double* latLonCoords = static_cast<double*>(data);
+        std::cout << "Rectangle coordinates: \n"
+                  << "  " << latLonCoords[0] << ", " << latLonCoords[1]
+                  << "\n  " << latLonCoords[2] << ", " << latLonCoords[3]
+                  << std::endl;
+      }
+      break;
+
+      case vtkInteractorStyleGeoMap::SelectionCompleteEvent:
+      {
+        vtkObject* object = static_cast<vtkObject*>(data);
+        vtkGeoMapSelection* selection =
+          vtkGeoMapSelection::SafeDownCast(object);
+
+        double* latLonCoords = selection->GetLatLngBounds();
+        std::cout << "Selected coordinates: \n"
+                  << "  " << latLonCoords[0] << ", " << latLonCoords[1]
+                  << "\n  " << latLonCoords[2] << ", " << latLonCoords[3]
+                  << std::endl;
+
+        vtkCollection* collection = selection->GetSelectedFeatures();
+        std::cout << "Number of features: " << collection->GetNumberOfItems()
+                  << std::endl;
+        vtkNew<vtkIdList> cellIdList;
+        vtkNew<vtkIdList> markerIdList;
+        vtkNew<vtkIdList> clusterIdList;
+        for (int i = 0; i < collection->GetNumberOfItems(); i++)
         {
-        case vtkInteractorStyleGeoMap::DisplayClickCompleteEvent:
+          vtkObject* object = collection->GetItemAsObject(i);
+          std::cout << "  " << object->GetClassName() << "\n";
+          vtkFeature* feature = vtkFeature::SafeDownCast(object);
+
+          // Retrieve polydata cells (if relevant)
+          if (selection->GetPolyDataCellIds(feature, cellIdList.GetPointer()))
           {
-          double *latLonCoords = static_cast<double*>(data);
-          std::cout << "Point coordinates: \n"
-                    << "  " << latLonCoords[0] << ", " << latLonCoords[1]
-                    << std::endl;
-          }
-          break;
-
-        case vtkInteractorStyleGeoMap::DisplayDrawCompleteEvent:
-          {
-          double *latLonCoords = static_cast<double*>(data);
-          std::cout << "Rectangle coordinates: \n"
-                    << "  " << latLonCoords[0] << ", " << latLonCoords[1]
-                    << "\n  " << latLonCoords[2] << ", " << latLonCoords[3]
-                    << std::endl;
-          }
-          break;
-
-        case vtkInteractorStyleGeoMap::SelectionCompleteEvent:
-          {
-          vtkObject *object = static_cast<vtkObject*>(data);
-          vtkGeoMapSelection *selection = vtkGeoMapSelection::SafeDownCast(object);
-
-          double *latLonCoords = selection->GetLatLngBounds();
-          std::cout << "Selected coordinates: \n"
-                    << "  " << latLonCoords[0] << ", " << latLonCoords[1]
-                    << "\n  " << latLonCoords[2] << ", " << latLonCoords[3]
-                    << std::endl;
-
-          vtkCollection *collection = selection->GetSelectedFeatures();
-          std::cout << "Number of features: " << collection->GetNumberOfItems()
-                    << std::endl;
-          vtkNew<vtkIdList> cellIdList;
-          vtkNew<vtkIdList> markerIdList;
-          vtkNew<vtkIdList> clusterIdList;
-          for (int i=0; i<collection->GetNumberOfItems(); i++)
+            if (cellIdList->GetNumberOfIds() > 0)
             {
-            vtkObject *object = collection->GetItemAsObject(i);
-            std::cout << "  " << object->GetClassName() << "\n";
-            vtkFeature *feature = vtkFeature::SafeDownCast(object);
-
-            // Retrieve polydata cells (if relevant)
-            if (selection->GetPolyDataCellIds(feature, cellIdList.GetPointer()))
+              std::cout << "    Cell ids: ";
+              for (int j = 0; j < cellIdList->GetNumberOfIds(); j++)
               {
-              if (cellIdList->GetNumberOfIds() > 0)
-                {
-                std::cout << "    Cell ids: ";
-                for (int j=0; j<cellIdList->GetNumberOfIds(); j++)
-                  {
-                  std::cout << " " << cellIdList->GetId(j);
-                  }
-                std::cout << std::endl;
-                }
+                std::cout << " " << cellIdList->GetId(j);
               }
-
-            // Retrieve marker ids (if relevant)
-            if (selection->GetMapMarkerIds(feature, markerIdList.GetPointer(),
-                                           clusterIdList.GetPointer()))
-              {
-                std::cout << "    Marker ids: ";
-                for (int j=0; j<markerIdList->GetNumberOfIds(); j++)
-                  {
-                  std::cout << " " << markerIdList->GetId(j);
-                  }
-                std::cout << std::endl;
-
-                std::cout << "    Cluster ids: ";
-                for (int j=0; j<clusterIdList->GetNumberOfIds(); j++)
-                  {
-                  std::cout << " " << clusterIdList->GetId(j);
-                  }
-                std::cout << std::endl;
-              }
+              std::cout << std::endl;
             }
           }
-          break;
 
-        case vtkInteractorStyleGeoMap::ZoomCompleteEvent:
+          // Retrieve marker ids (if relevant)
+          if (selection->GetMapMarkerIds(
+                feature, markerIdList.GetPointer(), clusterIdList.GetPointer()))
           {
-          double *latLonCoords = static_cast<double*>(data);
-          std::cout << "Zoom coordinates: \n"
-                    << "  " << latLonCoords[0] << ", " << latLonCoords[1]
-                    << "\n  " << latLonCoords[2] << ", " << latLonCoords[3]
-                    << std::endl;
-          }
-          break;
+            std::cout << "    Marker ids: ";
+            for (int j = 0; j < markerIdList->GetNumberOfIds(); j++)
+            {
+              std::cout << " " << markerIdList->GetId(j);
+            }
+            std::cout << std::endl;
 
-        case vtkInteractorStyleGeoMap::RightButtonCompleteEvent:
-          {
-          int* coords = static_cast<int*>(data);
-          std::cout << "Right mouse click at ("
-                    << coords[0] << ", " << coords[1] << ")" << std::endl;
+            std::cout << "    Cluster ids: ";
+            for (int j = 0; j < clusterIdList->GetNumberOfIds(); j++)
+            {
+              std::cout << " " << clusterIdList->GetId(j);
+            }
+            std::cout << std::endl;
           }
-          break;
-        }  // switch
-    }
+        }
+      }
+      break;
 
-  void SetMap(vtkMap *map)
-  {
-    this->Map = map;
+      case vtkInteractorStyleGeoMap::ZoomCompleteEvent:
+      {
+        double* latLonCoords = static_cast<double*>(data);
+        std::cout << "Zoom coordinates: \n"
+                  << "  " << latLonCoords[0] << ", " << latLonCoords[1]
+                  << "\n  " << latLonCoords[2] << ", " << latLonCoords[3]
+                  << std::endl;
+      }
+      break;
+
+      case vtkInteractorStyleGeoMap::RightButtonCompleteEvent:
+      {
+        int* coords = static_cast<int*>(data);
+        std::cout << "Right mouse click at (" << coords[0] << ", " << coords[1]
+                  << ")" << std::endl;
+      }
+      break;
+    } // switch
   }
 
+  void SetMap(vtkMap* map) { this->Map = map; }
+
 protected:
-  vtkMap *Map;
+  vtkMap* Map;
 };
 
-
 // ------------------------------------------------------------
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
   // Setup command line arguments
   std::string inputFile;
@@ -207,46 +201,40 @@ int main(int argc, char *argv[])
   vtksys::CommandLineArguments arg;
   arg.Initialize(argc, argv);
   arg.StoreUnusedArguments(true);
-  arg.AddArgument("-h", vtksys::CommandLineArguments::NO_ARGUMENT,
-                  &showHelp, "show help message");
+  arg.AddArgument("-h", vtksys::CommandLineArguments::NO_ARGUMENT, &showHelp,
+    "show help message");
   arg.AddArgument("--help", vtksys::CommandLineArguments::NO_ARGUMENT,
-                  &showHelp, "show help message");
+    &showHelp, "show help message");
   arg.AddArgument("-a", vtksys::CommandLineArguments::SPACE_ARGUMENT,
-                  &tileServerAttribution, "map-tile server attribution");
+    &tileServerAttribution, "map-tile server attribution");
   arg.AddArgument("-d", vtksys::CommandLineArguments::NO_ARGUMENT,
-                  &rubberBandDisplayOnly,
-                  "set interactor to rubberband-draw mode");
+    &rubberBandDisplayOnly, "set interactor to rubberband-draw mode");
   arg.AddArgument("-e", vtksys::CommandLineArguments::SPACE_ARGUMENT,
-                  &tileExtension, "map-tile file extension (jpg, png, etc.)");
+    &tileExtension, "map-tile file extension (jpg, png, etc.)");
   arg.AddArgument("-c", vtksys::CommandLineArguments::MULTI_ARGUMENT,
-                  &centerLatLon, "initial center (latitude longitude)");
+    &centerLatLon, "initial center (latitude longitude)");
   arg.AddArgument("-m", vtksys::CommandLineArguments::SPACE_ARGUMENT,
-                  &tileServer, "map-tile server (tile.openstreetmaps.org)");
+    &tileServer, "map-tile server (tile.openstreetmaps.org)");
   arg.AddArgument("-o", vtksys::CommandLineArguments::NO_ARGUMENT,
-                  &clusteringOff, "turn clustering off");
-  arg.AddArgument("-p", vtksys::CommandLineArguments::NO_ARGUMENT,
-                  &perspective, "use perspective projection");
+    &clusteringOff, "turn clustering off");
+  arg.AddArgument("-p", vtksys::CommandLineArguments::NO_ARGUMENT, &perspective,
+    "use perspective projection");
   arg.AddArgument("-q", vtksys::CommandLineArguments::NO_ARGUMENT,
-                  &rubberBandZoom,
-                  "set interactor to rubberband zoom mode");
+    &rubberBandZoom, "set interactor to rubberband zoom mode");
   arg.AddArgument("-r", vtksys::CommandLineArguments::NO_ARGUMENT,
-                  &rubberBandSelection,
-                  "set interactor to rubberband selection mode");
+    &rubberBandSelection, "set interactor to rubberband selection mode");
   arg.AddArgument("-P", vtksys::CommandLineArguments::NO_ARGUMENT,
-                  &drawPolygonSelection,
-                  "set interactor to polygon selection mode");
+    &drawPolygonSelection, "set interactor to polygon selection mode");
   arg.AddArgument("-s", vtksys::CommandLineArguments::NO_ARGUMENT,
-                  &singleThreaded, "use single-threaded map I/O");
+    &singleThreaded, "use single-threaded map I/O");
   arg.AddArgument("-z", vtksys::CommandLineArguments::SPACE_ARGUMENT,
-                  &zoomLevel, "initial zoom level (1-20)");
+    &zoomLevel, "initial zoom level (1-20)");
 
   if (!arg.Parse() || showHelp)
-    {
-    std::cout << "\n"
-              << arg.GetHelp()
-              << std::endl;
+  {
+    std::cout << "\n" << arg.GetHelp() << std::endl;
     return -1;
-    }
+  }
 
   vtkNew<vtkMap> map;
 
@@ -256,15 +244,15 @@ int main(int argc, char *argv[])
 
   // Set viewport
   if (centerLatLon.size() == 2)
-    {
+  {
     map->SetCenter(centerLatLon[0], centerLatLon[1]);
-    }
+  }
   else
-    {
+  {
     // If center not specified, display CONUS
-    double latLngCoords[] = {25.0, -115.0, 50.0, -75.0};
+    double latLngCoords[] = { 25.0, -115.0, 50.0, -75.0 };
     map->SetVisibleBounds(latLngCoords);
-    }
+  }
 
   map->SetPerspectiveProjection(perspective);
 
@@ -274,27 +262,28 @@ int main(int argc, char *argv[])
   zoomLevel += perspective ? 0 : 1;
   map->SetZoom(zoomLevel);
 
-  vtkOsmLayer *osmLayer;
+  vtkOsmLayer* osmLayer;
   if (singleThreaded)
-    {
+  {
     osmLayer = vtkOsmLayer::New();
-    }
+  }
   else
-    {
+  {
     osmLayer = vtkMultiThreadedOsmLayer::New();
-    }
+  }
   // Layer 1 - Map
   map->AddLayer(osmLayer);
 
   if (tileServer != "")
-    {
+  {
     osmLayer->SetMapTileServer(
       tileServer.c_str(), tileServerAttribution.c_str(), tileExtension.c_str());
-    }
+  }
   osmLayer->Delete();
 
   vtkNew<vtkRenderWindow> wind;
-  wind->AddRenderer(rend.GetPointer());;
+  wind->AddRenderer(rend.GetPointer());
+  ;
   wind->SetSize(800, 600);
 
   vtkNew<vtkRenderWindowInteractor> intr;
@@ -328,16 +317,15 @@ int main(int argc, char *argv[])
   vtkNew<PickCallback> pickCallback;
   pickCallback->SetMap(map.GetPointer());
   map->AddObserver(vtkInteractorStyleGeoMap::DisplayClickCompleteEvent,
-                    pickCallback.GetPointer());
+    pickCallback.GetPointer());
   map->AddObserver(vtkInteractorStyleGeoMap::DisplayDrawCompleteEvent,
-                    pickCallback.GetPointer());
+    pickCallback.GetPointer());
   map->AddObserver(vtkInteractorStyleGeoMap::SelectionCompleteEvent,
-                    pickCallback.GetPointer());
-  map->AddObserver(vtkInteractorStyleGeoMap::ZoomCompleteEvent,
-                    pickCallback.GetPointer());
+    pickCallback.GetPointer());
+  map->AddObserver(
+    vtkInteractorStyleGeoMap::ZoomCompleteEvent, pickCallback.GetPointer());
   map->AddObserver(vtkInteractorStyleGeoMap::RightButtonCompleteEvent,
-                    pickCallback.GetPointer());
-
+    pickCallback.GetPointer());
 
   intr->Initialize();
   map->Draw();
@@ -345,9 +333,9 @@ int main(int argc, char *argv[])
   double latLon[4];
   map->GetVisibleBounds(latLon);
   std::cout << "lat-lon bounds: "
-            << "(" << latLon[0] << ", " << latLon[1] << ")" << "  "
-            << "(" << latLon[2] << ", " << latLon[3] << ")"
-            << std::endl;
+            << "(" << latLon[0] << ", " << latLon[1] << ")"
+            << "  "
+            << "(" << latLon[2] << ", " << latLon[3] << ")" << std::endl;
 
   ///////////////////// Layer 2 - Markers /////////////////////////////////////
   vtkNew<vtkFeatureLayer> markers1;
@@ -362,10 +350,9 @@ int main(int argc, char *argv[])
   const double kwLatitude = 42.849604; // Kitware HQ coords
   const double kwLongitude = -73.758345;
   double latlonCoords[][2] = {
-    0.0, 0.0,
-    kwLatitude, kwLongitude,  // KHQ
-    35.911373, -79.072205,    // KRS
-    32.301393, -90.871495     // ERDC
+    0.0, 0.0, kwLatitude, kwLongitude, // KHQ
+    35.911373, -79.072205,             // KRS
+    32.301393, -90.871495              // ERDC
   };
 
   const size_t numMarkers = sizeof(latlonCoords) / sizeof(double) / 2;
@@ -388,10 +375,9 @@ int main(int argc, char *argv[])
 
   const double offset = 0.5;
   double coords[][2] = {
-    0.0, 0.0,
-    kwLatitude, kwLongitude + offset,  // KHQ
-    35.911373, -79.072205 + offset,    // KRS
-    32.301393, -90.871495 + offset     // ERDC
+    0.0, 0.0, kwLatitude, kwLongitude + offset, // KHQ
+    35.911373, -79.072205 + offset,             // KRS
+    32.301393, -90.871495 + offset              // ERDC
   };
 
   const size_t numMarkers2 = sizeof(coords) / sizeof(double) / 2;
@@ -416,7 +402,8 @@ int main(int argc, char *argv[])
   feature->GetActor()->GetProperty()->SetColor(0.0, 0.0, 1.0);
   feature->GetActor()->GetProperty()->SetOpacity(0.5);
 
-  feature->GetActor()->SetPosition(kwLongitude, vtkMercator::lat2y(kwLatitude), 0.0);
+  feature->GetActor()->SetPosition(
+    kwLongitude, vtkMercator::lat2y(kwLatitude), 0.0);
   circle->AddFeature(feature.GetPointer());
 
   ///////////////////// Layer 5 - Circle2 //////////////////////////////////////
@@ -433,7 +420,8 @@ int main(int argc, char *argv[])
   feature2->GetActor()->GetProperty()->SetColor(0.0, 1.0, 0.0);
   feature2->GetActor()->GetProperty()->SetOpacity(0.5);
 
-  feature2->GetActor()->SetPosition(-76.072205, vtkMercator::lat2y(38.911373), 0.0);
+  feature2->GetActor()->SetPosition(
+    -76.072205, vtkMercator::lat2y(38.911373), 0.0);
   circle2->AddFeature(feature2.GetPointer());
 
   //////////////////////// Manipulate layers ///////////////////////////////////

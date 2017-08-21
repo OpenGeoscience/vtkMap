@@ -26,7 +26,8 @@
 vtkStandardNewMacro(vtkGeoJSONMapFeature);
 
 //----------------------------------------------------------------------------
-vtkGeoJSONMapFeature::vtkGeoJSONMapFeature() : vtkPolydataFeature()
+vtkGeoJSONMapFeature::vtkGeoJSONMapFeature()
+  : vtkPolydataFeature()
 {
   this->InputString = NULL;
   this->PolyData = NULL;
@@ -36,10 +37,10 @@ vtkGeoJSONMapFeature::vtkGeoJSONMapFeature() : vtkPolydataFeature()
 vtkGeoJSONMapFeature::~vtkGeoJSONMapFeature()
 {
   if (this->PolyData)
-    {
+  {
     this->PolyData->Delete();
-    }
-  delete [] this->InputString;
+  }
+  delete[] this->InputString;
 }
 
 //----------------------------------------------------------------------------
@@ -61,19 +62,18 @@ void vtkGeoJSONMapFeature::Init()
   this->PolyData->Register(this);
 
   // Convert poly data points from <lon, lat> to <x, y>
-  vtkPoints *points = this->PolyData->GetPoints();
-  for (vtkIdType i=0; i<points->GetNumberOfPoints(); i++)
-    {
-    double *coords = points->GetPoint(i);
+  vtkPoints* points = this->PolyData->GetPoints();
+  for (vtkIdType i = 0; i < points->GetNumberOfPoints(); i++)
+  {
+    double* coords = points->GetPoint(i);
     coords[1] = vtkMercator::lat2y(coords[1]);
     points->SetPoint(i, coords);
-    }
+  }
 
   std::cout << "Points:   " << this->PolyData->GetNumberOfPoints() << "\n"
             << "Vertices: " << this->PolyData->GetNumberOfVerts() << "\n"
             << "Lines:    " << this->PolyData->GetNumberOfLines() << "\n"
-            << "Polygons: " << this->PolyData->GetNumberOfPolys()
-            << std::endl;
+            << "Polygons: " << this->PolyData->GetNumberOfPolys() << std::endl;
 
   // Set PolyData to superclass and call its init
   this->Superclass::GetMapper()->SetInputData(this->PolyData);

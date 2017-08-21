@@ -45,9 +45,8 @@
 #include <vtkObject.h>
 #include <vtkSmartPointer.h>
 
-#include "vtkmapcore_export.h"
 #include "vtkMap_typedef.h"
-
+#include "vtkmapcore_export.h"
 
 class vtkCallbackCommand;
 class vtkCameraPass;
@@ -72,30 +71,29 @@ public:
   // State of asynchronous layers
   enum AsyncState
   {
-    AsyncOff = 0,        // layer is not asynchronous
-    AsyncIdle,           // no work scheduled
-    AsyncPending,        // work in progress
-    AsyncPartialUpdate,  // some work completed
-    AsyncFullUpdate      // all work completed
+    AsyncOff = 0,       // layer is not asynchronous
+    AsyncIdle,          // no work scheduled
+    AsyncPending,       // work in progress
+    AsyncPartialUpdate, // some work completed
+    AsyncFullUpdate     // all work completed
   };
 
-  static vtkMap *New();
-  void PrintSelf(ostream &os, vtkIndent indent) override;
+  static vtkMap* New();
+  void PrintSelf(ostream& os, vtkIndent indent) override;
   vtkTypeMacro(vtkMap, vtkObject)
 
-//  // Description
-//  // Set the GDAL_DATA folder, which is generally needed
-//  // to display raster features. This methods calls
-//  // vtkRasterFeature::SetGDALDataDirectory().
-//  static void SetGDALDataDirectory(char *path);
+    //  // Description
+    //  // Set the GDAL_DATA folder, which is generally needed
+    //  // to display raster features. This methods calls
+    //  // vtkRasterFeature::SetGDALDataDirectory().
+    //  static void SetGDALDataDirectory(char *path);
 
-  // Description:
-  // Get/Set the renderer to which map content will be added
-  // vtkCxxSetObjectMacro is used so that map takes reference to renderer.
-  // This ensures that map can delete its contents before the renderer
-  // is deleted.
-  vtkGetMacro(Renderer, vtkRenderer*)
-  void SetRenderer(vtkRenderer* ren);
+    // Description:
+    // Get/Set the renderer to which map content will be added
+    // vtkCxxSetObjectMacro is used so that map takes reference to renderer.
+    // This ensures that map can delete its contents before the renderer
+    // is deleted.
+    vtkGetMacro(Renderer, vtkRenderer*) void SetRenderer(vtkRenderer* ren);
 
   /**
    * Interactor where different InteractorStyles are set.
@@ -113,12 +111,11 @@ public:
 
   // Description:
   // Get/Set the detailing level
-  vtkGetMacro(Zoom, int)
-  vtkSetMacro(Zoom, int)
+  vtkGetMacro(Zoom, int) vtkSetMacro(Zoom, int)
 
-  // Description:
-  // Get/Set center of the map.
-  void GetCenter(double (&latlngPoint)[2]);
+    // Description:
+    // Get/Set center of the map.
+    void GetCenter(double (&latlngPoint)[2]);
   void SetCenter(double latlngPoint[2]);
   void SetCenter(double latitude, double longitude);
 
@@ -132,13 +129,13 @@ public:
   // Description:
   // Get/Set the directory used for caching files.
   vtkGetStringMacro(StorageDirectory);
-  void SetStorageDirectory(const char *path);
+  void SetStorageDirectory(const char* path);
 
   // Description:
   // Add / Remove layer from the map.
   void AddLayer(vtkLayer* layer);
   void RemoveLayer(vtkLayer* layer);
-  vtkLayer *FindLayer(const char *name);
+  vtkLayer* FindLayer(const char* name);
 
   // TODO Implement this
   //void SetLayerOrder(vtkLaye* layer, int offsetFromCurrent);
@@ -154,12 +151,12 @@ public:
   // Description:
   // Update internal logic when feature is added.
   // This method should only be called by vtkFeatureLayer
-  void FeatureAdded(vtkFeature *feature);
+  void FeatureAdded(vtkFeature* feature);
 
   // Description:
   // Update internal logic when feature is removed.
   // This method should only be called by vtkFeatureLayer
-  void ReleaseFeature(vtkFeature *feature);
+  void ReleaseFeature(vtkFeature* feature);
 
   // Description:
   // Returns map features at specified display coordinates
@@ -168,7 +165,7 @@ public:
   // Description:
   // Returns map features at specified area (bounding box
   // in display coordinates)
-  void PickArea(int displayCoords[4], vtkGeoMapSelection *selection);
+  void PickArea(int displayCoords[4], vtkGeoMapSelection* selection);
 
   void OnPolygonSelectionEvent();
 
@@ -184,16 +181,16 @@ public:
   // Compute lat-lon coordinates for given display coordinates
   // and elevation. The latLngCoords[] is updated with
   // [latitude, longitude, elevation].
-  void ComputeLatLngCoords(double displayCoords[2], double elevation,
-                           double latLngCoords[3]);
+  void ComputeLatLngCoords(
+    double displayCoords[2], double elevation, double latLngCoords[3]);
 
   // Description:
   // Compute display coordinates for given lat/lon/elevation.
   // For internal debug/test use
-  void ComputeDisplayCoords(double lanLngCoords[2], double elevation,
-                            double displayCoords[3]);
+  void ComputeDisplayCoords(
+    double lanLngCoords[2], double elevation, double displayCoords[3]);
 
-/**
+  /**
  * Change the order of layers in the stack. Supports move UP, DOWN,
  * TOP, BOTTOM. Assumes 'layer' is valid.
  * \sa vtkMapType::Move
@@ -209,8 +206,8 @@ protected:
   double Clip(double n, double minValue, double maxValue);
 
   // Computes display-to-world point at specified z coord
-  void ComputeWorldCoords(double displayCoords[2], double z,
-                          double worldCoords[3]);
+  void ComputeWorldCoords(
+    double displayCoords[2], double z, double worldCoords[3]);
 
   // Description:
   // The renderer used to draw the maps
@@ -253,32 +250,32 @@ protected:
 
   // Description:
   // Helper class for selection
-  vtkGeoMapFeatureSelector *FeatureSelector;
+  vtkGeoMapFeatureSelector* FeatureSelector;
 
   // Description:
   // Callback method for polling timer
-  vtkCallbackCommand *PollingCallbackCommand;
+  vtkCallbackCommand* PollingCallbackCommand;
 
   // Description:
   // Current state of asynchronous layers
   AsyncState CurrentAsyncState;
 
-//@{
-/**
+  //@{
+  /**
  * Layer infrastructure. LayerCollection defines the order in which layers
  * are rendered.
  */
   vtkSmartPointer<vtkRenderPassCollection> LayerCollection;
   vtkSmartPointer<vtkSequencePass> LayerSequence;
   vtkSmartPointer<vtkCameraPass> CameraPass;
-//@}
-  
+  //@}
+
 private:
   vtkMap(const vtkMap&) VTK_DELETE_FUNCTION;
   vtkMap& operator=(const vtkMap&) VTK_DELETE_FUNCTION;
 
-///@{
-/**
+  ///@{
+  /**
  * Handlers for MoveLayer.
  * \sa vtkMap::MoveLayer
  */
@@ -286,7 +283,7 @@ private:
   void MoveDown(const vtkLayer* layer);
   void MoveToTop(const vtkLayer* layer);
   void MoveToBottom(const vtkLayer* layer);
-///@}
+  ///@}
 
   vtkRenderWindowInteractor* Interactor = nullptr;
 };

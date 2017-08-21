@@ -18,14 +18,13 @@
 #include "vtkMap.h"
 #include <QString>
 
-
 // ------------------------------------------------------------
-qtMapCoordinatesWidget::qtMapCoordinatesWidget(QWidget *parent)
-  : QWidget(parent), Map(0)
+qtMapCoordinatesWidget::qtMapCoordinatesWidget(QWidget* parent)
+  : QWidget(parent)
+  , Map(0)
 {
   this->UI = new Ui_qtMapCoordinatesWidget;
   this->UI->setupUi(this);
-
 }
 
 // ------------------------------------------------------------

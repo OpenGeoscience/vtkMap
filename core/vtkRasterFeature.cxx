@@ -18,9 +18,9 @@
 #include <vtkImageProperty.h>
 #include <vtkStringArray.h>
 
-
 //----------------------------------------------------------------------------
-vtkRasterFeature::vtkRasterFeature() : vtkFeature()
+vtkRasterFeature::vtkRasterFeature()
+  : vtkFeature()
 {
   this->ZCoord = 0.1;
   this->ImageData = NULL;
@@ -33,10 +33,10 @@ vtkRasterFeature::vtkRasterFeature() : vtkFeature()
 vtkRasterFeature::~vtkRasterFeature()
 {
   if (this->ImageData)
-    {
+  {
     this->ImageData->Delete();
-    }
-  delete [] this->InputProjection;
+  }
+  delete[] this->InputProjection;
   this->Actor->Delete();
 }
 
@@ -50,23 +50,23 @@ void vtkRasterFeature::PrintSelf(std::ostream& os, vtkIndent indent)
 void vtkRasterFeature::Init()
 {
   if (!this->ImageData)
-    {
+  {
     return;
-    }
+  }
 
   // Get input map projection
   if (!this->InputProjection)
-    {
-    vtkAbstractArray *array =
+  {
+    vtkAbstractArray* array =
       this->ImageData->GetFieldData()->GetAbstractArray("MAP_PROJECTION");
     if (!array)
-      {
+    {
       vtkErrorMacro("No map projection data for input image");
       return;
-      }
-    vtkStringArray *projectionArray = vtkStringArray::SafeDownCast(array);
-    this->SetInputProjection(projectionArray->GetValue(0));
     }
+    vtkStringArray* projectionArray = vtkStringArray::SafeDownCast(array);
+    this->SetInputProjection(projectionArray->GetValue(0));
+  }
 
   this->Reproject();
 
@@ -90,7 +90,7 @@ void vtkRasterFeature::CleanUp()
 }
 
 //----------------------------------------------------------------------------
-vtkProp *vtkRasterFeature::PickProp()
+vtkProp* vtkRasterFeature::PickProp()
 {
   return this->Actor;
 }

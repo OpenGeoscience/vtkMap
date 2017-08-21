@@ -19,17 +19,17 @@
 #ifndef __StationReport_h
 #define __StationReport_h
 
-#include <string>
 #include <stdlib.h>
+#include <string>
 
 struct StationReport
 {
-int         id;
-std::string name;
-double      latitude;
-double      longitude;
-double      temperature;
-time_t      datetime;
+  int id;
+  std::string name;
+  double latitude;
+  double longitude;
+  double temperature;
+  time_t datetime;
 };
 
 #endif /* __StationReport_h */

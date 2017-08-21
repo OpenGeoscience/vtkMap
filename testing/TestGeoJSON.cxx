@@ -13,9 +13,9 @@
 
 =========================================================================*/
 
-#include "vtkMap.h"
 #include "vtkFeatureLayer.h"
 #include "vtkGeoJSONMapFeature.h"
+#include "vtkMap.h"
 #include "vtkMercator.h"
 #include "vtkOsmLayer.h"
 
@@ -24,24 +24,25 @@
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
 #include <vtkProperty.h>
-#include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
+#include <vtkRenderer.h>
 
 #include <iostream>
 
-int TestGeoJSON(int argc, char *argv[])
+int TestGeoJSON(int argc, char* argv[])
 {
   if (argc < 2)
-    {
+  {
     std::cout << "\n"
-              << "Input GeoJSON file and display on map." << "\n"
+              << "Input GeoJSON file and display on map."
+              << "\n"
               << "Usage: TestGeoJSON inputfile"
-              <<"  [ZoomLevel  [CenterLat  CenterLon] ]  " << "\n"
+              << "  [ZoomLevel  [CenterLat  CenterLon] ]  "
+              << "\n"
               << std::endl;
     return -1;
-    }
-
+  }
 
   // Instantiate vtkMap
   vtkNew<vtkMap> map;
@@ -49,7 +50,7 @@ int TestGeoJSON(int argc, char *argv[])
   vtkNew<vtkRenderer> renderer;
   map->SetRenderer(renderer.GetPointer());
 
-   // Add OSM layer
+  // Add OSM layer
   vtkNew<vtkOsmLayer> osmLayer;
   map->AddLayer(osmLayer.GetPointer());
 
@@ -59,9 +60,9 @@ int TestGeoJSON(int argc, char *argv[])
   vtkNew<vtkGeoJSONMapFeature> feature;
   std::ifstream in(argv[1], std::ios::in | std::ios::binary);
   if (in)
-    {
+  {
     std::string content(std::istreambuf_iterator<char>(in.rdbuf()),
-                        std::istreambuf_iterator<char>());
+      std::istreambuf_iterator<char>());
     in.close();
     feature->SetInputString(content.c_str());
     featureLayer->AddFeature(feature.GetPointer());
@@ -69,31 +70,31 @@ int TestGeoJSON(int argc, char *argv[])
     feature->GetActor()->GetProperty()->SetOpacity(0.5);
     feature->GetActor()->GetProperty()->SetLineWidth(3.0);
     feature->GetActor()->GetProperty()->SetPointSize(16.0);
-    }
+  }
   else
-    {
+  {
     std::cerr << "Unable to open file " << argv[1] << std::endl;
     return -2;
-    }
+  }
 
- // Process optional args and set zoom, center
-  int zoom = 1;  // default
+  // Process optional args and set zoom, center
+  int zoom = 1; // default
   if (argc > 2)
-    {
+  {
     zoom = atoi(argv[2]);
-    }
+  }
   std::cout << "Setting zoom level to " << zoom << std::endl;
   map->SetZoom(zoom);
 
   double latitude = 0.0;
   double longitude = 0.0;
   if (argc > 4)
-    {
+  {
     latitude = atof(argv[3]);
     longitude = atof(argv[4]);
-    }
-  std::cout << "Setting map center to latitude " << latitude
-            << ", longitude " << longitude << std::endl;
+  }
+  std::cout << "Setting map center to latitude " << latitude << ", longitude "
+            << longitude << std::endl;
   map->SetCenter(latitude, longitude);
 
   // Set up display
@@ -114,10 +115,7 @@ int TestGeoJSON(int argc, char *argv[])
   return EXIT_SUCCESS;
 }
 
-
-
-
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
   TestGeoJSON(argc, argv);
 }

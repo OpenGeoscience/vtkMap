@@ -18,9 +18,9 @@
 #ifndef __vtkGeoMapSelection_h
 #define __vtkGeoMapSelection_h
 
-#include <vtkObject.h>
-#include <vtkCollection.h>
 #include "vtkmapcore_export.h"
+#include <vtkCollection.h>
+#include <vtkObject.h>
 
 //class vtkCollection;
 class vtkFeature;
@@ -30,17 +30,17 @@ class vtkFeature;
 
 class VTKMAPCORE_EXPORT vtkGeoMapSelection : public vtkObject
 {
- public:
+public:
   static vtkGeoMapSelection* New();
-  void PrintSelf(ostream &os, vtkIndent indent) override;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
   vtkTypeMacro(vtkGeoMapSelection, vtkObject);
 
   bool IsEmpty();
   void Clear();
-  void AddFeature(vtkFeature *feature);
-  void AddFeature(vtkFeature *feature, vtkIdList *cellIds);
-  void AddFeature(vtkFeature *feature, vtkIdList *markerIds,
-                  vtkIdList *clusterIds);
+  void AddFeature(vtkFeature* feature);
+  void AddFeature(vtkFeature* feature, vtkIdList* cellIds);
+  void AddFeature(
+    vtkFeature* feature, vtkIdList* markerIds, vtkIdList* clusterIds);
 
   vtkSetVector4Macro(LatLngBounds, double);
   vtkGetVector4Macro(LatLngBounds, double);
@@ -52,28 +52,28 @@ class VTKMAPCORE_EXPORT vtkGeoMapSelection : public vtkObject
   // Description:
   // Retrieves the selected cell ids for a polydata feature.
   // Returns true if input feature is vtkPolydataFeature (only)
-  bool GetPolyDataCellIds(vtkFeature *feature, vtkIdList *idList) const;
+  bool GetPolyDataCellIds(vtkFeature* feature, vtkIdList* idList) const;
 
   // Description:
   // Returns the selected marker ids and cluster ids for marker set
   // Note that cluster ids are internally generated.
   // Returns true if input feature is vtkMapMarkerSet
-  bool GetMapMarkerIds(vtkFeature *feature, vtkIdList *markerIdList,
-                       vtkIdList *clusterIdList) const;
+  bool GetMapMarkerIds(vtkFeature* feature, vtkIdList* markerIdList,
+    vtkIdList* clusterIdList) const;
 
- protected:
+protected:
   vtkGeoMapSelection();
   ~vtkGeoMapSelection();
 
   double LatLngBounds[4];
-  vtkCollection *SelectedFeatures;
+  vtkCollection* SelectedFeatures;
 
- private:
-  vtkGeoMapSelection(const vtkGeoMapSelection&);  // not implemented
-  vtkGeoMapSelection& operator=(const vtkGeoMapSelection&);  // not implemented
+private:
+  vtkGeoMapSelection(const vtkGeoMapSelection&);            // not implemented
+  vtkGeoMapSelection& operator=(const vtkGeoMapSelection&); // not implemented
 
   class vtkGeoMapSelectionInternal;
-  vtkGeoMapSelectionInternal *Internal;
+  vtkGeoMapSelectionInternal* Internal;
 };
 
-#endif   // __vtkGeoMapSelection_h
+#endif // __vtkGeoMapSelection_h
