@@ -25,7 +25,7 @@ class VTKMAPGDAL_EXPORT vtkGDALRasterFeature : public vtkRasterFeature
 {
 public:
   static vtkGDALRasterFeature* New();
-  void PrintSelf(ostream &os, vtkIndent indent) override;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
   vtkTypeMacro(vtkGDALRasterFeature, vtkRasterFeature);
 
   // Description
@@ -33,7 +33,7 @@ public:
   // to display raster features. If/when the raster-preojection
   // code is migrated to VTK, this function should
   // be moved with it.
-  static void SetGDALDataDirectory(char *path);
+  static void SetGDALDataDirectory(char* path);
 
 protected:
   vtkGDALRasterFeature() = default;

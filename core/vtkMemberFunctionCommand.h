@@ -62,13 +62,21 @@ public:
   typedef vtkCommand Superclass;
 
   const char* GetClassNameInternal() const override
-    { return "vtkMemberFunctionCommand"; }
+  {
+    return "vtkMemberFunctionCommand";
+  }
 
-  static ThisT* SafeDownCast(vtkObjectBase* o) { return dynamic_cast<ThisT*>(o); }
+  static ThisT* SafeDownCast(vtkObjectBase* o)
+  {
+    return dynamic_cast<ThisT*>(o);
+  }
 
   static ThisT* New() { return new ThisT(); }
 
-  void PrintSelf(ostream& os, vtkIndent indent) { vtkCommand::PrintSelf(os, indent); }
+  void PrintSelf(ostream& os, vtkIndent indent)
+  {
+    vtkCommand::PrintSelf(os, indent);
+  }
 
   //@{
   /**
@@ -82,7 +90,8 @@ public:
   }
   //@}
 
-  void SetCallback(ClassT& object, void (ClassT::*method2)(vtkObject*, unsigned long, void*))
+  void SetCallback(
+    ClassT& object, void (ClassT::*method2)(vtkObject*, unsigned long, void*))
   {
     this->Object = &object;
     this->Method2 = method2;
@@ -118,7 +127,8 @@ private:
 
   ClassT* Object;
   void (ClassT::*Method)();
-  void (ClassT::*Method2)(vtkObject* caller, unsigned long event, void* calldata);
+  void (ClassT::*Method2)(
+    vtkObject* caller, unsigned long event, void* calldata);
 
   vtkMemberFunctionCommand(const vtkMemberFunctionCommand&) VTK_DELETE_FUNCTION;
   void operator=(const vtkMemberFunctionCommand&) VTK_DELETE_FUNCTION;
@@ -143,7 +153,8 @@ template <class ClassT>
 vtkMemberFunctionCommand<ClassT>* vtkMakeMemberFunctionCommand(
   ClassT& object, void (ClassT::*method)())
 {
-  vtkMemberFunctionCommand<ClassT>* result = vtkMemberFunctionCommand<ClassT>::New();
+  vtkMemberFunctionCommand<ClassT>* result =
+    vtkMemberFunctionCommand<ClassT>::New();
   result->SetCallback(object, method);
   return result;
 }
@@ -152,7 +163,8 @@ template <class ClassT>
 vtkMemberFunctionCommand<ClassT>* vtkMakeMemberFunctionCommand(
   ClassT& object, void (ClassT::*method)(vtkObject*, unsigned long, void*))
 {
-  vtkMemberFunctionCommand<ClassT>* result = vtkMemberFunctionCommand<ClassT>::New();
+  vtkMemberFunctionCommand<ClassT>* result =
+    vtkMemberFunctionCommand<ClassT>::New();
   result->SetCallback(object, method);
   return result;
 }

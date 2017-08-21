@@ -17,13 +17,13 @@
 #include "vtkGeoMapLayerPass.h"
 #include "vtkLayer.h"
 
-
 vtkInformationKeyMacro(vtkLayer, ID, Integer);
 unsigned int vtkLayer::GlobalId = 0;
 
 //----------------------------------------------------------------------------
-vtkLayer::vtkLayer() : vtkObject()
-, RenderPass(vtkSmartPointer<vtkGeoMapLayerPass>::New())
+vtkLayer::vtkLayer()
+  : vtkObject()
+  , RenderPass(vtkSmartPointer<vtkGeoMapLayerPass>::New())
 {
   this->Visibility = 1;
   this->Opacity = 1.0;
@@ -63,9 +63,9 @@ const std::string& vtkLayer::GetName() const
 void vtkLayer::SetName(const std::string& name)
 {
   if (name == this->Name)
-    {
+  {
     return;
-    }
+  }
 
   this->Name = name;
   this->Modified();
@@ -81,11 +81,11 @@ unsigned int vtkLayer::GetId()
 void vtkLayer::SetMap(vtkMap* map)
 {
   if (this->Map != map)
-    {
+  {
     this->Map = map;
     this->Renderer = map->GetRenderer();
     this->Modified();
-    }
+  }
 }
 
 //----------------------------------------------------------------------------
@@ -99,14 +99,14 @@ vtkMap::AsyncState vtkLayer::ResolveAsync()
 {
   // Asynchronous layers should always override this method.
   // (Otherwise they don't need to be asynchronous...)
-  vtkWarningMacro(<<"vtkLayer::ResolveAsync() should not be called");
+  vtkWarningMacro(<< "vtkLayer::ResolveAsync() should not be called");
   return vtkMap::AsyncOff;
 }
 
 //----------------------------------------------------------------------------
 vtkRenderPass* vtkLayer::GetRenderPass()
 {
-  return this->RenderPass.GetPointer(); 
+  return this->RenderPass.GetPointer();
 }
 
 //----------------------------------------------------------------------------

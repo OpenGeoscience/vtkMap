@@ -19,6 +19,7 @@
 #include <vtkInformation.h>
 #include <vtkInformationVector.h>
 #include <vtkMath.h>
+#include <vtkNew.h>
 #include <vtkObjectFactory.h>
 #include <vtkPointData.h>
 #include <vtkPoints.h>
@@ -26,7 +27,6 @@
 #include <vtkPolyDataWriter.h>
 #include <vtkStreamingDemandDrivenPipeline.h>
 #include <vtkTransform.h>
-#include <vtkNew.h>
 
 #include <iomanip>
 #include <iostream>
@@ -55,53 +55,52 @@ vtkTeardropSource::vtkTeardropSource(int res)
 }
 
 //----------------------------------------------------------------------------
-int vtkTeardropSource::RequestData(
-  vtkInformation *vtkNotUsed(request),
-  vtkInformationVector **vtkNotUsed(inputVector),
-  vtkInformationVector *outputVector)
+int vtkTeardropSource::RequestData(vtkInformation* vtkNotUsed(request),
+  vtkInformationVector** vtkNotUsed(inputVector),
+  vtkInformationVector* outputVector)
 {
   // get the info objects
-  vtkInformation *outInfo = outputVector->GetInformationObject(0);
+  vtkInformation* outInfo = outputVector->GetInformationObject(0);
 
   // get the output
-  vtkPolyData *output = vtkPolyData::SafeDownCast(
-    outInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkPolyData* output =
+    vtkPolyData::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
 
   // Todo handle multiple pieces
   vtkDebugMacro("TeardropSource Executing");
 
-  vtkPoints *tailPath = vtkPoints::New(VTK_DOUBLE);
+  vtkPoints* tailPath = vtkPoints::New(VTK_DOUBLE);
   vtkNew<vtkDoubleArray> tailNormals;
   this->ComputeTailPath(tailPath, tailNormals.GetPointer());
-  vtkPoints *headPath = vtkPoints::New(VTK_DOUBLE);
+  vtkPoints* headPath = vtkPoints::New(VTK_DOUBLE);
   vtkNew<vtkDoubleArray> headNormals;
   this->ComputeHeadPath(headPath, headNormals.GetPointer());
 
   // Combine tail & head into one path
-  vtkPoints *path = vtkPoints::New(VTK_DOUBLE);
+  vtkPoints* path = vtkPoints::New(VTK_DOUBLE);
   vtkNew<vtkDoubleArray> pathNormals;
   pathNormals->SetNumberOfComponents(3);
 
   int i;
-  double *coordinates;
+  double* coordinates;
   double normal[3];
   // Skip last tail point (overlaps first head point)
-  for (i=0; i<tailPath->GetNumberOfPoints()-1; i++)
-    {
+  for (i = 0; i < tailPath->GetNumberOfPoints() - 1; i++)
+  {
     coordinates = tailPath->GetPoint(i);
     path->InsertNextPoint(coordinates);
     tailNormals->GetTuple(i, normal);
     pathNormals->InsertNextTuple(normal);
-    }
-  for (i=0; i<headPath->GetNumberOfPoints(); i++)
-    {
+  }
+  for (i = 0; i < headPath->GetNumberOfPoints(); i++)
+  {
     coordinates = headPath->GetPoint(i);
     path->InsertNextPoint(coordinates);
     headNormals->GetTuple(i, normal);
     pathNormals->InsertNextTuple(normal);
-    }
-  vtkDebugMacro("Teardrop curve has " << path->GetNumberOfPoints()
-                << " points");
+  }
+  vtkDebugMacro(
+    "Teardrop curve has " << path->GetNumberOfPoints() << " points");
 
   // std::cout << "Profile coordinates:" << "\n";
   // for (i=0; i<path->GetNumberOfPoints(); i++)
@@ -135,7 +134,7 @@ int vtkTeardropSource::RequestData(
 //----------------------------------------------------------------------------
 void vtkTeardropSource::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
 
   os << indent << "Resolution: " << this->Resolution << "\n";
   os << indent << "TailHeight: " << this->TailHeight << "\n";
@@ -144,13 +143,13 @@ void vtkTeardropSource::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "HeadRadius: " << this->HeadRadius << "\n";
   os << indent << "FrontSideOnly: " << this->FrontSideOnly << "\n";
   os << indent << "ProjectToXYPlane: " << this->ProjectToXYPlane << "\n";
-  os << indent << "Output Points Precision: " << this->OutputPointsPrecision << "\n";
+  os << indent << "Output Points Precision: " << this->OutputPointsPrecision
+     << "\n";
 }
 
-
 //----------------------------------------------------------------------------
-void vtkTeardropSource::ComputeTailPath(vtkPoints *tailPath,
-                                        vtkDoubleArray *tailNormals)
+void vtkTeardropSource::ComputeTailPath(
+  vtkPoints* tailPath, vtkDoubleArray* tailNormals)
 {
   tailPath->Reset();
   tailNormals->Reset();
@@ -170,7 +169,6 @@ void vtkTeardropSource::ComputeTailPath(vtkPoints *tailPath,
   controlPt[3][0] = this->TailHeight;
   controlPt[3][1] = this->HeadRadius;
 
-
   // First implementation computes evenly-spaced points based on Resolution,
   // HeadRadius, and TailLength.
   double circumference = 2.0 * vtkMath::Pi() * this->HeadRadius;
@@ -183,18 +181,18 @@ void vtkTeardropSource::ComputeTailPath(vtkPoints *tailPath,
   double t;
   double coordinates[3];
   double normal[3];
-  for (int i=0; i<numPoints; i++)
-    {
+  for (int i = 0; i < numPoints; i++)
+  {
     t = static_cast<double>(i) / tailResolution;
     this->ComputeTailCoordinate(t, controlPt, coordinates, normal);
     tailPath->InsertNextPoint(coordinates);
     tailNormals->InsertNextTuple(normal);
-    }
+  }
 }
 
 //----------------------------------------------------------------------------
-void vtkTeardropSource::ComputeHeadPath(vtkPoints *headPath,
-                                        vtkDoubleArray *headNormals)
+void vtkTeardropSource::ComputeHeadPath(
+  vtkPoints* headPath, vtkDoubleArray* headNormals)
 {
   headPath->Reset();
   headNormals->Reset();
@@ -214,10 +212,10 @@ void vtkTeardropSource::ComputeHeadPath(vtkPoints *headPath,
   normal[2] = 0.0;
   headNormals->InsertNextTuple(normal);
 
-  for (int i=1; i<this->Resolution; i++)
-    {
-    const double theta = 0.5 * vtkMath::Pi() *
-      (1.0 - static_cast<double>(i)/this->Resolution);
+  for (int i = 1; i < this->Resolution; i++)
+  {
+    const double theta =
+      0.5 * vtkMath::Pi() * (1.0 - static_cast<double>(i) / this->Resolution);
     const double cosTheta = cos(theta);
     const double sinTheta = sin(theta);
 
@@ -228,7 +226,7 @@ void vtkTeardropSource::ComputeHeadPath(vtkPoints *headPath,
     normal[0] = cosTheta;
     normal[1] = sinTheta;
     headNormals->InsertNextTuple(normal);
-    }
+  }
 
   // Last point is hard-coded
   coordinates[0] = this->TailHeight + this->HeadRadius;
@@ -240,32 +238,32 @@ void vtkTeardropSource::ComputeHeadPath(vtkPoints *headPath,
 }
 
 //----------------------------------------------------------------------------
-void vtkTeardropSource::
-ComputePolyData(vtkPoints *path, vtkDoubleArray *pathNormals, vtkPolyData *output)
+void vtkTeardropSource::ComputePolyData(
+  vtkPoints* path, vtkDoubleArray* pathNormals, vtkPolyData* output)
 {
   int numPathPts = path->GetNumberOfPoints();
-  int numOutputPts = 2 + (numPathPts-2) * this->Resolution;
-  int numOutputPolys = 2*this->Resolution   // triangles
+  int numOutputPts = 2 + (numPathPts - 2) * this->Resolution;
+  int numOutputPolys = 2 * this->Resolution // triangles
     + (numPathPts - 3) * this->Resolution;  // quads
 
-  vtkPoints *outputPts = vtkPoints::New();
+  vtkPoints* outputPts = vtkPoints::New();
 
   // Set the desired precision for the points in the output.
-  if(this->OutputPointsPrecision == vtkAlgorithm::DOUBLE_PRECISION)
-    {
+  if (this->OutputPointsPrecision == vtkAlgorithm::DOUBLE_PRECISION)
+  {
     outputPts->SetDataType(VTK_DOUBLE);
-    }
+  }
   else
-    {
+  {
     outputPts->SetDataType(VTK_FLOAT);
-    }
+  }
 
   outputPts->SetNumberOfPoints(numOutputPts);
-  vtkDoubleArray *outputNormals = vtkDoubleArray::New();
+  vtkDoubleArray* outputNormals = vtkDoubleArray::New();
   outputNormals->SetNumberOfComponents(3);
   outputNormals->SetNumberOfTuples(numOutputPts);
 
-  vtkCellArray *outputPolys = vtkCellArray::New();
+  vtkCellArray* outputPolys = vtkCellArray::New();
   outputPolys->Allocate(outputPolys->EstimateSize(numOutputPolys, 4));
 
   // Set 1st and last point
@@ -282,7 +280,7 @@ ComputePolyData(vtkPoints *path, vtkDoubleArray *pathNormals, vtkPolyData *outpu
   outputNormals->SetTuple(0, outputNormal);
 
   int lastId = numOutputPts - 1;
-  path->GetPoint(path->GetNumberOfPoints()-1, pathCoords);
+  path->GetPoint(path->GetNumberOfPoints() - 1, pathCoords);
   outputPts->SetPoint(lastId, pathCoords);
   //outputPts->Print(std::cout);
   outputNormal[0] = 1.0;
@@ -296,28 +294,29 @@ ComputePolyData(vtkPoints *path, vtkDoubleArray *pathNormals, vtkPolyData *outpu
   //std::cout << "deltaPointIds: " << deltaPointIds << std::endl;
   double maxAngle = 2.0 * vtkMath::Pi();
   if (this->FrontSideOnly)
-    {
+  {
     // For FrontSideOnly, increase angle so that 180 degrees is covered
     // by 1 more step than Resolution, because last profile connects to first,
     // which we omit for FrontSideOnly.
     maxAngle = vtkMath::Pi() * static_cast<double>(this->Resolution + 1) /
       static_cast<double>(this->Resolution);
-    }
+  }
 
-  for (int i=0; i<this->Resolution; i++)
-    {
+  for (int i = 0; i < this->Resolution; i++)
+  {
     theta = i * maxAngle / this->Resolution;
     double cosTheta = cos(theta);
     double sinTheta = sin(theta);
 
     // Copy points
-    for (int j=1; j<=deltaPointIds; j++)
-      {
+    for (int j = 1; j <= deltaPointIds; j++)
+    {
       path->GetPoint(j, pathCoords);
-      outputCoords[0] = pathCoords[0];  // x
-      outputCoords[1] = pathCoords[1] * cosTheta;  // y
+      outputCoords[0] = pathCoords[0];            // x
+      outputCoords[1] = pathCoords[1] * cosTheta; // y
       outputCoords[2] = this->ProjectToXYPlane ?  // z
-        0.0 : pathCoords[1] * sinTheta;
+        0.0
+                                               : pathCoords[1] * sinTheta;
       outputPts->SetPoint(pointId, outputCoords);
 
       pathNormals->GetTuple(j, pathNormal);
@@ -328,46 +327,46 @@ ComputePolyData(vtkPoints *path, vtkDoubleArray *pathNormals, vtkPolyData *outpu
       outputNormals->SetTuple(pointId, outputNormal);
 
       pointId++;
-      }
+    }
 
     if (this->FrontSideOnly && i == (this->Resolution - 1))
-      {
+    {
       // For FrontSideOnly, do not connect last set of points back
       // to first set. Instead break here.
       break;
-      }
+    }
 
     // Triangle at bottom
     ids[0] = 0;
-    ids[1] = (firstId + deltaPointIds) % (lastId-1);
+    ids[1] = (firstId + deltaPointIds) % (lastId - 1);
     ids[2] = firstId;
     outputPolys->InsertNextCell(3, ids);
 
     // Quads
-    for (int j=0; j<deltaPointIds-1; j++)
-      {
+    for (int j = 0; j < deltaPointIds - 1; j++)
+    {
       ids[0] = firstId + j;
-      ids[1] = (ids[0] + deltaPointIds) % (lastId-1);
+      ids[1] = (ids[0] + deltaPointIds) % (lastId - 1);
       ids[2] = ids[1] + 1;
       ids[3] = ids[0] + 1;
       outputPolys->InsertNextCell(4, ids);
-      }
+    }
 
     // Triangle at top
     ids[0] = firstId + deltaPointIds - 1;
     ids[1] = ids[0] + deltaPointIds;
     if (ids[1] > lastId)
-      {
+    {
       // Need modulus to get last triangle right
       // Need conditional to get next-to-last triangle right
-      ids[1] = (ids[0] + deltaPointIds) % (lastId-1);
-      }
+      ids[1] = (ids[0] + deltaPointIds) % (lastId - 1);
+    }
     ids[2] = lastId;
     outputPolys->InsertNextCell(3, ids);
 
     // Update vars
     firstId += deltaPointIds;
-    }
+  }
 
   outputPts->Squeeze();
   //outputPts->Print(std::cout);
@@ -396,26 +395,25 @@ ComputePolyData(vtkPoints *path, vtkDoubleArray *pathNormals, vtkPolyData *outpu
   //std::cout << std::endl;
 }
 
-
 //----------------------------------------------------------------------------
-void vtkTeardropSource::
-ComputeTailCoordinate(double t, double controlPt[4][2],
-                      double coordinates[3], double normal[3])
+void vtkTeardropSource::ComputeTailCoordinate(
+  double t, double controlPt[4][2], double coordinates[3], double normal[3])
 {
   double tm1 = 1.0 - t;
   double tm13 = tm1 * tm1 * tm1;
   double t3 = t * t * t;
 
   double velocity[2];
-  for (int i=0; i<2; i++)
-    {
-    coordinates[i] = tm13*controlPt[0][i] + 3*t*tm1*tm1*controlPt[1][i] +
-      3.0*t*t*tm1*controlPt[2][i] + t3*controlPt[3][i];
+  for (int i = 0; i < 2; i++)
+  {
+    coordinates[i] = tm13 * controlPt[0][i] +
+      3 * t * tm1 * tm1 * controlPt[1][i] +
+      3.0 * t * t * tm1 * controlPt[2][i] + t3 * controlPt[3][i];
 
-    velocity[i] = 3.0*tm1*tm1*(controlPt[1][i] - controlPt[0][i]) +
-      6.0*t*tm1*(controlPt[2][i] - controlPt[1][i]) +
-      t3*(controlPt[3][i] - controlPt[2][i]);
-    }
+    velocity[i] = 3.0 * tm1 * tm1 * (controlPt[1][i] - controlPt[0][i]) +
+      6.0 * t * tm1 * (controlPt[2][i] - controlPt[1][i]) +
+      t3 * (controlPt[3][i] - controlPt[2][i]);
+  }
   coordinates[2] = 0.0;
   normal[0] = -velocity[1];
   normal[1] = velocity[0];

@@ -27,23 +27,21 @@ class Ui_qtMapCoordinatesWidget;
 
 class qtMapCoordinatesWidget : public QWidget
 {
- Q_OBJECT
- public:
- qtMapCoordinatesWidget(QWidget *parent = 0);
+  Q_OBJECT
+public:
+  qtMapCoordinatesWidget(QWidget* parent = 0);
 
- void setCoordinates(double center[2], int zoom);
- void getCoordinates(double center[2], int& zoom) const;
-  public slots:
-    void refresh();
+  void setCoordinates(double center[2], int zoom);
+  void getCoordinates(double center[2], int& zoom) const;
+public slots:
+  void refresh();
 
-  protected:
-    /// Map instance
-    vtkMap *Map;
+protected:
+  /// Map instance
+  vtkMap* Map;
 
-    /// Designer form
-    Ui_qtMapCoordinatesWidget *UI;
+  /// Designer form
+  Ui_qtMapCoordinatesWidget* UI;
 };
 
-#endif  // __qtMapCoordinatesWidget_h
-
-
+#endif // __qtMapCoordinatesWidget_h

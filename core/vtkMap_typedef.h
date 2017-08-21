@@ -1,8 +1,8 @@
 #ifndef __vtkMap_typedef_h
 #define __vtkMap_typedef_h
 
-
-namespace vtkMapType {
+namespace vtkMapType
+{
 
 enum class Move : unsigned short
 {
@@ -14,12 +14,11 @@ enum class Move : unsigned short
 
 enum Interaction : unsigned short
 {
-  Default = 0,         // standard map interaction (select/pan)
+  Default = 0, // standard map interaction (select/pan)
   RubberBandSelection,
   RubberBandZoom,
   RubberBandDisplayOnly,
   PolygonSelection
 };
-
 }
 #endif // __vtkMap_typedef_h

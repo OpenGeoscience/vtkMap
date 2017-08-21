@@ -29,7 +29,7 @@ class VTKMAPCORE_EXPORT vtkPolydataFeature : public vtkFeature
 {
 public:
   static vtkPolydataFeature* New();
-  void PrintSelf(ostream &os, vtkIndent indent) override;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
   vtkTypeMacro(vtkPolydataFeature, vtkFeature);
 
   // Description
@@ -61,9 +61,8 @@ protected:
   vtkPolyDataMapper* Mapper;
 
 private:
-  vtkPolydataFeature(const vtkPolydataFeature&); // Not implemented
+  vtkPolydataFeature(const vtkPolydataFeature&);            // Not implemented
   vtkPolydataFeature& operator=(const vtkPolydataFeature&); // Not implemented
 };
-
 
 #endif // __vtkPolydataFeature_h

@@ -36,8 +36,9 @@ class vtkActor2D;
 class vtkMap;
 class vtkPoints;
 
-namespace vtkMapType {
-  class Timer;
+namespace vtkMapType
+{
+class Timer;
 }
 
 class VTKMAPCORE_EXPORT vtkInteractorStyleGeoMap
@@ -47,10 +48,10 @@ public:
   enum Commands
   {
     SelectionCompleteEvent = vtkCommand::UserEvent + 1,
-    DisplayClickCompleteEvent,   // DisplayOnlyMode && mouse click
-    DisplayDrawCompleteEvent,    // DisplayOnlyMode && rectangle draw
+    DisplayClickCompleteEvent, // DisplayOnlyMode && mouse click
+    DisplayDrawCompleteEvent,  // DisplayOnlyMode && rectangle draw
     ZoomCompleteEvent,
-    RightButtonCompleteEvent     // for application-context menus
+    RightButtonCompleteEvent // for application-context menus
   };
 
 public:
@@ -81,30 +82,32 @@ public:
   using vtkInteractorStyleRubberBand2D::GetEndPosition;
 
   int* GetStartPosition() { return this->StartPosition; }
-  int* GetEndPosition()   { return this->EndPosition; }
+  int* GetEndPosition() { return this->EndPosition; }
 
   // Description:
   // Modes for RubberBandMode
   enum enumRubberBandMode
-    {
-    DisabledMode = 0,   // standard map interaction (select/pan)
+  {
+    DisabledMode = 0, // standard map interaction (select/pan)
     SelectionMode,
     ZoomMode,
     DisplayOnlyMode
-    };
+  };
 
   // Description:
   // Control whether we do zoom, selection, or nothing special if rubberband
   vtkSetClampMacro(RubberBandMode, int, DisabledMode, DisplayOnlyMode);
   vtkGetMacro(RubberBandMode, int);
-  void SetRubberBandModeToZoom()
-    {this->SetRubberBandMode(ZoomMode);}
+  void SetRubberBandModeToZoom() { this->SetRubberBandMode(ZoomMode); }
   void SetRubberBandModeToSelection()
-    {this->SetRubberBandMode(SelectionMode);}
+  {
+    this->SetRubberBandMode(SelectionMode);
+  }
   void SetRubberBandModeToDisplayOnly()
-    {this->SetRubberBandMode(DisplayOnlyMode);}
-  void SetRubberBandModeToDisabled()
-    {this->SetRubberBandMode(DisabledMode);}
+  {
+    this->SetRubberBandMode(DisplayOnlyMode);
+  }
+  void SetRubberBandModeToDisabled() { this->SetRubberBandMode(DisabledMode); }
 
   vtkSetMacro(DoubleClickDelay, size_t);
 
@@ -120,21 +123,21 @@ private:
 
   bool IsDoubleClick();
 
-/**
+  /**
  * Zoom handlers.
  */
   void ZoomIn(int levels);
   void ZoomOut(int levels);
 
-  vtkMap *Map;
+  vtkMap* Map;
   int RubberBandMode;
-  vtkPoints*  RubberBandPoints;
+  vtkPoints* RubberBandPoints;
 
   std::unique_ptr<vtkMapType::Timer> Timer;
   size_t DoubleClickDelay = 500;
   unsigned char MouseClicks = 0;
 
-/**
+  /**
  * vtkInteractorStyleGeoMap::Pan() can be called through a mouse movement
  * or through vtkInteractorStyle::OnTimer(). Since vtkMap makes use of
  * vtkCommand::TimerEvent for polling it is necessary to ensure panning does

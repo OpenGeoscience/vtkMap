@@ -31,18 +31,18 @@ class VTKMAPCORE_EXPORT vtkMapTile : public vtkFeature
 {
 public:
   static vtkMapTile* New();
-   void PrintSelf(ostream &os, vtkIndent indent);
-  vtkTypeMacro (vtkMapTile, vtkFeature)
+  void PrintSelf(ostream& os, vtkIndent indent);
+  vtkTypeMacro(vtkMapTile, vtkFeature)
 
-  // Description:
-  // Set path to image on local file system
-  void SetFileSystemPath(const std::string& path)
-    {
+    // Description:
+    // Set path to image on local file system
+    void SetFileSystemPath(const std::string& path)
+  {
     this->ImageFile = path;
-    }
+  }
 
-  void  SetImageSource(const std::string& imgSrc) {this->ImageSource= imgSrc;}
-  std::string GetImageSource() {return this->ImageSource;}
+  void SetImageSource(const std::string& imgSrc) { this->ImageSource = imgSrc; }
+  std::string GetImageSource() { return this->ImageSource; }
 
   // Description:
   // Get/Set corners of the tile (lowerleft, upper right)
@@ -55,13 +55,12 @@ public:
   vtkSetMacro(Bin, int);
 
   // Description:
-  vtkGetMacro(Plane, vtkPlaneSource*)
-  vtkGetMacro(Actor, vtkActor*)
-  vtkGetMacro(Mapper, vtkPolyDataMapper*)
+  vtkGetMacro(Plane, vtkPlaneSource*) vtkGetMacro(Actor, vtkActor*)
+    vtkGetMacro(Mapper, vtkPolyDataMapper*)
 
-  // Description:
-  // Get/Set position of the tile
-  void SetCenter(double* center);
+    // Description:
+    // Get/Set position of the tile
+    void SetCenter(double* center);
   void SetCenter(double x, double y, double z);
 
   void SetVisible(bool val);
@@ -80,7 +79,6 @@ public:
   // Description:
   // Update the map tile
   void Update() override;
-
 
 protected:
   vtkMapTile();
@@ -117,7 +115,7 @@ protected:
   double Corners[4];
 
 private:
-  vtkMapTile(const vtkMapTile&);  // Not implemented
+  vtkMapTile(const vtkMapTile&);            // Not implemented
   vtkMapTile& operator=(const vtkMapTile&); // Not implemented
 };
 

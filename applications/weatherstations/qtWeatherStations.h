@@ -21,9 +21,9 @@
 
 #include "StationReport.h"
 #include <QMainWindow>
+#include <map>
 #include <vtkType.h>
 #include <vtk_jsoncpp.h>
-#include <map>
 class vtkGeoMapSelection;
 class vtkMap;
 class vtkMapMarkerSet;
@@ -32,46 +32,45 @@ class QVTKWidget;
 class MapCallback;
 class QWidget;
 
-
 // Forward Qt class declarations
 class Ui_qtWeatherStations;
 
 class qtWeatherStations : public QMainWindow
 {
   Q_OBJECT
- public:
-  qtWeatherStations(QWidget *parent = 0);
+public:
+  qtWeatherStations(QWidget* parent = 0);
   ~qtWeatherStations() override;
 
   void drawMap();
   void updateMap();
-  vtkRenderer *getRenderer() const;
-  void displaySelectionInfo(vtkGeoMapSelection *selection) const;
-  QWidget *mapWidget() const;
- public slots:
+  vtkRenderer* getRenderer() const;
+  void displaySelectionInfo(vtkGeoMapSelection* selection) const;
+  QWidget* mapWidget() const;
+public slots:
 
- protected:
+protected:
   Json::Value RequestStationData();
   std::vector<StationReport> ParseStationData(Json::Value data);
   void DisplayStationData(std::vector<StationReport> statonList);
   void DisplayStationMarkers(std::vector<StationReport> statonList);
-  void resizeEvent(QResizeEvent *event) override;
+  void resizeEvent(QResizeEvent* event) override;
 
-  vtkMap *Map;               /// Map instance
-  vtkMapMarkerSet *MapMarkers;  // Map markers
-  vtkRenderer *Renderer;     /// vtk renderer
-  QVTKWidget *MapWidget;     /// Map widget
-  Ui_qtWeatherStations *UI;  /// Qt Designer form
+  vtkMap* Map;                 /// Map instance
+  vtkMapMarkerSet* MapMarkers; // Map markers
+  vtkRenderer* Renderer;       /// vtk renderer
+  QVTKWidget* MapWidget;       /// Map widget
+  Ui_qtWeatherStations* UI;    /// Qt Designer form
   std::map<vtkIdType, StationReport> StationMap;
-  MapCallback *InteractorCallback;
+  MapCallback* InteractorCallback;
 
- protected slots:
-   void moveToCoords();
-   void showStations();
-   void toggleClustering(int state);
-   void onClusterDistanceChanged(int value);
-   void onUpdateCoordsWidget();
-   void recomputeClusters();
+protected slots:
+  void moveToCoords();
+  void showStations();
+  void toggleClustering(int state);
+  void onClusterDistanceChanged(int value);
+  void onUpdateCoordsWidget();
+  void recomputeClusters();
 };
 
-#endif  // __qtWeatherStations_h
+#endif // __qtWeatherStations_h

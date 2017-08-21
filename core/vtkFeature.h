@@ -21,8 +21,8 @@
 #include <vtkObject.h>
 #include <vtkWeakPointer.h>
 
-#include "vtkmapcore_export.h"
 #include "vtkFeatureLayer.h"
+#include "vtkmapcore_export.h"
 
 class vtkProp;
 
@@ -32,12 +32,12 @@ class VTKMAPCORE_EXPORT vtkFeature : public vtkObject
 {
 public:
   enum Bins
-    {
+  {
     Hidden = 99,
     Visible = 100,
-    };
+  };
 
-  void PrintSelf(ostream &os, vtkIndent indent) override;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
   vtkTypeMacro(vtkFeature, vtkObject);
 
   // Expecting it to EPSG codes (EPSG4326)
@@ -82,15 +82,13 @@ public:
   // Description:
   // Return vtkProp that represents feature in picking operations.
   // Default is none.
-  virtual vtkProp *PickProp();
+  virtual vtkProp* PickProp();
 
   // Description:
   // Pick all feature items at designated display coordinates.
   // For external features to override.
   virtual void PickItems(
-    vtkRenderer *renderer,
-    int displayCoords[4],
-    vtkGeoMapSelection *selection);
+    vtkRenderer* renderer, int displayCoords[4], vtkGeoMapSelection* selection);
 
 protected:
   vtkFeature();
@@ -108,9 +106,8 @@ protected:
   vtkWeakPointer<vtkFeatureLayer> Layer;
 
 private:
-  vtkFeature(const vtkFeature&);  // Not implemented
+  vtkFeature(const vtkFeature&);            // Not implemented
   vtkFeature& operator=(const vtkFeature&); // Not implemented
 };
-
 
 #endif // __vtkFeature_h

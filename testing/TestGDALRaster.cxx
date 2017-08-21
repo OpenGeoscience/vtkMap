@@ -13,10 +13,10 @@
 
 =========================================================================*/
 
-#include "vtkMap.h"
 #include "vtkFeatureLayer.h"
-#include "vtkOsmLayer.h"
 #include "vtkGDALRasterFeature.h"
+#include "vtkMap.h"
+#include "vtkOsmLayer.h"
 
 #include <vtkColorTransferFunction.h>
 #include <vtkGDALRasterReader.h>
@@ -28,16 +28,16 @@
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
 #include <vtkPointData.h>
-#include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
+#include <vtkRenderer.h>
 #include <vtksys/CommandLineArguments.hxx>
 
 #include <iomanip>
 #include <iostream>
 
 //----------------------------------------------------------------------------
-int TestGDALRaster(int argc, char *argv[])
+int TestGDALRaster(int argc, char* argv[])
 {
   // Setup command line arguments
   std::string inputFile;
@@ -49,32 +49,36 @@ int TestGDALRaster(int argc, char *argv[])
   vtksys::CommandLineArguments arg;
   arg.Initialize(argc, argv);
   arg.StoreUnusedArguments(true);
-  arg.AddArgument("-h", vtksys::CommandLineArguments::NO_ARGUMENT,
-                  &showHelp, "show help message");
+  arg.AddArgument("-h", vtksys::CommandLineArguments::NO_ARGUMENT, &showHelp,
+    "show help message");
   arg.AddArgument("--help", vtksys::CommandLineArguments::NO_ARGUMENT,
-                  &showHelp, "show help message");
+    &showHelp, "show help message");
   arg.AddArgument("-b", vtksys::CommandLineArguments::NO_ARGUMENT,
-                  &useBobColormap, "use \"Bob\'s\" color map");
+    &useBobColormap, "use \"Bob\'s\" color map");
   arg.AddArgument("-c", vtksys::CommandLineArguments::MULTI_ARGUMENT,
-                  &centerLatLon, "initial center (latitude longitude)");
+    &centerLatLon, "initial center (latitude longitude)");
   arg.AddArgument("-z", vtksys::CommandLineArguments::SPACE_ARGUMENT,
-                  &zoomLevel, "initial zoom level (1-20)");
+    &zoomLevel, "initial zoom level (1-20)");
 
   if (argc < 2 || !arg.Parse() || showHelp)
-    {
+  {
     std::cout << "\n"
-              << "Input GDAL raster file and display on map." << "\n"
-              << "Usage: TestGDALRaster  inputfile  [options]" << "\n"
-              << "Note that:" << "\n"
+              << "Input GDAL raster file and display on map."
+              << "\n"
+              << "Usage: TestGDALRaster  inputfile  [options]"
+              << "\n"
+              << "Note that:"
+              << "\n"
               << "  1. Inputfile must contain corner points"
-              << " specified in latitude/longitude" << "\n"
+              << " specified in latitude/longitude"
+              << "\n"
               << "  2. Input image is NOT warped or resampled,"
-              << " therefore, assigned colors are NOT precise." << "\n"
-              << "\n" << "Optional arguments:"
-              << arg.GetHelp()
-              << std::endl;
+              << " therefore, assigned colors are NOT precise."
+              << "\n"
+              << "\n"
+              << "Optional arguments:" << arg.GetHelp() << std::endl;
     return -1;
-    }
+  }
 
   // Instantiate vtkMap
   vtkNew<vtkMap> map;
@@ -85,13 +89,13 @@ int TestGDALRaster(int argc, char *argv[])
   // Set initial center and zoom
   double latitude = centerLatLon.size() > 0 ? centerLatLon[0] : 0.0;
   double longitude = centerLatLon.size() > 1 ? centerLatLon[1] : 0.0;
-  std::cout << "Setting map center to latitude " << latitude
-            << ", longitude " << longitude << std::endl;
+  std::cout << "Setting map center to latitude " << latitude << ", longitude "
+            << longitude << std::endl;
   map->SetCenter(latitude, longitude);
   std::cout << "Setting zoom level to " << zoomLevel << std::endl;
   map->SetZoom(zoomLevel);
 
-   // Add OSM layer
+  // Add OSM layer
   vtkNew<vtkOsmLayer> osmLayer;
   map->AddLayer(osmLayer.GetPointer());
 
@@ -100,18 +104,19 @@ int TestGDALRaster(int argc, char *argv[])
   map->AddLayer(featureLayer.GetPointer());
 
   // Load GDAL raster image
-  vtkGDALRasterReader *reader = vtkGDALRasterReader::New();
+  vtkGDALRasterReader* reader = vtkGDALRasterReader::New();
   reader->SetFileName(argv[1]);
   reader->Update();
 
   std::cout << "Projection string: " << reader->GetProjectionString() << "\n";
-  std::cout << "Corner points:" << "\n";
-  const double *corners = reader->GetGeoCornerPoints();
-  for (int i=0, index=0; i<4; i++, index += 2)
-    {
-    std::cout << "  " << std::setprecision(12) << corners[index]
-              << ", " << std::setprecision(12) << corners[index+1] << "\n";
-    }
+  std::cout << "Corner points:"
+            << "\n";
+  const double* corners = reader->GetGeoCornerPoints();
+  for (int i = 0, index = 0; i < 4; i++, index += 2)
+  {
+    std::cout << "  " << std::setprecision(12) << corners[index] << ", "
+              << std::setprecision(12) << corners[index + 1] << "\n";
+  }
   std::cout << "Delta longitude: " << std::setprecision(12)
             << (corners[4] - corners[0]) << "\n";
   std::cout << "Delta latitude:  " << std::setprecision(12)
@@ -122,37 +127,36 @@ int TestGDALRaster(int argc, char *argv[])
   std::cout << "Raster dimensions: " << dim[0] << ", " << dim[1] << "\n";
   std::cout << "Driver: " << reader->GetDriverLongName() << "\n";
 
-  vtkImageData *rasterData = reader->GetOutput();
+  vtkImageData* rasterData = reader->GetOutput();
   std::cout << "Scalar type: " << rasterData->GetScalarType() << " = "
             << rasterData->GetScalarTypeAsString() << "\n";
-  std::cout << "Scalar size: " << rasterData->GetScalarSize()
-            << " bytes" << "\n";
-  int *rasterDim = rasterData->GetDimensions();
-  std::cout << "Raster dimensions: " << rasterDim[0]
-            << ", " << rasterDim[1] << "\n";
-  double *range = rasterData->GetScalarRange();
-  std::cout << "Scalar range: " << range[0]
-            << ", " << range[1] << "\n";
+  std::cout << "Scalar size: " << rasterData->GetScalarSize() << " bytes"
+            << "\n";
+  int* rasterDim = rasterData->GetDimensions();
+  std::cout << "Raster dimensions: " << rasterDim[0] << ", " << rasterDim[1]
+            << "\n";
+  double* range = rasterData->GetScalarRange();
+  std::cout << "Scalar range: " << range[0] << ", " << range[1] << "\n";
 
   std::cout << std::endl;
 
-  vtkImageData *image = reader->GetOutput();
+  vtkImageData* image = reader->GetOutput();
   vtkNew<vtkGDALRasterFeature> feature;
   feature->SetImageData(image);
   feature->GetActor()->GetProperty()->SetOpacity(0.5);
   featureLayer->AddFeature(feature.GetPointer());
 
-  vtkLookupTable *colorTable =
+  vtkLookupTable* colorTable =
     image->GetPointData()->GetScalars()->GetLookupTable();
 
   // Setup color mapping
-  vtkImageProperty *prop = feature->GetActor()->GetProperty();
+  vtkImageProperty* prop = feature->GetActor()->GetProperty();
   double window = range[1] - range[0];
   double level = 0.5 * (range[0] + range[1]);
   prop->SetColorWindow(window);
   prop->SetColorLevel(level);
   if (useBobColormap)
-    {
+  {
     std::cout << "Using Bob\'s color mapping function" << std::endl;
     vtkNew<vtkColorTransferFunction> colorFunction;
     colorFunction->AddRGBPoint(-1000.0, 0.0, 0.0, 0.0);
@@ -165,16 +169,16 @@ int TestGDALRaster(int argc, char *argv[])
     colorFunction->Build();
     //colorFunction->Print(std::cout);
     prop->SetLookupTable(colorFunction.GetPointer());
-    }
+  }
   else if (colorTable)
-    {
+  {
     colorTable->SetTableValue(0, 0.0, 0.0, 0.0, 0.0);
     colorTable->SetBelowRangeColor(0.0, 0.0, 0.0, 0.0);
     colorTable->UseBelowRangeColorOn();
     prop->SetLookupTable(colorTable);
-    }
+  }
   else
-    {
+  {
     std::cout << "Using default color lookup table" << std::endl;
     vtkNew<vtkLookupTable> defaultColorTable;
     defaultColorTable->SetTableRange(range[0], range[1]);
@@ -187,7 +191,7 @@ int TestGDALRaster(int argc, char *argv[])
     //std::cout << "Table " << defaultColorTable->GetNumberOfTableValues()
     //          << " colors" << std::endl;
     prop->SetLookupTable(defaultColorTable.GetPointer());
-    }
+  }
 
   // Set up display
   vtkNew<vtkRenderWindow> renderWindow;
@@ -209,9 +213,8 @@ int TestGDALRaster(int argc, char *argv[])
   return EXIT_SUCCESS;
 }
 
-
 //----------------------------------------------------------------------------
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
   TestGDALRaster(argc, argv);
 }

@@ -14,22 +14,21 @@
 =========================================================================*/
 #include <algorithm>
 
-#include <vtk_glew.h>
 #include <vtkInformation.h>
 #include <vtkObjectFactory.h>
 #include <vtkProp.h>
-#include <vtkRenderer.h>
 #include <vtkRenderState.h>
+#include <vtkRenderer.h>
 #include <vtkSetGet.h>
+#include <vtk_glew.h>
 
 #include "vtkGeoMapLayerPass.h"
 #include "vtkLayer.h"
 
-
 vtkStandardNewMacro(vtkGeoMapLayerPass)
 
-vtkGeoMapLayerPass::vtkGeoMapLayerPass()
-: vtkRenderPass()
+  vtkGeoMapLayerPass::vtkGeoMapLayerPass()
+  : vtkRenderPass()
 {
 }
 

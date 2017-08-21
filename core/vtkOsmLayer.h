@@ -37,16 +37,15 @@ class VTKMAPCORE_EXPORT vtkOsmLayer : public vtkFeatureLayer
 {
 public:
   static vtkOsmLayer* New();
-  void PrintSelf(ostream &os, vtkIndent indent) override;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
   vtkTypeMacro(vtkOsmLayer, vtkFeatureLayer)
 
-  // Set the map tile server and corresponding attribute text.
-  // The default server is tile.openstreetmap.org.
-  // The attribution will be displayed at the bottom of the window.
-  // The file extension is typically "png" or "jpg".
-  void SetMapTileServer(const char *server,
-                        const char *attribution,
-                        const char *extension);
+    // Set the map tile server and corresponding attribute text.
+    // The default server is tile.openstreetmap.org.
+    // The attribution will be displayed at the bottom of the window.
+    // The file extension is typically "png" or "jpg".
+    void SetMapTileServer(
+      const char* server, const char* attribution, const char* extension);
 
   // Description:
   // The full path to the directory used for caching map-tile files.
@@ -60,7 +59,7 @@ public:
   // Set the subdirectory used for caching map files.
   // This method is intended for *testing* use only.
   // The argument is *relative* to vtkMap::StorageDirectory.
-  void SetCacheSubDirectory(const char *relativePath);
+  void SetCacheSubDirectory(const char* relativePath);
 
 protected:
   vtkOsmLayer();
@@ -73,9 +72,9 @@ protected:
 
   // Next 3 methods used to add tiles to layer
   void SelectTiles(std::vector<vtkMapTile*>& tiles,
-                   std::vector<vtkMapTileSpecInternal>& tileSpecs);
+    std::vector<vtkMapTileSpecInternal>& tileSpecs);
   void InitializeTiles(std::vector<vtkMapTile*>& tiles,
-                       std::vector<vtkMapTileSpecInternal>& tileSpecs);
+    std::vector<vtkMapTileSpecInternal>& tileSpecs);
   void RenderTiles(std::vector<vtkMapTile*>& tiles);
 
   void AddTileToCache(int zoom, int x, int y, vtkMapTile* tile);
@@ -88,19 +87,18 @@ protected:
   void MakeUrl(vtkMapTileSpecInternal& tileSpec, std::stringstream& ss);
 
 protected:
-  char *MapTileExtension;
-  char *MapTileServer;
-  char *MapTileAttribution;
-  vtkTextActor *AttributionActor;
+  char* MapTileExtension;
+  char* MapTileServer;
+  char* MapTileAttribution;
+  vtkTextActor* AttributionActor;
 
-  char *CacheDirectory;
-  std::map< int, std::map< int, std::map <int, vtkMapTile*> > > CachedTilesMap;
+  char* CacheDirectory;
+  std::map<int, std::map<int, std::map<int, vtkMapTile*> > > CachedTilesMap;
   std::vector<vtkMapTile*> CachedTiles;
 
 private:
-  vtkOsmLayer(const vtkOsmLayer&);    // Not implemented
+  vtkOsmLayer(const vtkOsmLayer&);            // Not implemented
   vtkOsmLayer& operator=(const vtkOsmLayer&); // Not implemented
 };
 
 #endif // __vtkOsmLayer_h
-

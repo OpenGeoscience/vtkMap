@@ -33,8 +33,8 @@ class vtkRenderer;
 class VTKMAPCORE_EXPORT vtkMapMarkerSet : public vtkPolydataFeature
 {
 public:
-  static vtkMapMarkerSet *New();
-  void PrintSelf(ostream &os, vtkIndent indent) override;
+  static vtkMapMarkerSet* New();
+  void PrintSelf(ostream& os, vtkIndent indent) override;
   vtkTypeMacro(vtkMapMarkerSet, vtkPolydataFeature);
 
   // Description:
@@ -132,12 +132,12 @@ public:
   // Description:
   // Return descendent ids for given cluster id.
   // This is inteneded for traversing selected clusters.
-  void GetClusterChildren(vtkIdType clusterId, vtkIdList *childMarkerIds,
-                          vtkIdList *childClusterIds);
+  void GetClusterChildren(
+    vtkIdType clusterId, vtkIdList* childMarkerIds, vtkIdList* childClusterIds);
 
   // Description:
   // Return all marker ids descending from given cluster id
-  void GetAllMarkerIds(vtkIdType clusterId, vtkIdList *markerIds);
+  void GetAllMarkerIds(vtkIdType clusterId, vtkIdList* markerIds);
 
   // Description:
   // Override
@@ -171,9 +171,9 @@ public:
   // Description:
   // For debug, writes out the set of cluster nodes
   // ascending from given marker
-  void PrintClusterPath(ostream &os, int markerId);
+  void PrintClusterPath(ostream& os, int markerId);
 
- protected:
+protected:
   vtkMapMarkerSet();
   ~vtkMapMarkerSet();
 
@@ -212,7 +212,7 @@ public:
 
   // Description:
   // Geometry representation; gets updated each zoom-level change
-  vtkPolyData *PolyData;
+  vtkPolyData* PolyData;
 
   // Description:
   // Threshold distance when combining markers/clusters
@@ -220,24 +220,24 @@ public:
 
   // Description:
   // Stores colors for standard display and selection
-  vtkLookupTable *ColorTable;
+  vtkLookupTable* ColorTable;
 
   class ClusteringNode;
 
   // Used when rebuilding clustering tree
-  void InsertIntoNodeTable(ClusteringNode *node);
+  void InsertIntoNodeTable(ClusteringNode* node);
 
   // Computes clustering distance in gcs coordinates
-  double ComputeDistanceThreshold2(double latitude, double longitude,
-                                   int clusteringDistance) const;
+  double ComputeDistanceThreshold2(
+    double latitude, double longitude, int clusteringDistance) const;
 
   // Find closest node within distance threshold squared
-  ClusteringNode *FindClosestNode(ClusteringNode *node, int zoomLevel,
-                                  double distanceThreshold2);
-  void MergeNodes(ClusteringNode *node, ClusteringNode *mergingNode,
-                  std::set<ClusteringNode*>& parentsToMerge, int level);
+  ClusteringNode* FindClosestNode(
+    ClusteringNode* node, int zoomLevel, double distanceThreshold2);
+  void MergeNodes(ClusteringNode* node, ClusteringNode* mergingNode,
+    std::set<ClusteringNode*>& parentsToMerge, int level);
 
-  void GetMarkerIdsRecursive(vtkIdType clusterId, vtkIdList *markerIds);
+  void GetMarkerIdsRecursive(vtkIdType clusterId, vtkIdList* markerIds);
 
   // Description:
   // Generates next color for actor (which can be overridden, of course)
@@ -245,12 +245,12 @@ public:
   static unsigned int NextMarkerHue;
   double SelectionHue;
 
- private:
+private:
   class MapMarkerSetInternals;
   MapMarkerSetInternals* Internals;
 
-  vtkMapMarkerSet(const vtkMapMarkerSet&);  // not implemented
-  vtkMapMarkerSet& operator=(const vtkMapMarkerSet&);  // not implemented
+  vtkMapMarkerSet(const vtkMapMarkerSet&);            // not implemented
+  vtkMapMarkerSet& operator=(const vtkMapMarkerSet&); // not implemented
 };
 
 #endif // __vtkMapMarkerSet_h

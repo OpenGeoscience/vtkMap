@@ -26,7 +26,7 @@ class VTKMAPGDAL_EXPORT vtkRasterReprojectionFilter : public vtkImageAlgorithm
 {
 public:
   static vtkRasterReprojectionFilter* New();
-  void PrintSelf(ostream &os, vtkIndent indent) override;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
   vtkTypeMacro(vtkRasterReprojectionFilter, vtkImageAlgorithm);
 
   // Description:
@@ -81,33 +81,32 @@ protected:
   vtkRasterReprojectionFilter();
   ~vtkRasterReprojectionFilter();
 
-  int RequestData(vtkInformation* request,
-                  vtkInformationVector** inputVector,
-                  vtkInformationVector* outputVector) override;
+  int RequestData(vtkInformation* request, vtkInformationVector** inputVector,
+    vtkInformationVector* outputVector) override;
 
   int RequestUpdateExtent(vtkInformation* request,
-                          vtkInformationVector** inputVector,
-                          vtkInformationVector* outputVector) override;
+    vtkInformationVector** inputVector,
+    vtkInformationVector* outputVector) override;
 
   int RequestInformation(vtkInformation* request,
-                         vtkInformationVector** inputVector,
-                         vtkInformationVector* outputVector) override;
+    vtkInformationVector** inputVector,
+    vtkInformationVector* outputVector) override;
 
   int FillInputPortInformation(int port, vtkInformation* info) override;
   int FillOutputPortInformation(int port, vtkInformation* info) override;
 
-  char *InputProjection;
-  char *OutputProjection;
+  char* InputProjection;
+  char* OutputProjection;
   int OutputDimensions[2];
   double NoDataValue;
   double MaxError;
   int ResamplingAlgorithm;
 
   class vtkRasterReprojectionFilterInternal;
-  vtkRasterReprojectionFilterInternal *Internal;
+  vtkRasterReprojectionFilterInternal* Internal;
 
 private:
-   // Not implemented:
+  // Not implemented:
   vtkRasterReprojectionFilter(const vtkRasterReprojectionFilter&);
   vtkRasterReprojectionFilter& operator=(const vtkRasterReprojectionFilter&);
 };

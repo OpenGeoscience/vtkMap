@@ -17,11 +17,10 @@
 //
 
 #include "qtWeatherStations.h"
-#include <qapplication.h>
 #include <iostream>
+#include <qapplication.h>
 
-
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
   //std::cout << "Hello from wsmap" << std::endl;
 

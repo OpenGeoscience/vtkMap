@@ -18,26 +18,26 @@
 // VTK Includes
 #include <vtkActor.h>
 #include <vtkJPEGReader.h>
+#include <vtkNew.h>
 #include <vtkObjectFactory.h>
+#include <vtkPNGReader.h>
 #include <vtkPlaneSource.h>
 #include <vtkPolyDataMapper.h>
-#include <vtkPNGReader.h>
 #include <vtkProperty.h>
 #include <vtkTexture.h>
 #include <vtkTextureMapToPlane.h>
-#include <vtkNew.h>
 #include <vtksys/SystemTools.hxx>
 
 #include <curl/curl.h>
 
-#include <cstdio>  // for remove()
-#include <sstream>
+#include <cstdio> // for remove()
 #include <fstream>
+#include <sstream>
 
 vtkStandardNewMacro(vtkMapTile)
 
-//----------------------------------------------------------------------------
-vtkMapTile::vtkMapTile()
+  //----------------------------------------------------------------------------
+  vtkMapTile::vtkMapTile()
 {
   Plane = 0;
   TexturePlane = 0;
@@ -45,32 +45,32 @@ vtkMapTile::vtkMapTile()
   Mapper = 0;
   this->Bin = Hidden;
   this->VisibleFlag = false;
-  this->Corners[0] = this->Corners[1] =
-  this->Corners[2] = this->Corners[3] = 0.0;
+  this->Corners[0] = this->Corners[1] = this->Corners[2] = this->Corners[3] =
+    0.0;
 }
 
 //----------------------------------------------------------------------------
 vtkMapTile::~vtkMapTile()
 {
   if (Plane)
-    {
+  {
     Plane->Delete();
-    }
+  }
 
   if (TexturePlane)
-    {
+  {
     TexturePlane->Delete();
-    }
+  }
 
   if (Actor)
-    {
+  {
     Actor->Delete();
-    }
+  }
 
   if (Mapper)
-    {
+  {
     Mapper->Delete();
-    }
+  }
 }
 
 //----------------------------------------------------------------------------
@@ -86,25 +86,25 @@ void vtkMapTile::Build()
   this->InitializeDownload();
 
   // Read the image which will be the texture
-  vtkImageReader2 *imageReader = NULL;
+  vtkImageReader2* imageReader = NULL;
   std::string fileExtension =
     vtksys::SystemTools::GetFilenameLastExtension(this->ImageFile);
   if (fileExtension == ".png")
-    {
-    vtkPNGReader *pngReader = vtkPNGReader::New();
+  {
+    vtkPNGReader* pngReader = vtkPNGReader::New();
     imageReader = pngReader;
-    }
+  }
   else if (fileExtension == ".jpg")
-    {
-    vtkJPEGReader *jpgReader = vtkJPEGReader::New();
+  {
+    vtkJPEGReader* jpgReader = vtkJPEGReader::New();
     imageReader = jpgReader;
-    }
+  }
   else
-    {
+  {
     vtkErrorMacro("Unsupported map-tile extension " << fileExtension);
     return;
-    }
-  imageReader->SetFileName (this->ImageFile.c_str());
+  }
+  imageReader->SetFileName(this->ImageFile.c_str());
   imageReader->Update();
 
   // Apply the texture
@@ -130,18 +130,18 @@ void vtkMapTile::Build()
 void vtkMapTile::SetVisible(bool val)
 {
   if (val != this->VisibleFlag)
-    {
+  {
     this->VisibleFlag = val;
     if (this->VisibleFlag)
-      {
+    {
       this->Bin = VisibleFlag;
-      }
-    else
-      {
-      this->Bin = Hidden;
-      }
-    this->Modified();
     }
+    else
+    {
+      this->Bin = Hidden;
+    }
+    this->Modified();
+  }
 }
 
 //----------------------------------------------------------------------------
@@ -155,36 +155,35 @@ void vtkMapTile::InitializeDownload()
 {
   // Check if image file already exists.
   // If not, download
-  while(!this->IsImageDownloaded(this->ImageFile.c_str()))
-    {
-    std::cerr << "Downloading " << this->ImageSource.c_str()
-              << " to " << this->ImageFile
-              << std::endl;
+  while (!this->IsImageDownloaded(this->ImageFile.c_str()))
+  {
+    std::cerr << "Downloading " << this->ImageSource.c_str() << " to "
+              << this->ImageFile << std::endl;
     this->DownloadImage(this->ImageSource.c_str(), this->ImageFile.c_str());
-    }
+  }
 }
 
 //----------------------------------------------------------------------------
-bool vtkMapTile::IsImageDownloaded(const char *outfile)
+bool vtkMapTile::IsImageDownloaded(const char* outfile)
 {
   // Check if file can be opened
   // Additional checks to confirm existence of correct
   // texture can be added
   std::ifstream file(outfile);
-  if ( file.is_open() )
-    {
+  if (file.is_open())
+  {
     file.close();
     return true;
-    }
+  }
   else
-    {
+  {
     file.close();
     return false;
-    }
+  }
 }
 
 //----------------------------------------------------------------------------
-void vtkMapTile::DownloadImage(const char *url, const char *outfilename)
+void vtkMapTile::DownloadImage(const char* url, const char* outfilename)
 {
   // Download file from url and store in outfilename
   // Uses libcurl
@@ -194,17 +193,16 @@ void vtkMapTile::DownloadImage(const char *url, const char *outfilename)
   char errorBuffer[CURL_ERROR_SIZE];
   curl = curl_easy_init();
 
-  if(curl)
-    {
+  if (curl)
+  {
     fp = fopen(outfilename, "wb");
-    if(!fp)
-      {
-      vtkErrorMacro( << "Not Open")
-      return;
-      }
+    if (!fp)
+    {
+      vtkErrorMacro(<< "Not Open") return;
+    }
 
 #ifdef DISABLE_CURL_SIGNALS
-  curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1);
+    curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1);
 #endif
     curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errorBuffer);
     curl_easy_setopt(curl, CURLOPT_URL, url);
@@ -216,15 +214,15 @@ void vtkMapTile::DownloadImage(const char *url, const char *outfilename)
 
     //if curl failed remove the file
     if (res != CURLE_OK)
-      {
+    {
       remove(outfilename);
-      vtkWarningMacro(<<errorBuffer);
-      }
+      vtkWarningMacro(<< errorBuffer);
     }
+  }
 }
 
 //----------------------------------------------------------------------------
-void vtkMapTile::PrintSelf(ostream &os, vtkIndent indent)
+void vtkMapTile::PrintSelf(ostream& os, vtkIndent indent)
 {
   Superclass::PrintSelf(os, indent);
   os << "vtkMapTile" << std::endl
@@ -235,9 +233,9 @@ void vtkMapTile::PrintSelf(ostream &os, vtkIndent indent)
 void vtkMapTile::Init()
 {
   if (this->GetMTime() > this->BuildTime.GetMTime())
-    {
+  {
     this->Build();
-    }
+  }
 }
 
 //----------------------------------------------------------------------------

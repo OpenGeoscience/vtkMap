@@ -15,7 +15,8 @@
 #include "vtkFeature.h"
 
 //----------------------------------------------------------------------------
-vtkFeature::vtkFeature() : vtkObject()
+vtkFeature::vtkFeature()
+  : vtkObject()
 {
   this->Id = 0;
   this->Visibility = 1;
@@ -29,17 +30,17 @@ vtkFeature::vtkFeature() : vtkObject()
 //----------------------------------------------------------------------------
 vtkFeature::~vtkFeature()
 {
-  delete [] this->Gcs;
+  delete[] this->Gcs;
 }
 
 //----------------------------------------------------------------------------
 void vtkFeature::SetLayer(vtkFeatureLayer* layer)
 {
   //set our weak pointer to look at the layer passed in.
-  if(layer)
-    { //don't allow null layer
+  if (layer)
+  { //don't allow null layer
     this->Layer = layer;
-    }
+  }
 }
 
 //----------------------------------------------------------------------------
@@ -56,18 +57,15 @@ bool vtkFeature::IsVisible()
 }
 
 //----------------------------------------------------------------------------
-vtkProp *vtkFeature::PickProp()
+vtkProp* vtkFeature::PickProp()
 {
   return NULL;
 }
 
 //----------------------------------------------------------------------------
 void vtkFeature::PickItems(
-  vtkRenderer *renderer,
-  int displayCoords[4],
-  vtkGeoMapSelection *selection)
+  vtkRenderer* renderer, int displayCoords[4], vtkGeoMapSelection* selection)
 {
-  vtkWarningMacro(
-    "vtkFeature::PickItems() called -- should be overridden in "
+  vtkWarningMacro("vtkFeature::PickItems() called -- should be overridden in "
     << this->GetClassName());
 }

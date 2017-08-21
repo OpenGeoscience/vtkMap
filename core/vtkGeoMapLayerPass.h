@@ -27,10 +27,9 @@
  */
 #ifndef vtkGeoMapLayerPass_h
 #define vtkGeoMapLayerPass_h
-#include <vector>             // For std::vector
 #include "vtkmapcore_export.h"
+#include <vector> // For std::vector
 #include <vtkRenderPass.h>
-
 
 class vtkProp;
 
@@ -55,7 +54,7 @@ private:
   vtkGeoMapLayerPass(const vtkGeoMapLayerPass&) VTK_DELETE_FUNCTION;
   void operator=(const vtkGeoMapLayerPass&) VTK_DELETE_FUNCTION;
 
-/**
+  /**
  * Builds the vector of vtkProps related to this vtkLayer.
  */
   void FilterLayerProps(const vtkRenderState* state);

@@ -27,13 +27,13 @@ class VTKMAPGEOJSON_EXPORT vtkGeoJSONMapFeature : public vtkPolydataFeature
 {
 public:
   static vtkGeoJSONMapFeature* New();
-  void PrintSelf(ostream &os, vtkIndent indent) override;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
   vtkTypeMacro(vtkGeoJSONMapFeature, vtkPolydataFeature)
 
-  // Description:
-  // The GeoJSON input string
-  // Note that no streaming option is available
-  vtkSetStringMacro(InputString);
+    // Description:
+    // The GeoJSON input string
+    // Note that no streaming option is available
+    vtkSetStringMacro(InputString);
   vtkGetStringMacro(InputString);
 
   // Description:
@@ -44,13 +44,13 @@ protected:
   vtkGeoJSONMapFeature();
   ~vtkGeoJSONMapFeature();
 
-  char *InputString;
-  vtkPolyData *PolyData;
+  char* InputString;
+  vtkPolyData* PolyData;
 
 private:
   vtkGeoJSONMapFeature(const vtkGeoJSONMapFeature&); // Not implemented
-  vtkGeoJSONMapFeature& operator=(const vtkGeoJSONMapFeature&); // Not implemented
+  vtkGeoJSONMapFeature& operator=(
+    const vtkGeoJSONMapFeature&); // Not implemented
 };
-
 
 #endif // __vtkGeoJSONMapFeature_h
