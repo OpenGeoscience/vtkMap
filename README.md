@@ -1,13 +1,13 @@
-vtkMap is a project to add support for Geovisualization in 2D and 3D in VTK.
+vtkMap is a project wich adds VTK support for Geovisualization in 2D and 3D.
 
-As of November 2014, this code depends on vtkDataSetReaders, at
-https://github.com/OpenGeoscience/vtkDataSetReaders.
-That code is used for reading GeoJSON files into map features.
-You can build the minimum files needed by vtkMap by setting these
-two options in vtkDataSetReaders:
+Requirements
+------------
+* C++11
+* VTK
+* OpenGL 3.2
 
-* BUILD_LAS OFF
-* BUILD_POSTGRESS OFF
-
-
-Huboard: https://huboard.com/OpenGeoscience/vtkMap
+Additional dependencies
+-----------------------
+Some extensions and applications might require:
+* GDAL
+* Qt5
