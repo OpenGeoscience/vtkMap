@@ -22,7 +22,6 @@
 #include "vtkMap_typedef.h"
 #include "vtkMemberFunctionCommand.h"
 #include "vtkMercator.h"
-//#include "vtkRasterFeature.h"
 
 // VTK Includes
 #include <vtkCallbackCommand.h>
@@ -157,12 +156,6 @@ vtkMap::~vtkMap()
     this->BaseLayer->Delete();
   }
 }
-
-////----------------------------------------------------------------------------
-//void vtkMap::SetGDALDataDirectory(char *path)
-//{
-//  vtkRasterFeature::SetGDALDataDirectory(path);
-//}
 
 //----------------------------------------------------------------------------
 void vtkMap::PrintSelf(ostream& os, vtkIndent indent)
