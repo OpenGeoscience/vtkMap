@@ -45,6 +45,14 @@ void vtkGeoMapLayerPass::Render(const vtkRenderState* state)
   // layers (since the layering order is defined by vtkMap::LayerCollection anyway).
   glDisable(GL_DEPTH_TEST);
 
+  // When using QVTKOpenGLWidget, selection passes sometimes leave GL_BLEND,
+  // so blending needs to be specified. TODO A managing RenderPass is necessary to
+  // set this before delegating to the LayerPass sequence. This managing pass could
+  // also run an FXAA pass in the end to address anti-aliasing.
+  glEnable(GL_BLEND);
+  glBlendEquation(GL_FUNC_ADD);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
   this->NumberOfRenderedProps = 0;
 
   // Only certain layers currently use multiple actors (e.g. markers & their shadows,

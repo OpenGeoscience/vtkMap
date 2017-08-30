@@ -630,17 +630,17 @@ void vtkMap::ComputeLatLngCoords(
 //----------------------------------------------------------------------------
 void vtkMap::PickPoint(int displayCoords[2], vtkGeoMapSelection* result)
 {
-  this->Renderer->SetPass(nullptr);
+  this->BeginSelection();
   this->FeatureSelector->PickPoint(this->Renderer, displayCoords, result);
-  this->Renderer->SetPass(this->CameraPass);
+  this->EndSelection();
 }
 
 //----------------------------------------------------------------------------
 void vtkMap::PickArea(int displayCoords[4], vtkGeoMapSelection* result)
 {
-  this->Renderer->SetPass(nullptr);
+  this->BeginSelection();
   this->FeatureSelector->PickArea(this->Renderer, displayCoords, result);
-  this->Renderer->SetPass(this->CameraPass);
+  this->EndSelection();
 }
 
 //----------------------------------------------------------------------------
@@ -649,13 +649,30 @@ void vtkMap::OnPolygonSelectionEvent()
   std::vector<vtkVector2i> points = this->DrawPolyStyle->GetPolygonPoints();
   vtkNew<vtkGeoMapSelection> result;
 
-  this->Renderer->SetPass(nullptr);
+  this->BeginSelection();
   this->FeatureSelector->PickPolygon(
     this->Renderer, points, result.GetPointer());
-  this->Renderer->SetPass(this->CameraPass);
+  this->EndSelection();
 
   this->InvokeEvent(
     vtkInteractorStyleGeoMap::SelectionCompleteEvent, result.GetPointer());
+}
+
+//----------------------------------------------------------------------------
+void vtkMap::BeginSelection()
+{
+  auto renWin = this->Renderer->GetRenderWindow();
+  this->PreviousSwapBuffers = renWin->GetSwapBuffers();
+  renWin->SwapBuffersOff();
+  this->Renderer->SetPass(nullptr);
+}
+
+//----------------------------------------------------------------------------
+void vtkMap::EndSelection()
+{
+  this->Renderer->SetPass(this->CameraPass);
+  auto renWin = this->Renderer->GetRenderWindow();
+  renWin->SetSwapBuffers(this->PreviousSwapBuffers);
 }
 
 //----------------------------------------------------------------------------

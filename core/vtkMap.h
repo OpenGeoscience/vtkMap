@@ -280,6 +280,16 @@ private:
   void MoveToBottom(const vtkLayer* layer);
   ///@}
 
+  //@{
+  /**
+   * Prepare/restore render state for hardware selection.
+   */
+  void BeginSelection();
+  void EndSelection();
+  //@}
+
+  int PreviousSwapBuffers = -1;
+
   vtkRenderWindowInteractor* Interactor = nullptr;
 };
 
