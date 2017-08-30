@@ -82,23 +82,18 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent) override;
   vtkTypeMacro(vtkMap, vtkObject)
 
-    //  // Description
-    //  // Set the GDAL_DATA folder, which is generally needed
-    //  // to display raster features. This methods calls
-    //  // vtkRasterFeature::SetGDALDataDirectory().
-    //  static void SetGDALDataDirectory(char *path);
-
     // Description:
     // Get/Set the renderer to which map content will be added
     // vtkCxxSetObjectMacro is used so that map takes reference to renderer.
     // This ensures that map can delete its contents before the renderer
     // is deleted.
-    vtkGetMacro(Renderer, vtkRenderer*) void SetRenderer(vtkRenderer* ren);
+    void SetRenderer(vtkRenderer* ren);
+  vtkGetMacro(Renderer, vtkRenderer*)
 
-  /**
+    /**
    * Interactor where different InteractorStyles are set.
    */
-  void SetInteractor(vtkRenderWindowInteractor* interactor);
+    void SetInteractor(vtkRenderWindowInteractor* interactor);
   void SetInteractionMode(const vtkMapType::Interaction mode);
 
   // Description:
@@ -284,6 +279,16 @@ private:
   void MoveToTop(const vtkLayer* layer);
   void MoveToBottom(const vtkLayer* layer);
   ///@}
+
+  //@{
+  /**
+   * Prepare/restore render state for hardware selection.
+   */
+  void BeginSelection();
+  void EndSelection();
+  //@}
+
+  int PreviousSwapBuffers = -1;
 
   vtkRenderWindowInteractor* Interactor = nullptr;
 };
