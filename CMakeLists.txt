@@ -52,6 +52,7 @@ set (VTK_REQUIRED_COMPONENTS
     vtkIOLegacy
     vtkjsoncpp
     vtkRenderingCore
+    vtkRenderingLabel
     vtkRenderingOpenGL2
 
 #   For testing

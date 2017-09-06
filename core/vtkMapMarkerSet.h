@@ -177,6 +177,8 @@ protected:
   vtkMapMarkerSet();
   ~vtkMapMarkerSet();
 
+  void InitializeLabels(vtkRenderer* rend);
+
   // Description:
   // Z Coordinate of this map feature
   double ZCoord;
