@@ -13,19 +13,26 @@
 
 =========================================================================*/
 #include "vtkMapPointSelection.h"
-#include "vtkObjectFactory.h"
+
+#include <vtkBitArray.h>
+#include <vtkCamera.h>
+#include <vtkInformation.h>
+#include <vtkInformationVector.h>
+#include <vtkMatrix4x4.h>
+#include <vtkObjectFactory.h>
+#include <vtkPointData.h>
+#include <vtkRenderer.h>
+#include <vtkRenderWindow.h>
+
 
 
 vtkStandardNewMacro(vtkMapPointSelection)
 
 void vtkMapPointSelection::SetMaskArray(const std::string& name)
 {
-  if (this->MaskArrayName.compare(name) == 0)
-  {
-    return;
-  }
-
-  this->MaskArrayName = name;
+  this->SetInputArrayToProcess(vtkMapPointSelection::MASK, 0, 0,
+    vtkDataObject::FIELD_ASSOCIATION_POINTS, name.c_str());
+  this->FilterMasked = true;
   this->Modified(); 
 }
 
@@ -35,18 +42,191 @@ vtkMTimeType vtkMapPointSelection::GetMTime()
   return Superclass::GetMTime();
 }
 
-int vtkMapPointSelection::RequestData(vtkInformation* request,
-  vtkInformationVector** input, vtkInformationVector* output)
+int vtkMapPointSelection::RequestData(vtkInformation*,
+  vtkInformationVector** inputVec, vtkInformationVector* outputVec)
 {
-  /// TODO
-  return Superclass::RequestData(request, input, output);
+  // Get input
+  auto inInfo = inputVec[0]->GetInformationObject(0);
+  auto input =
+    vtkDataSet::SafeDownCast(inInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkIdType numPts = input->GetNumberOfPoints();
+  if (numPts < 1)
+  {
+    return 1;
+  }
+
+  if (!this->Renderer || !this->Renderer->GetRenderWindow())
+  {
+    vtkErrorMacro(<< "Invalid vtkRenderer or RenderWindow!");
+    return 0;
+  }
+
+  // This will trigger if you do something like ResetCamera before the Renderer
+  // or RenderWindow have allocated their appropriate system resources (like
+  // creating an OpenGL context)." Resource allocation must occur before the
+  // depth buffer could be accessed.
+  if (this->Renderer->GetRenderWindow()->GetNeverRendered())
+  {
+    vtkDebugMacro(<< "RenderWindow is not initialized!");
+    return 1;
+  }
+
+  vtkCamera* cam = this->Renderer->GetActiveCamera();
+  if (!cam)
+  {
+    return 1;
+  }
+
+  // Get output
+  auto outInfo = outputVec->GetInformationObject(0);
+  auto output =
+    vtkPolyData::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
+
+  auto inPD = input->GetPointData();
+  auto outPD = output->GetPointData();
+  vtkNew<vtkPoints> outPts;
+  outPts->Allocate(numPts / 2 + 1);
+  outPD->CopyAllocate(inPD);
+
+  auto outputVertices = vtkCellArray::New();
+  output->SetVerts(outputVertices);
+  outputVertices->Delete();
+
+  // Initialize viewport bounds and depth buffer (if needed), masking, etc.
+  this->DepthBuffer = this->Initialize(this->FilterOccluded);
+  if (this->FilterMasked)
+    if (!this->InitializeMasking())
+      return 0;
+
+  int abort = 0;
+  std::array<double, 4> point = {0.0, 0.0, 0.0, 1.0};
+  vtkIdType progressInterval = numPts / 20 + 1;
+  for (vtkIdType cellId = -1, ptId = 0;
+    ptId < numPts && !abort; ptId++)
+  {
+    // Update progress
+    if (!(ptId % progressInterval))
+    {
+      this->UpdateProgress(static_cast<double>(ptId)/numPts);
+      abort = this->GetAbortExecute();
+    }
+
+    input->GetPoint(ptId, point.data());
+    const int visible = IsPointVisible(point, ptId);
+
+    if ((visible && !this->SelectInvisible) ||
+         (!visible && this->SelectInvisible))
+    {
+      // Add point to output
+      cellId = outPts->InsertNextPoint(point.data());
+      output->InsertNextCell(VTK_VERTEX, 1, &cellId);
+      outPD->CopyData(inPD, ptId, cellId);
+    }
+  }
+
+  if (this->FilterOccluded)
+  {
+    delete[] this->DepthBuffer;
+    this->DepthBuffer = nullptr;
+  }
+
+  output->SetPoints(outPts.GetPointer());
+  output->Squeeze();
+
+  vtkDebugMacro(<<"Selected " << cellId + 1 << " out of "
+                << numPts << " original points");
+  return 1;
 }
 
-int vtkMapPointSelection::FillInputPortInformation(int port,
-  vtkInformation *info)
+bool vtkMapPointSelection::InitializeMasking()
 {
-  /// TODO
-  return Superclass::FillInputPortInformation(port, info);
+  auto dataObj = this->GetInputDataObject(0, 0);
+  int assoc = vtkDataObject::FIELD_ASSOCIATION_POINTS;
+  auto arr = this->GetInputArrayToProcess(vtkMapPointSelection::MASK, dataObj,
+    assoc);
+
+  this->MaskArray = vtkArrayDownCast<vtkBitArray>(arr);
+  if (!this->MaskArray)
+  {
+    vtkErrorMacro(<<"Masking is enabled but there is no mask array.");
+    return false;
+  }
+  else
+  {
+    if (this->MaskArray->GetNumberOfComponents() != 1)
+    {
+      vtkErrorMacro("Expecting a mask array with one component, getting "
+        << this->MaskArray->GetNumberOfComponents() << " components.");
+      return false;
+    }
+  }
+  return true;
+}
+
+bool vtkMapPointSelection::IsPointVisible(const std::array<double, 4>& point,
+  const vtkIdType& pointId)
+{
+  std::array<double, 4> view;
+  this->CompositePerspectiveTransform->MultiplyPoint(point.data(), view.data());
+  if (view[3] == 0.0)
+    return false;
+
+  this->Renderer->SetViewPoint(view[0] / view[3], view[1] / view[3],
+    view[2] / view[3]);
+  this->Renderer->ViewToDisplay();
+
+  std::array<double, 3> displayPoint;
+  this->Renderer->GetDisplayPoint(displayPoint.data());
+
+  bool success = true;
+  success &= IsWithinBounds(displayPoint);
+
+  if (this->FilterMasked)
+    success &= !IsMasked(pointId);
+
+  if (this->FilterOccluded)
+    success &= !IsOccluded(displayPoint);
+
+  return success;
+}
+
+bool vtkMapPointSelection::IsWithinBounds(const std::array<double, 3>& point) const
+{
+  return (point[0] >= this->InternalSelection[0] &&
+    point[0] <= this->InternalSelection[1] && 
+    point[1] >= this->InternalSelection[2] && point[1] <= this->InternalSelection[3]);
+}
+
+bool vtkMapPointSelection::IsMasked(const vtkIdType& id) const
+{
+  return (this->MaskArray->GetValue(id) == 0);
+}
+
+bool vtkMapPointSelection::IsOccluded(const std::array<double, 3>& point) const
+{
+  double depth;
+  if (this->DepthBuffer != nullptr)
+  {
+    // Access the value from the captured zbuffer.  Note, we only
+    // captured a portion of the zbuffer, so we need to offset dx by
+    // the selection window.
+    const size_t index = static_cast<size_t>(
+      static_cast<int>(point[0]) - this->InternalSelection[0] +
+      (static_cast<int>(point[1]) - this->InternalSelection[2]) *
+      (this->InternalSelection[1] - this->InternalSelection[0] + 1));
+    depth = this->DepthBuffer[index];
+  }
+  else
+  {
+    depth = this->Renderer->GetZ(static_cast<int>(point[0]),
+      static_cast<int>(point[1]));
+  }
+
+  if(point[2] < (depth + this->Tolerance))
+  {
+    return true;
+  }
+  return false;
 }
 
 void vtkMapPointSelection::PrintSelf(ostream& os, vtkIndent indent)

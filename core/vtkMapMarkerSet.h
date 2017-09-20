@@ -177,7 +177,32 @@ protected:
   vtkMapMarkerSet();
   ~vtkMapMarkerSet();
 
+  class ClusteringNode;
+
+  // Used when rebuilding clustering tree
+  void InsertIntoNodeTable(ClusteringNode* node);
+
+  // Computes clustering distance in gcs coordinates
+  double ComputeDistanceThreshold2(
+    double latitude, double longitude, int clusteringDistance) const;
+
+  // Find closest node within distance threshold squared
+  ClusteringNode* FindClosestNode(
+    ClusteringNode* node, int zoomLevel, double distanceThreshold2);
+  void MergeNodes(ClusteringNode* node, ClusteringNode* mergingNode,
+    std::set<ClusteringNode*>& parentsToMerge, int level);
+
+  void GetMarkerIdsRecursive(vtkIdType clusterId, vtkIdList* markerIds);
+
+  // Description:
+  // Generates next color for actor (which can be overridden, of course)
+  void ComputeNextColor(double color[3]);
+
   void InitializeLabels(vtkRenderer* rend);
+
+  void OnRenderStart();
+
+////////////////////////////////////////////////////////////////////////////////
 
   // Description:
   // Z Coordinate of this map feature
@@ -224,26 +249,6 @@ protected:
   // Stores colors for standard display and selection
   vtkLookupTable* ColorTable;
 
-  class ClusteringNode;
-
-  // Used when rebuilding clustering tree
-  void InsertIntoNodeTable(ClusteringNode* node);
-
-  // Computes clustering distance in gcs coordinates
-  double ComputeDistanceThreshold2(
-    double latitude, double longitude, int clusteringDistance) const;
-
-  // Find closest node within distance threshold squared
-  ClusteringNode* FindClosestNode(
-    ClusteringNode* node, int zoomLevel, double distanceThreshold2);
-  void MergeNodes(ClusteringNode* node, ClusteringNode* mergingNode,
-    std::set<ClusteringNode*>& parentsToMerge, int level);
-
-  void GetMarkerIdsRecursive(vtkIdType clusterId, vtkIdList* markerIds);
-
-  // Description:
-  // Generates next color for actor (which can be overridden, of course)
-  void ComputeNextColor(double color[3]);
   static unsigned int NextMarkerHue;
   double SelectionHue;
 
@@ -251,8 +256,8 @@ private:
   class MapMarkerSetInternals;
   MapMarkerSetInternals* Internals;
 
-  vtkMapMarkerSet(const vtkMapMarkerSet&);            // not implemented
-  vtkMapMarkerSet& operator=(const vtkMapMarkerSet&); // not implemented
+  vtkMapMarkerSet(const vtkMapMarkerSet&) = delete;
+  vtkMapMarkerSet& operator=(const vtkMapMarkerSet&) = delete;
 };
 
 #endif // __vtkMapMarkerSet_h

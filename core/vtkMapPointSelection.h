@@ -33,13 +33,15 @@
 
 #ifndef vtkMapPointSelection_h
 #define vtkMapPointSelection_h
+#include <array>
 #include <string>
 
 #include "vtkmapcore_export.h"
 #include "vtkSelectVisiblePoints.h"
 
-class vtkRenderer;
+class vtkBitArray;
 class vtkMatrix4x4;
+class vtkRenderer;
 
 class VTKMAPCORE_EXPORT vtkMapPointSelection :
   public vtkSelectVisiblePoints
@@ -47,8 +49,9 @@ class VTKMAPCORE_EXPORT vtkMapPointSelection :
 public:
   vtkTypeMacro(vtkMapPointSelection, vtkSelectVisiblePoints);
   void PrintSelf(ostream& os, vtkIndent indent) override;
-
   static vtkMapPointSelection *New();
+
+  enum ArrayIndices { MASK = 0 };
 
   //@{
   /**
@@ -59,9 +62,12 @@ public:
    * A mask array is a vtkBitArray with only one component.
    * Initial value is false.
    */
-  vtkSetMacro(Masking, bool);
-  vtkGetMacro(Masking, bool);
-  vtkBooleanMacro(Masking, bool);
+  vtkSetMacro(FilterMasked, bool);
+  vtkGetMacro(FilterMasked, bool);
+  vtkBooleanMacro(FilterMasked, bool);
+
+  vtkSetMacro(FilterOccluded, bool);
+  vtkGetMacro(FilterOccluded, bool);
   //@}
 
   /**
@@ -77,11 +83,20 @@ protected:
 
   int RequestData(vtkInformation *, vtkInformationVector **,
     vtkInformationVector *) override;
-  int FillInputPortInformation(int port, vtkInformation *info) override;
+
+  bool InitializeMasking();
+
+  bool IsPointVisible(const std::array<double, 4>& point,
+    const vtkIdType& pointId);
+  bool IsMasked(const vtkIdType& id) const;
+  bool IsWithinBounds(const std::array<double, 3>& point) const;
+  bool IsOccluded(const std::array<double, 3>& point) const;
 
   //////////////////////////////////////////////////////////////////////////////
-  std::string MaskArrayName;
-  bool Masking = false;
+  bool FilterMasked = false;
+  bool FilterOccluded = false;
+  float* DepthBuffer = nullptr;
+  vtkBitArray* MaskArray = nullptr;
 
 private:
   vtkMapPointSelection(const vtkMapPointSelection&) = delete;

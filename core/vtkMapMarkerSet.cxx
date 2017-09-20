@@ -14,6 +14,7 @@
 
 #include "vtkMapMarkerSet.h"
 #include "vtkMapPointSelection.h"
+#include "vtkMemberFunctionCommand.h"
 #include "markersShadowImageData.h"
 #include "pointMarkerPolyData.h"
 #include "vtkMercator.h"
@@ -798,33 +799,23 @@ void vtkMapMarkerSet::InitializeLabels(vtkRenderer* rend)
   labelVisArray->SetNumberOfComponents(1);
   this->PolyData->GetPointData()->AddArray(labelVisArray.GetPointer());
 
+  const std::string numMarkersName = "NumMarkers";
   vtkNew<vtkUnsignedIntArray> numMarkers;
-  numMarkers->SetName("NumMarkers");
+  numMarkers->SetName(numMarkersName.c_str());
   numMarkers->SetNumberOfComponents(1);
   this->PolyData->GetPointData()->AddArray(numMarkers.GetPointer());
 
-
-  // Setup number of visible markers array
-  /// TODO Handle non-visibility of labels when only a drop icon (single
-  /// marker cluster).  Review docs of vtkLabeledDataMapper (vtkSelectVisiblePoints).
+  // Filter-out labels of single-marker clusters
   auto labelSel = this->Internals->LabelSelector;
   labelSel->SetInputData(this->PolyData);
   labelSel->SelectionWindowOn();
-
-  std::array<int, 4> d; 
-  rend->GetTiledSizeAndOrigin(&d[0], &d[1], &d[2], &d[3]);
-  const int xmin = d[2];
-  const int xmax = d[2] + d[0];
-  const int ymin = d[3];
-  const int ymax = d[3] + d[1];
-
-  labelSel->SetSelection(xmin, xmax, ymin, ymax);
   labelSel->SetRenderer(rend);
+  labelSel->SetMaskArray(labelMaskName);
 
   auto mapper = this->Internals->LabelMapper;
   mapper->SetInputConnection(labelSel->GetOutputPort());
   mapper->SetLabelModeToLabelFieldData();
-  mapper->SetFieldDataName("NumMarkers");
+  mapper->SetFieldDataName(numMarkersName.c_str());
   this->Internals->LabelActor->SetMapper(mapper);
   this->Layer->AddActor2D(this->Internals->LabelActor);
 
@@ -837,11 +828,36 @@ void vtkMapMarkerSet::InitializeLabels(vtkRenderer* rend)
   /// TODO Need to adjust this transformation depending on the zoom level
   /// to make sure that the offset-vector in display coordinates is constant.
   /// It is currently constant in world-coords.
-//  vtkNew<vtkTransform> transform;
-//  transform->Translate(100, -100, 0);
-//  mapper->SetTransform(transform);
+  //vtkNew<vtkTransform> transform;
+  //transform->Translate(100, -100, 0);
+  //mapper->SetTransform(transform);
+
+  // Setup callback to update necessary render parameters
+  auto observer =
+    vtkMakeMemberFunctionCommand(*this, &vtkMapMarkerSet::OnRenderStart);
+  rend->AddObserver(vtkCommand::StartEvent, observer);
 
   mapper->Update();
+}
+
+//----------------------------------------------------------------------------
+void vtkMapMarkerSet::OnRenderStart()
+{
+  auto rend = this->Layer->GetRenderer();
+  if (!rend)
+  {
+    vtkErrorMacro(<< "Invalid vtkRenderer!");
+    return;
+  }
+
+  int d[4] = {0, 0, 0, 0};
+  rend->GetTiledSizeAndOrigin(&d[0], &d[1], &d[2], &d[3]);
+  const int xmin = d[2];
+  const int xmax = d[2] + d[0];
+  const int ymin = d[3];
+  const int ymax = d[3] + d[1];
+
+  this->Internals->LabelSelector->SetSelection(xmin, xmax, ymin, ymax);
 }
 
 //----------------------------------------------------------------------------
@@ -958,6 +974,8 @@ void vtkMapMarkerSet::Update()
 
   this->Internals->ZoomLevel = zoomLevel;
   this->UpdateTime.Modified();
+
+  this->Internals->LabelMapper->Update();
 }
 
 //----------------------------------------------------------------------------
@@ -983,6 +1001,7 @@ void vtkMapMarkerSet::CleanUp()
   this->Internals->NumberOfNodes = 0;
 
   this->Layer->GetRenderer()->RemoveActor(this->Internals->ShadowActor);
+  this->Layer->GetRenderer()->RemoveActor2D(this->Internals->LabelActor);
 
   this->Superclass::CleanUp();
 }
