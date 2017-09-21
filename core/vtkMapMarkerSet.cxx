@@ -805,32 +805,32 @@ void vtkMapMarkerSet::InitializeLabels(vtkRenderer* rend)
   numMarkers->SetNumberOfComponents(1);
   this->PolyData->GetPointData()->AddArray(numMarkers.GetPointer());
 
-  // Filter-out labels of single-marker clusters
+  // Filter-out labels of single-marker clusters and apply offset on display
+  // coordinates
   auto labelSel = this->Internals->LabelSelector;
   labelSel->SetInputData(this->PolyData);
   labelSel->SelectionWindowOn();
   labelSel->SetRenderer(rend);
   labelSel->SetMaskArray(labelMaskName);
+  labelSel->SetCoordinateSystem(vtkMapPointSelection::DISPLAY);
+  // This places the labels approximately in the center of the cluster marker
+  labelSel->SetPointOffset(2., -11., 0.);
 
+  // Use filtered output (points on DISPLAY coordinates)
   auto mapper = this->Internals->LabelMapper;
   mapper->SetInputConnection(labelSel->GetOutputPort());
   mapper->SetLabelModeToLabelFieldData();
   mapper->SetFieldDataName(numMarkersName.c_str());
+  mapper->SetCoordinateSystem(vtkLabeledDataMapper::DISPLAY);
   this->Internals->LabelActor->SetMapper(mapper);
   this->Layer->AddActor2D(this->Internals->LabelActor);
 
   // Set text defaults
   auto textProp = mapper->GetLabelTextProperty();
-  textProp->SetFontSize(30);
+  textProp->SetFontSize(22);
+  textProp->SetOpacity(0.9);
+  textProp->ItalicOff();
   textProp->SetJustificationToCentered();
-
-  /// World coordinates (since the points are in world already).
-  /// TODO Need to adjust this transformation depending on the zoom level
-  /// to make sure that the offset-vector in display coordinates is constant.
-  /// It is currently constant in world-coords.
-  //vtkNew<vtkTransform> transform;
-  //transform->Translate(100, -100, 0);
-  //mapper->SetTransform(transform);
 
   // Setup callback to update necessary render parameters
   auto observer =
@@ -850,6 +850,8 @@ void vtkMapMarkerSet::OnRenderStart()
     return;
   }
 
+  // Adjust viewport in case it changed, this is required for the point
+  // selector to crop label points out of the viewport.
   int d[4] = {0, 0, 0, 0};
   rend->GetTiledSizeAndOrigin(&d[0], &d[1], &d[2], &d[3]);
   const int xmin = d[2];
@@ -1371,6 +1373,16 @@ void vtkMapMarkerSet::ComputeNextColor(double color[3])
   paletteIndex = (paletteIndex + 1) % paletteSize;
 }
 
+void vtkMapMarkerSet::SetLabelProperties(vtkTextProperty* property)
+{
+  this->Internals->LabelMapper->SetLabelTextProperty(property);
+}
+
+void vtkMapMarkerSet::SetLabelOffset(std::array<double, 3>& offset)
+{
+  
+  this->Internals->LabelSelector->SetPointOffset(offset.data());
+}
 #undef SQRT_TWO
 #undef MARKER_TYPE
 #undef CLUSTER_TYPE

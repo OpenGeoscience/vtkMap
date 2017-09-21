@@ -17,10 +17,11 @@
 
 #ifndef __vtkMapMarkerSet_h
 #define __vtkMapMarkerSet_h
+#include <set>
 
 #include "vtkPolydataFeature.h"
 #include "vtkmapcore_export.h"
-#include <set>
+
 
 class vtkActor;
 class vtkIdList;
@@ -29,6 +30,7 @@ class vtkMapper;
 class vtkPolyDataMapper;
 class vtkPolyData;
 class vtkRenderer;
+class vtkTextProperty;
 
 class VTKMAPCORE_EXPORT vtkMapMarkerSet : public vtkPolydataFeature
 {
@@ -172,6 +174,10 @@ public:
   // For debug, writes out the set of cluster nodes
   // ascending from given marker
   void PrintClusterPath(ostream& os, int markerId);
+
+  void SetLabelProperties(vtkTextProperty* property);
+
+  void SetLabelOffset(std::array<double, 3>& offset);
 
 protected:
   vtkMapMarkerSet();

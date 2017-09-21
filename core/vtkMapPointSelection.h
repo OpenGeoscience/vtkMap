@@ -14,10 +14,11 @@
 =========================================================================*/
 /**
  * @class   vtkMapPointSelection
- * @brief   Extract points that are visible.
+ * @brief   Extract points based on 3 different criteria; points within
+ * bounds, not occluded and not masked.
  *
  * Adds functionality to vtkSelectVisiblePoints to further filter points
- * through a masking array, in addition to  z-buffer, viewport, etc.
+ * through a masking array, in addition to z-buffer, viewport bounds, etc.
  *
  * @warning
  * You must carefully synchronize the execution of this filter. The
@@ -27,8 +28,7 @@
  * are using this filter in conjunction with vtkLabeledDataMapper,
  * things work out because 2D rendering occurs after the 3D rendering.
  *
- * @sa
- * vtkSelectVisiblePoints
+ * @sa vtkSelectVisiblePoints::GetMTime
 */
 
 #ifndef vtkMapPointSelection_h
@@ -51,31 +51,60 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent) override;
   static vtkMapPointSelection *New();
 
-  enum ArrayIndices { MASK = 0 };
+  enum ArrayIndices {
+    MASK = 0
+  };
+
+  enum Coordinates {
+    WORLD = 0,
+    DISPLAY = 1
+  };
 
   //@{
   /**
-   * Tells the mapper to filter input points that have false values
-   * in the mask array. If there is no mask array (id access mode is set
-   * and there is no such id, or array name access mode is set and
-   * the there is no such name), masking is silently ignored.
-   * A mask array is a vtkBitArray with only one component.
-   * Initial value is false.
+   * Enables point filtering through a user defined mask array (filters
+   * out points with false values in the mask array). Similar behavior
+   * to vtkGlyph3DMapper, except that if the array is not found and this
+   * mode is enabled the filter throws an error and returns.
+   * @sa vtkGlyph3DMapper
    */
   vtkSetMacro(FilterMasked, bool);
   vtkGetMacro(FilterMasked, bool);
   vtkBooleanMacro(FilterMasked, bool);
 
-  vtkSetMacro(FilterOccluded, bool);
-  vtkGetMacro(FilterOccluded, bool);
-  //@}
-
   /**
    * Set the name of the point array to use as a mask for point selection.
    */
   void SetMaskArray(const std::string& name);
+  //@}
 
-  vtkMTimeType GetMTime() override;
+  //@{
+  /**
+   * Enables point filtering through z-occlusion. It compares the point's
+   * z-coordinate with its counterpart in the depth-buffer. Unlike its parent
+   * class this mode can be disabled.
+   */
+  vtkSetMacro(FilterOccluded, bool);
+  vtkGetMacro(FilterOccluded, bool);
+  //@}
+
+  //@{
+  /**
+   * Set the coordinate system in which the output is. The output datasets
+   * may have point coordinates reported in world or screen coordinates.
+   */
+  vtkGetMacro(CoordinateSystem, int);
+  vtkSetClampMacro(CoordinateSystem, int, WORLD, DISPLAY);
+  //@}
+
+  //@{
+  /**
+   * Set a point offset to be applied to all of the output points. The offset
+   * is assumed to be in vtkMapPointSelection::CoordinateSystem coordinates.
+   */
+  vtkSetVector3Macro(PointOffset, double);
+  vtkGetVector3Macro(PointOffset, double);
+  //@}
 
 protected:
   vtkMapPointSelection() = default;
@@ -86,17 +115,29 @@ protected:
 
   bool InitializeMasking();
 
+  bool WorldToDisplay(const std::array<double, 4>& pointWorld,
+    std::array<double, 4>& pointDispl);
+
+  //@{
+  /**
+   * Selection predicates.
+   */
   bool IsPointVisible(const std::array<double, 4>& point,
     const vtkIdType& pointId);
   bool IsMasked(const vtkIdType& id) const;
-  bool IsWithinBounds(const std::array<double, 3>& point) const;
-  bool IsOccluded(const std::array<double, 3>& point) const;
+  bool IsWithinBounds(const std::array<double, 4>& point) const;
+  bool IsOccluded(const std::array<double, 4>& point) const;
+  //@}
 
   //////////////////////////////////////////////////////////////////////////////
+
   bool FilterMasked = false;
   bool FilterOccluded = false;
   float* DepthBuffer = nullptr;
   vtkBitArray* MaskArray = nullptr;
+
+  int CoordinateSystem = WORLD;
+  double PointOffset[3] = {0.0, 0.0, 0.0};
 
 private:
   vtkMapPointSelection(const vtkMapPointSelection&) = delete;
