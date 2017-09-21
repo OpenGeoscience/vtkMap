@@ -19,6 +19,7 @@
 #include <vtkInformation.h>
 #include <vtkInformationVector.h>
 #include <vtkMatrix4x4.h>
+#include <vtkNew.h>
 #include <vtkObjectFactory.h>
 #include <vtkPointData.h>
 #include <vtkRenderWindow.h>
@@ -143,9 +144,6 @@ int vtkMapPointSelection::RequestData(vtkInformation*,
 
   output->SetPoints(outPts.GetPointer());
   output->Squeeze();
-
-  vtkDebugMacro(<< "Selected " << cellId + 1 << " out of " << numPts
-                << " original points");
   return 1;
 }
 
