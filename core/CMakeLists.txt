@@ -10,6 +10,7 @@ set(vtkMapCore_SOURCE
     vtkGeoMapSelection.cxx
     vtkInteractorStyleGeoMap.cxx
     vtkMapMarkerSet.cxx
+    vtkMapPointSelection.cxx
     vtkMapTile.cxx
     vtkMap.cxx
     vtkMultiThreadedOsmLayer.cxx
@@ -28,6 +29,7 @@ set (vtkMapCore_HEADERS
     vtkGeoMapSelection.h
     vtkInteractorStyleGeoMap.h
     vtkMapMarkerSet.h
+    vtkMapPointSelection.cxx
     vtkMapTile.h
     vtkMapTileSpecInternal.h
     vtkMap.h

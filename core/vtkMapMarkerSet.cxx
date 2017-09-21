@@ -15,9 +15,12 @@
 #include "vtkMapMarkerSet.h"
 #include "markersShadowImageData.h"
 #include "pointMarkerPolyData.h"
+#include "vtkMapPointSelection.h"
+#include "vtkMemberFunctionCommand.h"
 #include "vtkMercator.h"
 
 #include <vtkActor.h>
+#include <vtkActor2D.h>
 #include <vtkBitArray.h>
 #include <vtkDataArray.h>
 #include <vtkDistanceToCamera.h>
@@ -28,6 +31,7 @@
 #include <vtkIdList.h>
 #include <vtkIdTypeArray.h>
 #include <vtkImageData.h>
+#include <vtkLabeledDataMapper.h>
 #include <vtkLookupTable.h>
 #include <vtkMath.h>
 #include <vtkNew.h>
@@ -42,8 +46,10 @@
 #include <vtkProperty.h>
 #include <vtkRegularPolygonSource.h>
 #include <vtkRenderer.h>
+#include <vtkTextProperty.h>
 #include <vtkTexture.h>
 #include <vtkTextureMapToPlane.h>
+#include <vtkTransform.h>
 #include <vtkUnsignedCharArray.h>
 #include <vtkUnsignedIntArray.h>
 
@@ -131,6 +137,15 @@ public:
   vtkTexture* ShadowTexture;
   vtkActor* ShadowActor;
   vtkGlyph3DMapper* ShadowMapper;
+
+  vtkSmartPointer<vtkActor2D> LabelActor;
+  /**
+   * Handles point-label rendering. An alternative would be to use one of its
+   * derived classes (e.g. vtkDynamic2DLabelMapper), which handle label
+   * overlapping.
+   */
+  vtkSmartPointer<vtkLabeledDataMapper> LabelMapper;
+  vtkSmartPointer<vtkMapPointSelection> LabelSelector;
 };
 
 //----------------------------------------------------------------------------
@@ -179,6 +194,10 @@ vtkMapMarkerSet::vtkMapMarkerSet()
   this->Internals->NumberOfNodes = 0;
   this->Internals->GlyphMapper = vtkGlyph3DMapper::New();
   this->Internals->GlyphMapper->SetLookupTable(this->ColorTable);
+
+  this->Internals->LabelActor = vtkSmartPointer<vtkActor2D>::New();
+  this->Internals->LabelMapper = vtkSmartPointer<vtkLabeledDataMapper>::New();
+  this->Internals->LabelSelector = vtkSmartPointer<vtkMapPointSelection>::New();
 
   // Initialize shadow for point map markers
   this->Internals->ShadowImage = vtkImageData::New();
@@ -692,9 +711,10 @@ void vtkMapMarkerSet::Init()
   this->PolyData->GetPointData()->AddArray(scales.GetPointer());
 
   // Use DistanceToCamera filter to scale markers to constant screen size
+  const auto rend = this->Layer->GetRenderer();
   vtkNew<vtkDistanceToCamera> dFilter;
   dFilter->SetScreenSize(50.0);
-  dFilter->SetRenderer(this->Layer->GetRenderer());
+  dFilter->SetRenderer(rend);
   dFilter->SetInputData(this->PolyData);
   if (this->Clustering)
   {
@@ -763,9 +783,83 @@ void vtkMapMarkerSet::Init()
     this->Internals->ShadowActor->SetPosition(0, 0, -0.5 * this->ZCoord);
     this->Internals->ShadowMapper->Update();
   }
-
   this->Internals->GlyphMapper->Update();
+
+  this->InitializeLabels(rend);
   this->Initialized = true;
+}
+
+//----------------------------------------------------------------------------
+void vtkMapMarkerSet::InitializeLabels(vtkRenderer* rend)
+{
+  // Label mapper arrays
+  const std::string labelMaskName = "LabelVis";
+  vtkNew<vtkBitArray> labelVisArray;
+  labelVisArray->SetName(labelMaskName.c_str());
+  labelVisArray->SetNumberOfComponents(1);
+  this->PolyData->GetPointData()->AddArray(labelVisArray.GetPointer());
+
+  const std::string numMarkersName = "NumMarkers";
+  vtkNew<vtkUnsignedIntArray> numMarkers;
+  numMarkers->SetName(numMarkersName.c_str());
+  numMarkers->SetNumberOfComponents(1);
+  this->PolyData->GetPointData()->AddArray(numMarkers.GetPointer());
+
+  // Filter-out labels of single-marker clusters and apply offset on display
+  // coordinates
+  auto labelSel = this->Internals->LabelSelector;
+  labelSel->SetInputData(this->PolyData);
+  labelSel->SelectionWindowOn();
+  labelSel->SetRenderer(rend);
+  labelSel->SetMaskArray(labelMaskName);
+  labelSel->SetCoordinateSystem(vtkMapPointSelection::DISPLAY);
+  // This places the labels approximately in the center of the cluster marker
+  labelSel->SetPointOffset(2., -11., 0.);
+
+  // Use filtered output (points on DISPLAY coordinates)
+  auto mapper = this->Internals->LabelMapper;
+  mapper->SetInputConnection(labelSel->GetOutputPort());
+  mapper->SetLabelModeToLabelFieldData();
+  mapper->SetFieldDataName(numMarkersName.c_str());
+  mapper->SetCoordinateSystem(vtkLabeledDataMapper::DISPLAY);
+  this->Internals->LabelActor->SetMapper(mapper);
+  this->Layer->AddActor2D(this->Internals->LabelActor);
+
+  // Set text defaults
+  auto textProp = mapper->GetLabelTextProperty();
+  textProp->SetFontSize(22);
+  textProp->SetOpacity(0.9);
+  textProp->ItalicOff();
+  textProp->SetJustificationToCentered();
+
+  // Setup callback to update necessary render parameters
+  auto observer =
+    vtkMakeMemberFunctionCommand(*this, &vtkMapMarkerSet::OnRenderStart);
+  rend->AddObserver(vtkCommand::StartEvent, observer);
+
+  mapper->Update();
+}
+
+//----------------------------------------------------------------------------
+void vtkMapMarkerSet::OnRenderStart()
+{
+  auto rend = this->Layer->GetRenderer();
+  if (!rend)
+  {
+    vtkErrorMacro(<< "Invalid vtkRenderer!");
+    return;
+  }
+
+  // Adjust viewport in case it changed, this is required for the point
+  // selector to crop label points out of the viewport.
+  int d[4] = { 0, 0, 0, 0 };
+  rend->GetTiledSizeAndOrigin(&d[0], &d[1], &d[2], &d[3]);
+  const int xmin = d[2];
+  const int xmax = d[2] + d[0];
+  const int ymin = d[3];
+  const int ymax = d[3] + d[1];
+
+  this->Internals->LabelSelector->SetSelection(xmin, xmax, ymin, ymax);
 }
 
 //----------------------------------------------------------------------------
@@ -809,6 +903,9 @@ void vtkMapMarkerSet::Update()
   array = this->PolyData->GetPointData()->GetArray("Visible");
   vtkBitArray* visibles = vtkBitArray::SafeDownCast(array);
   visibles->Reset();
+  array = this->PolyData->GetPointData()->GetArray("LabelVis");
+  vtkBitArray* labelVisArray = vtkBitArray::SafeDownCast(array);
+  labelVisArray->Reset();
   array = this->PolyData->GetPointData()->GetArray("Selected");
   vtkBitArray* selects = vtkBitArray::SafeDownCast(array);
   selects->Reset();
@@ -818,6 +915,9 @@ void vtkMapMarkerSet::Update()
   array = this->PolyData->GetPointData()->GetArray("MarkerScale");
   vtkDoubleArray* scales = vtkDoubleArray::SafeDownCast(array);
   scales->Reset();
+  array = this->PolyData->GetPointData()->GetArray("NumMarkers");
+  auto numMarkersArray = vtkUnsignedIntArray::SafeDownCast(array);
+  numMarkersArray->Reset();
 
   // Coefficients for scaling cluster size, using simple 2nd order model
   // The equation is y = k*x^2 / (x^2 + b), where k,b are coefficients
@@ -853,20 +953,31 @@ void vtkMapMarkerSet::Update()
       double scale = k * x * x / (x * x + b);
       scales->InsertNextValue(scale);
     }
+    const int numMarkers = node->NumberOfVisibleMarkers;
 
     // Set visibility
-    bool isVisible = node->NumberOfVisibleMarkers > 0;
+    const bool isVisible = numMarkers > 0;
     visibles->InsertNextValue(isVisible);
 
+    // Set label visibility
+    const bool labelVis = numMarkers > 1;
+    labelVisArray->InsertNextValue(labelVis);
+
     // Set color
-    bool isSelected = node->NumberOfSelectedMarkers > 0;
+    const bool isSelected = node->NumberOfSelectedMarkers > 0;
     selects->InsertNextValue(isSelected);
+
+    // Set number of markers
+    numMarkersArray->InsertNextValue(
+      static_cast<const unsigned int>(numMarkers));
   }
   this->PolyData->Reset();
   this->PolyData->SetPoints(points.GetPointer());
 
   this->Internals->ZoomLevel = zoomLevel;
   this->UpdateTime.Modified();
+
+  this->Internals->LabelMapper->Update();
 }
 
 //----------------------------------------------------------------------------
@@ -892,6 +1003,7 @@ void vtkMapMarkerSet::CleanUp()
   this->Internals->NumberOfNodes = 0;
 
   this->Layer->GetRenderer()->RemoveActor(this->Internals->ShadowActor);
+  this->Layer->GetRenderer()->RemoveActor2D(this->Internals->LabelActor);
 
   this->Superclass::CleanUp();
 }
@@ -1261,6 +1373,16 @@ void vtkMapMarkerSet::ComputeNextColor(double color[3])
   paletteIndex = (paletteIndex + 1) % paletteSize;
 }
 
+void vtkMapMarkerSet::SetLabelProperties(vtkTextProperty* property)
+{
+  this->Internals->LabelMapper->SetLabelTextProperty(property);
+}
+
+void vtkMapMarkerSet::SetLabelOffset(std::array<double, 3>& offset)
+{
+
+  this->Internals->LabelSelector->SetPointOffset(offset.data());
+}
 #undef SQRT_TWO
 #undef MARKER_TYPE
 #undef CLUSTER_TYPE

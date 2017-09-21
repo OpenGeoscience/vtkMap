@@ -44,9 +44,9 @@ void vtkFeature::SetLayer(vtkFeatureLayer* layer)
 }
 
 //----------------------------------------------------------------------------
-void vtkFeature::PrintSelf(std::ostream&, vtkIndent)
+void vtkFeature::PrintSelf(std::ostream& os, vtkIndent indent)
 {
-  // TODO
+  Superclass::PrintSelf(os, indent);
 }
 
 //----------------------------------------------------------------------------
