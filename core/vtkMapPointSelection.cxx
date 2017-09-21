@@ -21,19 +21,17 @@
 #include <vtkMatrix4x4.h>
 #include <vtkObjectFactory.h>
 #include <vtkPointData.h>
-#include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
-
-
+#include <vtkRenderer.h>
 
 vtkStandardNewMacro(vtkMapPointSelection)
 
-void vtkMapPointSelection::SetMaskArray(const std::string& name)
+  void vtkMapPointSelection::SetMaskArray(const std::string& name)
 {
   this->SetInputArrayToProcess(vtkMapPointSelection::MASK, 0, 0,
     vtkDataObject::FIELD_ASSOCIATION_POINTS, name.c_str());
   this->FilterMasked = true;
-  this->Modified(); 
+  this->Modified();
 }
 
 int vtkMapPointSelection::RequestData(vtkInformation*,
@@ -93,31 +91,30 @@ int vtkMapPointSelection::RequestData(vtkInformation*,
       return 0;
 
   int abort = 0;
-  std::array<double, 4> point = {0.0, 0.0, 0.0, 1.0};
+  std::array<double, 4> point = { 0.0, 0.0, 0.0, 1.0 };
   vtkIdType progressInterval = numPts / 20 + 1;
-  for (vtkIdType cellId = -1, ptId = 0;
-    ptId < numPts && !abort; ptId++)
+  for (vtkIdType cellId = -1, ptId = 0; ptId < numPts && !abort; ptId++)
   {
     // Update progress
     if (!(ptId % progressInterval))
     {
-      this->UpdateProgress(static_cast<double>(ptId)/numPts);
+      this->UpdateProgress(static_cast<double>(ptId) / numPts);
       abort = this->GetAbortExecute();
     }
 
     input->GetPoint(ptId, point.data());
 
     int visible = 0;
-    std::array<double, 4> pointDisplay = {0.0, 0.0, 0.0, 1.0};
+    std::array<double, 4> pointDisplay = { 0.0, 0.0, 0.0, 1.0 };
     if (this->WorldToDisplay(point, pointDisplay))
       visible = this->IsPointVisible(pointDisplay, ptId);
 
     if ((visible && !this->SelectInvisible) ||
-         (!visible && this->SelectInvisible))
+      (!visible && this->SelectInvisible))
     {
       // Add point to output
-      std::array<double, 4> outputPoint = {0.0, 0.0, 0.0, 1.0};
-      switch(this->CoordinateSystem)
+      std::array<double, 4> outputPoint = { 0.0, 0.0, 0.0, 1.0 };
+      switch (this->CoordinateSystem)
       {
         case DISPLAY:
           outputPoint = std::move(pointDisplay);
@@ -147,8 +144,8 @@ int vtkMapPointSelection::RequestData(vtkInformation*,
   output->SetPoints(outPts.GetPointer());
   output->Squeeze();
 
-  vtkDebugMacro(<<"Selected " << cellId + 1 << " out of "
-                << numPts << " original points");
+  vtkDebugMacro(<< "Selected " << cellId + 1 << " out of " << numPts
+                << " original points");
   return 1;
 }
 
@@ -156,13 +153,13 @@ bool vtkMapPointSelection::InitializeMasking()
 {
   auto dataObj = this->GetInputDataObject(0, 0);
   int assoc = vtkDataObject::FIELD_ASSOCIATION_POINTS;
-  auto arr = this->GetInputArrayToProcess(vtkMapPointSelection::MASK, dataObj,
-    assoc);
+  auto arr =
+    this->GetInputArrayToProcess(vtkMapPointSelection::MASK, dataObj, assoc);
 
   this->MaskArray = vtkArrayDownCast<vtkBitArray>(arr);
   if (!this->MaskArray)
   {
-    vtkErrorMacro(<<"Masking is enabled but there is no mask array.");
+    vtkErrorMacro(<< "Masking is enabled but there is no mask array.");
     return false;
   }
   else
@@ -181,8 +178,8 @@ bool vtkMapPointSelection::WorldToDisplay(
   const std::array<double, 4>& pointWorld, std::array<double, 4>& pointDispl)
 {
   std::array<double, 4> pointView;
-  this->CompositePerspectiveTransform->MultiplyPoint(pointWorld.data(),
-    pointView.data());
+  this->CompositePerspectiveTransform->MultiplyPoint(
+    pointWorld.data(), pointView.data());
 
   // Perspective division
   if (pointView[3] == 0.0)
@@ -196,8 +193,8 @@ bool vtkMapPointSelection::WorldToDisplay(
   return true;
 }
 
-bool vtkMapPointSelection::IsPointVisible(const std::array<double, 4>& point,
-  const vtkIdType& pointId)
+bool vtkMapPointSelection::IsPointVisible(
+  const std::array<double, 4>& point, const vtkIdType& pointId)
 {
   bool success = true;
   success &= IsWithinBounds(point);
@@ -211,11 +208,13 @@ bool vtkMapPointSelection::IsPointVisible(const std::array<double, 4>& point,
   return success;
 }
 
-bool vtkMapPointSelection::IsWithinBounds(const std::array<double, 4>& point) const
+bool vtkMapPointSelection::IsWithinBounds(
+  const std::array<double, 4>& point) const
 {
   return (point[0] >= this->InternalSelection[0] &&
-    point[0] <= this->InternalSelection[1] && 
-    point[1] >= this->InternalSelection[2] && point[1] <= this->InternalSelection[3]);
+    point[0] <= this->InternalSelection[1] &&
+    point[1] >= this->InternalSelection[2] &&
+    point[1] <= this->InternalSelection[3]);
 }
 
 bool vtkMapPointSelection::IsMasked(const vtkIdType& id) const
@@ -231,19 +230,19 @@ bool vtkMapPointSelection::IsOccluded(const std::array<double, 4>& point) const
     // Access the value from the captured zbuffer.  Note, we only
     // captured a portion of the zbuffer, so we need to offset dx by
     // the selection window.
-    const size_t index = static_cast<size_t>(
-      static_cast<int>(point[0]) - this->InternalSelection[0] +
+    const size_t index = static_cast<size_t>(static_cast<int>(point[0]) -
+      this->InternalSelection[0] +
       (static_cast<int>(point[1]) - this->InternalSelection[2]) *
-      (this->InternalSelection[1] - this->InternalSelection[0] + 1));
+        (this->InternalSelection[1] - this->InternalSelection[0] + 1));
     depth = this->DepthBuffer[index];
   }
   else
   {
-    depth = this->Renderer->GetZ(static_cast<int>(point[0]),
-      static_cast<int>(point[1]));
+    depth = this->Renderer->GetZ(
+      static_cast<int>(point[0]), static_cast<int>(point[1]));
   }
 
-  if(point[2] < (depth + this->Tolerance))
+  if (point[2] < (depth + this->Tolerance))
   {
     return true;
   }

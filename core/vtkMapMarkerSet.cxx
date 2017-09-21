@@ -13,10 +13,10 @@
 =========================================================================*/
 
 #include "vtkMapMarkerSet.h"
-#include "vtkMapPointSelection.h"
-#include "vtkMemberFunctionCommand.h"
 #include "markersShadowImageData.h"
 #include "pointMarkerPolyData.h"
+#include "vtkMapPointSelection.h"
+#include "vtkMemberFunctionCommand.h"
 #include "vtkMercator.h"
 
 #include <vtkActor.h>
@@ -48,8 +48,8 @@
 #include <vtkRenderer.h>
 #include <vtkTextProperty.h>
 #include <vtkTexture.h>
-#include <vtkTransform.h>
 #include <vtkTextureMapToPlane.h>
+#include <vtkTransform.h>
 #include <vtkUnsignedCharArray.h>
 #include <vtkUnsignedIntArray.h>
 
@@ -852,7 +852,7 @@ void vtkMapMarkerSet::OnRenderStart()
 
   // Adjust viewport in case it changed, this is required for the point
   // selector to crop label points out of the viewport.
-  int d[4] = {0, 0, 0, 0};
+  int d[4] = { 0, 0, 0, 0 };
   rend->GetTiledSizeAndOrigin(&d[0], &d[1], &d[2], &d[3]);
   const int xmin = d[2];
   const int xmax = d[2] + d[0];
@@ -959,7 +959,7 @@ void vtkMapMarkerSet::Update()
     const bool isVisible = numMarkers > 0;
     visibles->InsertNextValue(isVisible);
 
-    // Set label visibility 
+    // Set label visibility
     const bool labelVis = numMarkers > 1;
     labelVisArray->InsertNextValue(labelVis);
 
@@ -1380,7 +1380,7 @@ void vtkMapMarkerSet::SetLabelProperties(vtkTextProperty* property)
 
 void vtkMapMarkerSet::SetLabelOffset(std::array<double, 3>& offset)
 {
-  
+
   this->Internals->LabelSelector->SetPointOffset(offset.data());
 }
 #undef SQRT_TWO

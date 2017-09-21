@@ -22,7 +22,6 @@
 #include "vtkPolydataFeature.h"
 #include "vtkmapcore_export.h"
 
-
 class vtkActor;
 class vtkIdList;
 class vtkLookupTable;
@@ -208,7 +207,7 @@ protected:
 
   void OnRenderStart();
 
-////////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////////
 
   // Description:
   // Z Coordinate of this map feature
