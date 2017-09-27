@@ -61,6 +61,15 @@ public:
   // The default is 50
   vtkSetMacro(PointMarkerSize, unsigned int);
   vtkGetMacro(PointMarkerSize, unsigned int);
+  vtkSetMacro(ClusterMarkerSize, unsigned int);
+  vtkGetMacro(ClusterMarkerSize, unsigned int);
+
+  enum ClusterSize {
+    POINTS_CONTAINED = 0,
+    USER_DEFINED
+  };
+  vtkSetMacro(ClusterMarkerSizeMode, int);
+  vtkGetMacro(ClusterMarkerSizeMode, int);
 
   // Description:
   // Set/get the Z offset value, in world coordinates, assigned
@@ -219,8 +228,11 @@ protected:
   bool EnablePointMarkerShadow;
 
   // Description:
-  // Size to display point markers, in pixels
-  unsigned int PointMarkerSize;
+  // Size to display point (single) or cluster (multiple) markers, in pixels.
+  const unsigned int BaseMarkerSize = 50;
+  unsigned int PointMarkerSize = 50;
+  unsigned int ClusterMarkerSize = 50;
+  int ClusterMarkerSizeMode = POINTS_CONTAINED;
 
   // Description:
   // Offset to apply to Z coordinate of markers in the selected state

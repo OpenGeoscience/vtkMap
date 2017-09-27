@@ -154,7 +154,6 @@ vtkMapMarkerSet::vtkMapMarkerSet()
 {
   this->Initialized = false;
   this->EnablePointMarkerShadow = true;
-  this->PointMarkerSize = 50;
   this->ZCoord = 0.1;
   this->SelectedZOffset = 0.0;
   this->PolyData = vtkPolyData::New();
@@ -713,7 +712,7 @@ void vtkMapMarkerSet::Init()
   // Use DistanceToCamera filter to scale markers to constant screen size
   const auto rend = this->Layer->GetRenderer();
   vtkNew<vtkDistanceToCamera> dFilter;
-  dFilter->SetScreenSize(50.0);
+  dFilter->SetScreenSize(this->BaseMarkerSize);
   dFilter->SetRenderer(rend);
   dFilter->SetInputData(this->PolyData);
   if (this->Clustering)
@@ -749,11 +748,7 @@ void vtkMapMarkerSet::Init()
   this->Internals->GlyphMapper->SourceIndexingOn();
   this->Internals->GlyphMapper->SetSourceIndexArray(typeName);
 
-  double markerScale = static_cast<double>(this->PointMarkerSize) / 50.0;
-
   // Set scale by "DistanceToCamera" array
-  this->Internals->GlyphMapper->ScalingOn();
-  this->Internals->GlyphMapper->SetScaleFactor(markerScale);
   this->Internals->GlyphMapper->SetScaleModeToScaleByMagnitude();
   this->Internals->GlyphMapper->SetScaleArray("DistanceToCamera");
 
@@ -773,8 +768,6 @@ void vtkMapMarkerSet::Init()
     this->Internals->ShadowMapper->SetMaskArray(maskName);
     this->Internals->ShadowMapper->SourceIndexingOn();
     this->Internals->ShadowMapper->SetSourceIndexArray(typeName);
-    this->Internals->ShadowMapper->ScalingOn();
-    this->Internals->ShadowMapper->SetScaleFactor(markerScale);
     this->Internals->ShadowMapper->SetScaleModeToScaleByMagnitude();
     this->Internals->ShadowMapper->SetScaleArray("DistanceToCamera");
     this->Layer->AddActor(this->Internals->ShadowActor);
@@ -923,8 +916,8 @@ void vtkMapMarkerSet::Update()
   // The equation is y = k*x^2 / (x^2 + b), where k,b are coefficients
   // Logic hard-codes the min cluster factor to 1, i.e., y(2) = 1.0
   // Max value is k, which sets the horizontal asymptote.
-  double k = this->MaxClusterScaleFactor;
-  double b = 4.0 * k - 4.0;
+  const double k = this->MaxClusterScaleFactor;
+  const double b = 4.0 * k - 4.0;
 
   this->Internals->CurrentNodes.clear();
   std::set<ClusteringNode*> nodeSet = this->Internals->NodeTable[zoomLevel];
@@ -941,17 +934,40 @@ void vtkMapMarkerSet::Update()
       (node->NumberOfSelectedMarkers ? this->SelectedZOffset : 0.0);
     points->InsertNextPoint(node->gcsCoords[0], node->gcsCoords[1], z);
     this->Internals->CurrentNodes.push_back(node);
-    if (node->NumberOfMarkers == 1) // point marker
+    if (node->NumberOfMarkers == 1)
     {
       types->InsertNextValue(MARKER_TYPE);
-      scales->InsertNextValue(1.0);
+      const auto map = this->Layer->GetMap();
+      const double adjustedMarkerSize = map->GetDevicePixelRatio() *
+        this->PointMarkerSize;
+      const double markerScale = adjustedMarkerSize / this->BaseMarkerSize;
+      scales->InsertNextValue(markerScale);
     }
-    else // cluster marker
+    else
     {
       types->InsertNextValue(CLUSTER_TYPE);
-      double x = static_cast<double>(node->NumberOfMarkers);
-      double scale = k * x * x / (x * x + b);
-      scales->InsertNextValue(scale);
+      switch(this->ClusterMarkerSizeMode)
+      {
+        case POINTS_CONTAINED:
+        {
+          // Scale with number of markers (quadratic model)
+          const double x = static_cast<double>(node->NumberOfMarkers);
+          const double scale = k * x * x / (x * x + b);
+          scales->InsertNextValue(scale);
+        }
+        break;
+
+        case USER_DEFINED:
+        {
+          // Scale with user defined size 
+          const auto map = this->Layer->GetMap();
+          const double adjustedMarkerSize = map->GetDevicePixelRatio() *
+            this->ClusterMarkerSize;
+          const double markerScale = adjustedMarkerSize / this->BaseMarkerSize;
+          scales->InsertNextValue(markerScale);
+        }
+        break;
+      }
     }
     const int numMarkers = node->NumberOfVisibleMarkers;
 
