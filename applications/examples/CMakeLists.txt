@@ -10,3 +10,8 @@ add_executable(exampleLayers
   exampleLayers.cxx)
 target_link_libraries(exampleLayers
   vtkMapCore)
+
+add_executable(markerSize
+  markerSize.cxx)
+target_link_libraries(markerSize
+  vtkMapCore)

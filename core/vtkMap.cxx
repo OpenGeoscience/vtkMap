@@ -472,7 +472,9 @@ void vtkMap::Update()
     int* renSize = this->Renderer->GetSize();
     //std::cout << "renSize " << renSize[0] << ", " << renSize[1] << std::endl;
     int zoomLevelFactor = 1 << this->Zoom;
-    double parallelScale = 0.5 * (renSize[1] * 360.0 / zoomLevelFactor) / 256.0;
+    const double displayScaling = 1.0 / this->DevicePixelRatio;
+    double parallelScale = displayScaling *
+      0.5 * (renSize[1] * 360.0 / zoomLevelFactor) / 256.0;
     //std::cout << "SetParallelScale " << parallelScale << std::endl;
     camera->SetParallelScale(parallelScale);
   }

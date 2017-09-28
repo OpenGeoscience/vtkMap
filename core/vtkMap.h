@@ -192,6 +192,10 @@ public:
  */
   void MoveLayer(const vtkLayer* layer, vtkMapType::Move direction);
 
+  vtkSetMacro(DevicePixelRatio, int);
+  int GetDevicePixelRatio() const
+    { return this->DevicePixelRatio; }
+
 protected:
   vtkMap();
   ~vtkMap();
@@ -264,6 +268,8 @@ protected:
   vtkSmartPointer<vtkSequencePass> LayerSequence;
   vtkSmartPointer<vtkCameraPass> CameraPass;
   //@}
+
+  int DevicePixelRatio = 1;
 
 private:
   vtkMap(const vtkMap&) VTK_DELETE_FUNCTION;
