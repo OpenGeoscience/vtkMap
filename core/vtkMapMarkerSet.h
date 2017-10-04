@@ -184,8 +184,10 @@ public:
   void PrintClusterPath(ostream& os, int markerId);
 
   void SetLabelProperties(vtkTextProperty* property);
+  vtkTextProperty* GetLabelProperties() const;
 
   void SetLabelOffset(std::array<double, 3>& offset);
+  std::array<double, 3> GetLabelOffset() const;
 
 protected:
   vtkMapMarkerSet();

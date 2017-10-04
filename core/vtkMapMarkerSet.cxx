@@ -709,18 +709,17 @@ void vtkMapMarkerSet::Init()
   scales->SetNumberOfComponents(1);
   this->PolyData->GetPointData()->AddArray(scales.GetPointer());
 
-  // Use DistanceToCamera filter to scale markers to constant screen size
+  // Use DistanceToCamera filter to scale markers to constant screen size.
+  // This scaling factor is also modified to account for marker size changes
+  // defined by the user.
   const auto rend = this->Layer->GetRenderer();
   vtkNew<vtkDistanceToCamera> dFilter;
   dFilter->SetScreenSize(this->BaseMarkerSize);
   dFilter->SetRenderer(rend);
   dFilter->SetInputData(this->PolyData);
-  if (this->Clustering)
-  {
-    dFilter->ScalingOn();
-    dFilter->SetInputArrayToProcess(
-      0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "MarkerScale");
-  }
+  dFilter->ScalingOn();
+  dFilter->SetInputArrayToProcess(
+    0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "MarkerScale");
 
   // Load point marker geometry
   vtkNew<vtkPolyDataReader> pointMarkerReader;
@@ -1394,10 +1393,20 @@ void vtkMapMarkerSet::SetLabelProperties(vtkTextProperty* property)
   this->Internals->LabelMapper->SetLabelTextProperty(property);
 }
 
+vtkTextProperty* vtkMapMarkerSet::GetLabelProperties() const
+{
+  return this->Internals->LabelMapper->GetLabelTextProperty();
+}
+
 void vtkMapMarkerSet::SetLabelOffset(std::array<double, 3>& offset)
 {
-
   this->Internals->LabelSelector->SetPointOffset(offset.data());
+}
+
+std::array<double, 3> vtkMapMarkerSet::GetLabelOffset() const
+{
+  const auto offset = this->Internals->LabelSelector->GetPointOffset();
+  return {{offset[0], offset[1], offset[2]}};
 }
 #undef SQRT_TWO
 #undef MARKER_TYPE
