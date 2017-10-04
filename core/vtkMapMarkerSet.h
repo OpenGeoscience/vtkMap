@@ -64,7 +64,8 @@ public:
   vtkSetMacro(ClusterMarkerSize, unsigned int);
   vtkGetMacro(ClusterMarkerSize, unsigned int);
 
-  enum ClusterSize {
+  enum ClusterSize
+  {
     POINTS_CONTAINED = 0,
     USER_DEFINED
   };

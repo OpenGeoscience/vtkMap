@@ -937,15 +937,15 @@ void vtkMapMarkerSet::Update()
     {
       types->InsertNextValue(MARKER_TYPE);
       const auto map = this->Layer->GetMap();
-      const double adjustedMarkerSize = map->GetDevicePixelRatio() *
-        this->PointMarkerSize;
+      const double adjustedMarkerSize =
+        map->GetDevicePixelRatio() * this->PointMarkerSize;
       const double markerScale = adjustedMarkerSize / this->BaseMarkerSize;
       scales->InsertNextValue(markerScale);
     }
     else
     {
       types->InsertNextValue(CLUSTER_TYPE);
-      switch(this->ClusterMarkerSizeMode)
+      switch (this->ClusterMarkerSizeMode)
       {
         case POINTS_CONTAINED:
         {
@@ -958,10 +958,10 @@ void vtkMapMarkerSet::Update()
 
         case USER_DEFINED:
         {
-          // Scale with user defined size 
+          // Scale with user defined size
           const auto map = this->Layer->GetMap();
-          const double adjustedMarkerSize = map->GetDevicePixelRatio() *
-            this->ClusterMarkerSize;
+          const double adjustedMarkerSize =
+            map->GetDevicePixelRatio() * this->ClusterMarkerSize;
           const double markerScale = adjustedMarkerSize / this->BaseMarkerSize;
           scales->InsertNextValue(markerScale);
         }
@@ -1406,7 +1406,7 @@ void vtkMapMarkerSet::SetLabelOffset(std::array<double, 3>& offset)
 std::array<double, 3> vtkMapMarkerSet::GetLabelOffset() const
 {
   const auto offset = this->Internals->LabelSelector->GetPointOffset();
-  return {{offset[0], offset[1], offset[2]}};
+  return { { offset[0], offset[1], offset[2] } };
 }
 #undef SQRT_TWO
 #undef MARKER_TYPE
