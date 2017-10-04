@@ -183,11 +183,22 @@ public:
   // ascending from given marker
   void PrintClusterPath(ostream& os, int markerId);
 
+  //@{
+  // \brief Properties of the label displaying the number of
+  // points contained in a cluster marker.
+
+  // Description:
+  // Text properties.
+  // \sa vtkTextProperty
   void SetLabelProperties(vtkTextProperty* property);
   vtkTextProperty* GetLabelProperties() const;
 
+  // Description:
+  // Label offset in screen coordinates. Use this to position offset
+  // to reposition the label.
   void SetLabelOffset(std::array<double, 3>& offset);
   std::array<double, 3> GetLabelOffset() const;
+  //@}
 
 protected:
   vtkMapMarkerSet();
