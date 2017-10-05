@@ -26,8 +26,6 @@
 #include <vtkRenderWindowInteractor.h>
 #include <vtksys/SystemTools.hxx>
 
-#include <cstdio> // for remove()
-#include <curl/curl.h>
 #include <sstream>
 #include <stack>
 
@@ -360,56 +358,6 @@ void vtkMultiThreadedOsmLayer::AddTiles()
   {
     this->RenderTiles(tiles);
   }
-}
-
-//----------------------------------------------------------------------------
-// Note: This method is very similar to vtkMapTile::DownloadImage()
-bool vtkMultiThreadedOsmLayer::DownloadImageFile(
-  std::string url, std::string filename)
-{
-  //std::cout << "Downloading " << filename << std::endl;
-  CURL* curl;
-  FILE* fp;
-  CURLcode res;
-  char errorBuffer[CURL_ERROR_SIZE]; // for debug
-  long httpStatus = 0;               // for debug
-  curl = curl_easy_init();
-  if (!curl)
-  {
-    vtkErrorMacro(<< "curl_easy_init() failed");
-    return false;
-  }
-
-  fp = fopen(filename.c_str(), "wb");
-  if (!fp)
-  {
-    vtkErrorMacro(<< "Cannot open file " << filename.c_str());
-    return false;
-  }
-#ifdef DISABLE_CURL_SIGNALS
-  curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1);
-#endif
-  curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errorBuffer);
-  curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
-  res = curl_easy_perform(curl);
-
-  curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpStatus);
-  vtkDebugMacro("Download " << url.c_str() << " status: " << httpStatus);
-  curl_easy_cleanup(curl);
-  fclose(fp);
-
-  // If there was an error, remove invalid image file
-  if (res != CURLE_OK)
-  {
-    //std::cerr << "Removing invalid file: " << filename << std::endl;
-    remove(filename.c_str());
-    vtkErrorMacro(<< errorBuffer);
-    return false;
-  }
-
-  return true;
 }
 
 //----------------------------------------------------------------------------

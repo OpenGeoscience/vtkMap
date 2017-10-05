@@ -70,10 +70,6 @@ protected:
   void AddTiles() override;
 
   // Description:
-  // Download image file, returns boolean indicating success
-  bool DownloadImageFile(std::string url, std::string filename);
-
-  // Description:
   // Instantiate and initialize vtkMapTile
   vtkMapTile* CreateTile(vtkMapTileSpecInternal& spec,
     const std::string& localPath, const std::string& remoteUrl);

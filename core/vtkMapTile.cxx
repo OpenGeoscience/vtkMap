@@ -157,8 +157,8 @@ void vtkMapTile::InitializeDownload()
   // If not, download
   while (!this->IsImageDownloaded(this->ImageFile.c_str()))
   {
-    std::cerr << "Downloading " << this->ImageSource.c_str() << " to "
-              << this->ImageFile << std::endl;
+    vtkWarningMacro(<< "Downloading " << this->ImageSource << " to "
+                    << this->ImageFile);
     this->DownloadImage(this->ImageSource.c_str(), this->ImageFile.c_str());
   }
 }
