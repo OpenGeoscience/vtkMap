@@ -193,8 +193,7 @@ public:
   void MoveLayer(const vtkLayer* layer, vtkMapType::Move direction);
 
   vtkSetMacro(DevicePixelRatio, int);
-  int GetDevicePixelRatio() const
-    { return this->DevicePixelRatio; }
+  int GetDevicePixelRatio() const { return this->DevicePixelRatio; }
 
 protected:
   vtkMap();

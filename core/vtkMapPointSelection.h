@@ -116,6 +116,9 @@ protected:
 
   bool InitializeMasking();
 
+  /**
+   * Transform point from world to display coordinates.
+   */
   bool WorldToDisplay(
     const std::array<double, 4>& pointWorld, std::array<double, 4>& pointDispl);
 

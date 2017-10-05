@@ -51,23 +51,23 @@ public:
         else if (key == "u")
           MarkerSet->SetClusterMarkerSizeMode(vtkMapMarkerSet::USER_DEFINED);
         else if (key == "p")
-          MarkerSet->SetClusterMarkerSizeMode(vtkMapMarkerSet::POINTS_CONTAINED);
+          MarkerSet->SetClusterMarkerSizeMode(
+            vtkMapMarkerSet::POINTS_CONTAINED);
         else
           return;
 
         // Point marker (droplet)
         if (deltaPoint)
         {
-          const auto size = MarkerSet->GetPointMarkerSize() +
-            deltaPoint * step;
+          const auto size = MarkerSet->GetPointMarkerSize() + deltaPoint * step;
           MarkerSet->SetPointMarkerSize(size);
         }
 
         // Cluster marker (circle)
         if (deltaCluster)
         {
-          const auto size = MarkerSet->GetClusterMarkerSize() +
-            deltaCluster * step;
+          const auto size =
+            MarkerSet->GetClusterMarkerSize() + deltaCluster * step;
           MarkerSet->SetClusterMarkerSize(size);
         }
 
@@ -147,14 +147,9 @@ int main(int argc, char* argv[])
   markers1->AddFeature(markerSet.GetPointer());
 
   const double offset = 0.1;
-  double latlonCoords[][2] = {
-    0.0, 0.0,
-    kwLatitude, kwLongitude,
-    kwLatitude, kwLongitude + offset,
-    kwLatitude + 2 * offset, kwLongitude,
-    kwLatitude , kwLongitude - 3 * offset,
-    kwLatitude - 4 * offset, kwLongitude
-  };
+  double latlonCoords[][2] = { 0.0, 0.0, kwLatitude, kwLongitude, kwLatitude,
+    kwLongitude + offset, kwLatitude + 2 * offset, kwLongitude, kwLatitude,
+    kwLongitude - 3 * offset, kwLatitude - 4 * offset, kwLongitude };
 
   const size_t numMarkers = sizeof(latlonCoords) / sizeof(double) / 2;
   for (size_t i = 0; i < numMarkers; ++i)
