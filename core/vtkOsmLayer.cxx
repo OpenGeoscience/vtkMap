@@ -421,29 +421,45 @@ void vtkOsmLayer::InitializeTiles(std::vector<vtkMapTile*>& tiles,
   std::stringstream oss;
   std::vector<vtkMapTileSpecInternal>::iterator tileSpecIter =
     tileSpecs.begin();
+  std::string filename;
+  std::string url;
   for (; tileSpecIter != tileSpecs.end(); tileSpecIter++)
   {
     vtkMapTileSpecInternal spec = *tileSpecIter;
 
+    this->MakeFileSystemPath(spec, oss);
+    filename = oss.str();
+    this->MakeUrl(spec, oss);
+    url = oss.str();
+
+    // Instantiate tile
     vtkMapTile* tile = vtkMapTile::New();
     tile->SetLayer(this);
     tile->SetCorners(spec.Corners);
-
-    // Set the local & remote paths
-    this->MakeFileSystemPath(spec, oss);
-    tile->SetFileSystemPath(oss.str());
-    this->MakeUrl(spec, oss);
-    tile->SetImageSource(oss.str());
-
-    // Initialize the tile and add to the cache
-    tile->Init();
-    int zoom = spec.ZoomXY[0];
-    int x = spec.ZoomXY[1];
-    int y = spec.ZoomXY[2];
-    this->AddTileToCache(zoom, x, y, tile);
+    tile->SetFileSystemPath(filename);
+    tile->SetImageSource(url);
     tiles.push_back(tile);
-    tile->SetVisible(true);
-  }
+
+    // Download image file if needed
+    if (!vtksys::SystemTools::FileExists(filename.c_str(), true))
+    {
+      std::cout << "Downloading " << url << " to " << filename << std::endl;
+      if (this->DownloadImageFile(url, filename))
+      {
+        // Update tile cache
+        int zoom = spec.ZoomXY[0];
+        int x = spec.ZoomXY[1];
+        int y = spec.ZoomXY[2];
+        this->AddTileToCache(zoom, x, y, tile);
+
+        tile->SetVisible(true);
+      }
+    }
+
+    // Initialize tile
+    tile->Init();
+  } // for
+
   tileSpecs.clear();
 }
 
