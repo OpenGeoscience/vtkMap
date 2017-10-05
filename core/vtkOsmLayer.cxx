@@ -258,6 +258,13 @@ bool vtkOsmLayer::DownloadImageFile(std::string url, std::string filename)
   curl_easy_cleanup(curl);
   fclose(fp);
 
+  // Confirm that the file is a valid image
+  if ((res == CURLE_OK) && (!this->VerifyImageFile(fp, filename)))
+  {
+    res = CURLE_READ_ERROR;
+    sprintf(errorBuffer, "map tile contents not a valid image");
+  }
+
   // If there was an error, remove invalid image file
   if (res != CURLE_OK)
   {
@@ -268,6 +275,73 @@ bool vtkOsmLayer::DownloadImageFile(std::string url, std::string filename)
   }
 
   return true;
+}
+
+//----------------------------------------------------------------------------
+bool vtkOsmLayer::VerifyImageFile(FILE* fp, std::string filename)
+{
+  // Confirms that the file is the expected image type.
+  // This method is needed because some tile servers return
+  // a success status code (200) when in fact returning an html
+  // page stating that the image isn't available.
+  // This method verifies that the specified file contains image data.
+
+  fp = fopen(filename.c_str(), "rb");
+  if (!fp)
+  {
+    vtkErrorMacro(<< "Could not open file " << filename << " to verify image");
+    return false;
+  }
+
+  // Current logic supports png and jpeg files.
+  // Uses the magic numbers associated with those file types, as listed in
+  // https://en.wikipedia.org/wiki/Magic_number_(programming).
+  std::string ext = vtksys::SystemTools::GetFilenameLastExtension(filename);
+
+  bool match = false;
+  if (ext == ".png")
+  {
+    match = true;
+    unsigned char buffer[8];
+    unsigned char pngSignature[] = { 0x89, 'P', 'N', 'G', '\r', '\n', 0x1a,
+      '\n' };
+
+    fseek(fp, 0, SEEK_SET);
+    std::size_t n = fread(buffer, 1, 8, fp);
+    if (n != 8)
+    {
+      std::cout << "Error, read " << n << " bytes" << std::endl;
+    }
+    for (int i = 0; i < 8; ++i)
+    {
+      match &= buffer[i] == pngSignature[i];
+#ifndef NDEBUG
+      if (buffer[i] != pngSignature[i])
+      {
+        std::cout << i << ": " << buffer[i] << ", " << pngSignature[i]
+                  << std::endl;
+      }
+#endif
+    }
+  }
+  else if ((ext == ".jpg") || (ext == ".jpeg"))
+  {
+    match = true;
+    unsigned char buffer[2];
+
+    fseek(fp, 0, SEEK_SET);
+    fread(buffer, 1, 2, fp);
+    match &= buffer[0] == 0xff;
+    match &= buffer[1] == 0xd8;
+
+    fseek(fp, -2, SEEK_END);
+    fread(buffer, 1, 2, fp);
+    match &= buffer[0] == 0xff;
+    match &= buffer[1] == 0xd9;
+  }
+
+  fclose(fp);
+  return match;
 }
 
 //----------------------------------------------------------------------------

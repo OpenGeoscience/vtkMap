@@ -69,6 +69,7 @@ protected:
 
   virtual void AddTiles();
   bool DownloadImageFile(std::string url, std::string filename);
+  bool VerifyImageFile(FILE* fp, std::string filename);
   void RemoveTiles();
 
   // Next 3 methods used to add tiles to layer
