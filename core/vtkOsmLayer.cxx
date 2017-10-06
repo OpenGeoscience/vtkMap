@@ -14,6 +14,7 @@
 
 #include "vtkOsmLayer.h"
 
+#include "tileNotAvailable_png.h"
 #include "vtkMapTile.h"
 #include "vtkMercator.h"
 
@@ -140,6 +141,15 @@ void vtkOsmLayer::Update()
     this->SetMapTileServer(
       this->MapTileServer, this->MapTileAttribution, this->MapTileExtension);
   }
+
+  // Write the "tile not available" image to the cache directory
+  std::stringstream ss;
+  ss << this->CacheDirectory << "/"
+     << "tile-not-available.png";
+  this->TileNotAvailableImagePath = strdup(ss.str().c_str());
+  FILE* fp = fopen(this->TileNotAvailableImagePath, "wb");
+  fwrite(tileNotAvailable_png, 1, tileNotAvailable_png_len, fp);
+  fclose(fp);
 
   if (!this->AttributionActor && this->MapTileAttribution)
   {
@@ -525,9 +535,13 @@ void vtkOsmLayer::InitializeTiles(std::vector<vtkMapTile*>& tiles,
         int x = spec.ZoomXY[1];
         int y = spec.ZoomXY[2];
         this->AddTileToCache(zoom, x, y, tile);
-
-        tile->SetVisible(true);
       }
+      else
+      {
+        tile->SetFileSystemPath(this->TileNotAvailableImagePath);
+      }
+
+      tile->SetVisible(true);
     }
 
     // Initialize tile

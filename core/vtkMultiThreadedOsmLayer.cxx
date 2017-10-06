@@ -263,10 +263,11 @@ void vtkMultiThreadedOsmLayer::RequestThreadExecute(int threadId)
       // If DownloadMode, perform http request
       this->MakeUrl(spec, oss);
       url = oss.str();
-      if (this->DownloadImageFile(url, filename))
+      if (!this->DownloadImageFile(url, filename))
       {
-        this->CreateTile(spec, filename, url);
+        filename = this->TileNotAvailableImagePath;
       }
+      this->CreateTile(spec, filename, url);
     }
     else
     {

@@ -92,6 +92,7 @@ protected:
   char* MapTileExtension;
   char* MapTileServer;
   char* MapTileAttribution;
+  char* TileNotAvailableImagePath;
   vtkTextActor* AttributionActor;
 
   char* CacheDirectory;
