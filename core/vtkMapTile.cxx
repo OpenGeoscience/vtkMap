@@ -28,12 +28,6 @@
 #include <vtkTextureMapToPlane.h>
 #include <vtksys/SystemTools.hxx>
 
-#include <curl/curl.h>
-
-#include <cstdio> // for remove()
-#include <fstream>
-#include <sstream>
-
 vtkStandardNewMacro(vtkMapTile)
 
   //----------------------------------------------------------------------------
@@ -83,7 +77,6 @@ void vtkMapTile::Build()
   this->Plane->SetNormal(0, 0, 1);
 
   this->TexturePlane = vtkTextureMapToPlane::New();
-  this->InitializeDownload();
 
   // Read the image which will be the texture
   vtkImageReader2* imageReader = NULL;
@@ -148,77 +141,6 @@ void vtkMapTile::SetVisible(bool val)
 bool vtkMapTile::IsVisible()
 {
   return this->Visible;
-}
-
-//----------------------------------------------------------------------------
-void vtkMapTile::InitializeDownload()
-{
-  // Check if image file already exists.
-  // If not, download
-  while (!this->IsImageDownloaded(this->ImageFile.c_str()))
-  {
-    std::cerr << "Downloading " << this->ImageSource.c_str() << " to "
-              << this->ImageFile << std::endl;
-    this->DownloadImage(this->ImageSource.c_str(), this->ImageFile.c_str());
-  }
-}
-
-//----------------------------------------------------------------------------
-bool vtkMapTile::IsImageDownloaded(const char* outfile)
-{
-  // Check if file can be opened
-  // Additional checks to confirm existence of correct
-  // texture can be added
-  std::ifstream file(outfile);
-  if (file.is_open())
-  {
-    file.close();
-    return true;
-  }
-  else
-  {
-    file.close();
-    return false;
-  }
-}
-
-//----------------------------------------------------------------------------
-void vtkMapTile::DownloadImage(const char* url, const char* outfilename)
-{
-  // Download file from url and store in outfilename
-  // Uses libcurl
-  CURL* curl;
-  FILE* fp;
-  CURLcode res;
-  char errorBuffer[CURL_ERROR_SIZE];
-  curl = curl_easy_init();
-
-  if (curl)
-  {
-    fp = fopen(outfilename, "wb");
-    if (!fp)
-    {
-      vtkErrorMacro(<< "Not Open") return;
-    }
-
-#ifdef DISABLE_CURL_SIGNALS
-    curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1);
-#endif
-    curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errorBuffer);
-    curl_easy_setopt(curl, CURLOPT_URL, url);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
-    res = curl_easy_perform(curl);
-    curl_easy_cleanup(curl);
-    fclose(fp);
-
-    //if curl failed remove the file
-    if (res != CURLE_OK)
-    {
-      remove(outfilename);
-      vtkWarningMacro(<< errorBuffer);
-    }
-  }
 }
 
 //----------------------------------------------------------------------------

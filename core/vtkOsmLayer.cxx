@@ -14,6 +14,7 @@
 
 #include "vtkOsmLayer.h"
 
+#include "tileNotAvailable_png.h"
 #include "vtkMapTile.h"
 #include "vtkMercator.h"
 
@@ -22,8 +23,11 @@
 #include <vtkTextProperty.h>
 #include <vtksys/SystemTools.hxx>
 
+#include <curl/curl.h>
+
 #include <algorithm>
-#include <cstring> // strdup
+#include <cstdio>  // remove()
+#include <cstring> // strdup()
 #include <iomanip>
 #include <iterator>
 #include <math.h>
@@ -138,6 +142,15 @@ void vtkOsmLayer::Update()
       this->MapTileServer, this->MapTileAttribution, this->MapTileExtension);
   }
 
+  // Write the "tile not available" image to the cache directory
+  std::stringstream ss;
+  ss << this->CacheDirectory << "/"
+     << "tile-not-available.png";
+  this->TileNotAvailableImagePath = strdup(ss.str().c_str());
+  FILE* fp = fopen(this->TileNotAvailableImagePath, "wb");
+  fwrite(tileNotAvailable_png, 1, tileNotAvailable_png_len, fp);
+  fclose(fp);
+
   if (!this->AttributionActor && this->MapTileAttribution)
   {
     this->AttributionActor = vtkTextActor::New();
@@ -217,6 +230,128 @@ void vtkOsmLayer::AddTiles()
     this->InitializeTiles(tiles, tileSpecs);
   }
   this->RenderTiles(tiles);
+}
+
+//----------------------------------------------------------------------------
+bool vtkOsmLayer::DownloadImageFile(std::string url, std::string filename)
+{
+  //std::cout << "Downloading " << filename << std::endl;
+  CURL* curl;
+  FILE* fp;
+  CURLcode res;
+  char errorBuffer[CURL_ERROR_SIZE]; // for debug
+  long httpStatus = 0;               // for debug
+  curl = curl_easy_init();
+  if (!curl)
+  {
+    vtkErrorMacro(<< "curl_easy_init() failed");
+    return false;
+  }
+
+  fp = fopen(filename.c_str(), "wb");
+  if (!fp)
+  {
+    vtkErrorMacro(<< "Cannot open file " << filename.c_str());
+    return false;
+  }
+#ifdef DISABLE_CURL_SIGNALS
+  curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1);
+#endif
+  curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errorBuffer);
+  curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+  res = curl_easy_perform(curl);
+
+  curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpStatus);
+  vtkDebugMacro("Download " << url.c_str() << " status: " << httpStatus);
+  curl_easy_cleanup(curl);
+  fclose(fp);
+
+  // Confirm that the file is a valid image
+  if ((res == CURLE_OK) && (!this->VerifyImageFile(fp, filename)))
+  {
+    res = CURLE_READ_ERROR;
+    sprintf(errorBuffer, "map tile contents not a valid image");
+  }
+
+  // If there was an error, remove invalid image file
+  if (res != CURLE_OK)
+  {
+    //std::cerr << "Removing invalid file: " << filename << std::endl;
+    remove(filename.c_str());
+    vtkErrorMacro(<< errorBuffer);
+    return false;
+  }
+
+  return true;
+}
+
+//----------------------------------------------------------------------------
+bool vtkOsmLayer::VerifyImageFile(FILE* fp, std::string filename)
+{
+  // Confirms that the file is the expected image type.
+  // This method is needed because some tile servers return
+  // a success status code (200) when in fact returning an html
+  // page stating that the image isn't available.
+  // This method verifies that the specified file contains image data.
+
+  fp = fopen(filename.c_str(), "rb");
+  if (!fp)
+  {
+    vtkErrorMacro(<< "Could not open file " << filename << " to verify image");
+    return false;
+  }
+
+  // Current logic supports png and jpeg files.
+  // Uses the magic numbers associated with those file types, as listed in
+  // https://en.wikipedia.org/wiki/Magic_number_(programming).
+  std::string ext = vtksys::SystemTools::GetFilenameLastExtension(filename);
+
+  bool match = false;
+  if (ext == ".png")
+  {
+    match = true;
+    unsigned char buffer[8];
+    unsigned char pngSignature[] = { 0x89, 'P', 'N', 'G', '\r', '\n', 0x1a,
+      '\n' };
+
+    fseek(fp, 0, SEEK_SET);
+    std::size_t n = fread(buffer, 1, 8, fp);
+    if (n != 8)
+    {
+      std::cout << "Error, read " << n << " bytes" << std::endl;
+    }
+    for (int i = 0; i < 8; ++i)
+    {
+      match &= buffer[i] == pngSignature[i];
+#ifndef NDEBUG
+      if (buffer[i] != pngSignature[i])
+      {
+        std::cout << i << ": " << buffer[i] << ", " << pngSignature[i]
+                  << std::endl;
+      }
+#endif
+    }
+  }
+  else if ((ext == ".jpg") || (ext == ".jpeg"))
+  {
+    match = true;
+    unsigned char buffer[2];
+
+    fseek(fp, 0, SEEK_SET);
+    fread(buffer, 1, 2, fp);
+    match &= buffer[0] == 0xff;
+    match &= buffer[1] == 0xd8;
+
+    fseek(fp, -2, SEEK_END);
+    fread(buffer, 1, 2, fp);
+    match &= buffer[0] == 0xff;
+    match &= buffer[1] == 0xd9;
+  }
+
+  fclose(fp);
+  return match;
 }
 
 //----------------------------------------------------------------------------
@@ -370,29 +505,49 @@ void vtkOsmLayer::InitializeTiles(std::vector<vtkMapTile*>& tiles,
   std::stringstream oss;
   std::vector<vtkMapTileSpecInternal>::iterator tileSpecIter =
     tileSpecs.begin();
+  std::string filename;
+  std::string url;
   for (; tileSpecIter != tileSpecs.end(); tileSpecIter++)
   {
     vtkMapTileSpecInternal spec = *tileSpecIter;
 
+    this->MakeFileSystemPath(spec, oss);
+    filename = oss.str();
+    this->MakeUrl(spec, oss);
+    url = oss.str();
+
+    // Instantiate tile
     vtkMapTile* tile = vtkMapTile::New();
     tile->SetLayer(this);
     tile->SetCorners(spec.Corners);
-
-    // Set the local & remote paths
-    this->MakeFileSystemPath(spec, oss);
-    tile->SetFileSystemPath(oss.str());
-    this->MakeUrl(spec, oss);
-    tile->SetImageSource(oss.str());
-
-    // Initialize the tile and add to the cache
-    tile->Init();
-    int zoom = spec.ZoomXY[0];
-    int x = spec.ZoomXY[1];
-    int y = spec.ZoomXY[2];
-    this->AddTileToCache(zoom, x, y, tile);
+    tile->SetFileSystemPath(filename);
+    tile->SetImageSource(url);
     tiles.push_back(tile);
-    tile->SetVisible(true);
-  }
+
+    // Download image file if needed
+    if (!vtksys::SystemTools::FileExists(filename.c_str(), true))
+    {
+      std::cout << "Downloading " << url << " to " << filename << std::endl;
+      if (this->DownloadImageFile(url, filename))
+      {
+        // Update tile cache
+        int zoom = spec.ZoomXY[0];
+        int x = spec.ZoomXY[1];
+        int y = spec.ZoomXY[2];
+        this->AddTileToCache(zoom, x, y, tile);
+      }
+      else
+      {
+        tile->SetFileSystemPath(this->TileNotAvailableImagePath);
+      }
+
+      tile->SetVisible(true);
+    }
+
+    // Initialize tile
+    tile->Init();
+  } // for
+
   tileSpecs.clear();
 }
 

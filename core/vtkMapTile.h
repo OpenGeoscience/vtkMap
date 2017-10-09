@@ -41,6 +41,9 @@ public:
     this->ImageFile = path;
   }
 
+  // Set/Get URL to image on the map tile server
+  // Note that, although this class stores the source URL, the *map layer* is
+  // responsible for downloading the tile to the local filesystem.
   void SetImageSource(const std::string& imgSrc) { this->ImageSource = imgSrc; }
   std::string GetImageSource() { return this->ImageSource; }
 
@@ -87,18 +90,6 @@ protected:
   // Description:
   // Construct the textured geometry for the tile
   void Build();
-
-  // Description:
-  // Check if the corresponding image is downloaded
-  bool IsImageDownloaded(const char* outfile);
-
-  // Description:
-  // Download the image corresponding to the Bing Maps QuadKey
-  void DownloadImage(const char* url, const char* outfilename);
-
-  // Description:
-  // Download the texture (image) if not already downloaded.
-  void InitializeDownload();
 
   // Description:
   // Storing the remote and local paths
