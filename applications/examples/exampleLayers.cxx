@@ -370,6 +370,7 @@ int main(int argc, char* argv[])
 
   // Instantiate markers for array of lat-lon coordinates
   vtkNew<vtkMapMarkerSet> markerSet2;
+  markerSet2->SetMarkerShape(static_cast<int>(vtkMapType::Shape::TRIANGLE));
   markerSet2->SetClustering(!clusteringOff);
   markers2->AddFeature(markerSet2.GetPointer());
 
@@ -387,6 +388,7 @@ int main(int argc, char* argv[])
     const double lon = coords[i][1];
     markerSet2->AddMarker(lat, lon);
   }
+  map->Draw();
 
   ///////////////////// Layer 4 - Circle //////////////////////////////////////
   vtkNew<vtkFeatureLayer> circle;
@@ -428,6 +430,10 @@ int main(int argc, char* argv[])
   map->MoveLayer(circle.GetPointer(), vtkMapType::Move::DOWN);
   map->MoveLayer(circle2.GetPointer(), vtkMapType::Move::BOTTOM);
   map->MoveLayer(circle2.GetPointer(), vtkMapType::Move::UP);
+
+  markerSet2->SetMarkerShape(static_cast<int>(vtkMapType::Shape::SQUARE));
+  map->Draw();
+  markerSet2->SetMarkerShape(static_cast<int>(vtkMapType::Shape::PENTAGON));
 
   moveCallback->Map = map.GetPointer();
   moveCallback->Layer = circle.GetPointer();

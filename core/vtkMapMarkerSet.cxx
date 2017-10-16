@@ -13,8 +13,13 @@
 =========================================================================*/
 
 #include "vtkMapMarkerSet.h"
+#include "assets/hexagon.h"
+#include "assets/octagon.h"
+#include "assets/pentagon.h"
+#include "assets/square.h"
+#include "assets/teardrop.h"
+#include "assets/triangle.h"
 #include "markersShadowImageData.h"
-#include "pointMarkerPolyData.h"
 #include "vtkMapPointSelection.h"
 #include "vtkMemberFunctionCommand.h"
 #include "vtkMercator.h"
@@ -68,6 +73,33 @@ unsigned int vtkMapMarkerSet::NextMarkerHue = 0;
 //----------------------------------------------------------------------------
 namespace
 {
+const char* GetMarkerGeometry(vtkMapType::Shape const shape)
+{
+  const char* array;
+  switch (shape)
+  {
+    case vtkMapType::Shape::TRIANGLE:
+      array = triangle;
+      break;
+    case vtkMapType::Shape::SQUARE:
+      array = square;
+      break;
+    case vtkMapType::Shape::PENTAGON:
+      array = pentagon;
+      break;
+    case vtkMapType::Shape::HEXAGON:
+      array = hexagon;
+      break;
+    case vtkMapType::Shape::OCTAGON:
+      array = octagon;
+      break;
+    case vtkMapType::Shape::TEARDROP:
+      array = teardrop;
+      break;
+  }
+  return array;
+};
+
 // Hard-code color palette to match leaflet-awesome markers
 // The names are just a guess
 unsigned char palette[][3] = {
@@ -146,6 +178,8 @@ public:
    */
   vtkSmartPointer<vtkLabeledDataMapper> LabelMapper;
   vtkSmartPointer<vtkMapPointSelection> LabelSelector;
+
+  vtkTimeStamp ShapeInitTime;
 };
 
 //----------------------------------------------------------------------------
@@ -218,7 +252,8 @@ vtkMapMarkerSet::vtkMapMarkerSet()
     Marker image width = 35, height = 46
     Shadow image width = 36, height = 16
 
-    And since the pointMarkerPolyData is scaled to height of 1.0, set shadow geometry as follows:
+    And since marker's PolyData is scaled to height of 1.0, set shadow geometry as
+    follows:
    */
   double imageHeight = 1.0;
   double shadowHeight = imageHeight * (16.0 / 46.0); // 0.348
@@ -721,11 +756,6 @@ void vtkMapMarkerSet::Init()
   dFilter->SetInputArrayToProcess(
     0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "MarkerScale");
 
-  // Load point marker geometry
-  vtkNew<vtkPolyDataReader> pointMarkerReader;
-  pointMarkerReader->ReadFromInputStringOn();
-  pointMarkerReader->SetInputString(pointMarkerPolyData);
-
   // Use regular polygon for cluster marker
   vtkNew<vtkRegularPolygonSource> clusterMarkerSource;
   clusterMarkerSource->SetNumberOfSides(18);
@@ -737,8 +767,7 @@ void vtkMapMarkerSet::Init()
   this->Layer->AddActor(this->Actor);
 
   // Set up glyph mapper inputs
-  this->Internals->GlyphMapper->SetSourceConnection(
-    0, pointMarkerReader->GetOutputPort());
+  this->UpdateSingleMarkerGeometry();
   this->Internals->GlyphMapper->SetSourceConnection(
     1, clusterMarkerSource->GetOutputPort());
   this->Internals->GlyphMapper->SetInputConnection(dFilter->GetOutputPort());
@@ -779,6 +808,19 @@ void vtkMapMarkerSet::Init()
 
   this->InitializeLabels(rend);
   this->Initialized = true;
+}
+
+void vtkMapMarkerSet::UpdateSingleMarkerGeometry()
+{
+  vtkNew<vtkPolyDataReader> pointMarkerReader;
+  pointMarkerReader->ReadFromInputStringOn();
+  pointMarkerReader->SetInputString(
+    GetMarkerGeometry(static_cast<const vtkMapType::Shape>(this->MarkerShape)));
+
+  this->Internals->GlyphMapper->SetSourceConnection(
+    0, pointMarkerReader->GetOutputPort());
+
+  this->Internals->ShapeInitTime.Modified();
 }
 
 //----------------------------------------------------------------------------
@@ -875,6 +917,7 @@ void vtkMapMarkerSet::Update()
   // 2. In clustering mode and zoom level changed
   bool changed = this->GetMTime() > this->UpdateTime.GetMTime();
   changed |= this->Clustering && (zoomLevel != this->Internals->ZoomLevel);
+  changed |= this->GetMTime() > this->Internals->ShapeInitTime;
   if (!changed)
   {
     return;
@@ -910,6 +953,8 @@ void vtkMapMarkerSet::Update()
   array = this->PolyData->GetPointData()->GetArray("NumMarkers");
   auto numMarkersArray = vtkUnsignedIntArray::SafeDownCast(array);
   numMarkersArray->Reset();
+
+  this->UpdateSingleMarkerGeometry();
 
   // Coefficients for scaling cluster size, using simple 2nd order model
   // The equation is y = k*x^2 / (x^2 + b), where k,b are coefficients

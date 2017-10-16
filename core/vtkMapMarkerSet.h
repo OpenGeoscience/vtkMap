@@ -19,6 +19,7 @@
 #define __vtkMapMarkerSet_h
 #include <set>
 
+#include "vtkMap_typedef.h"
 #include "vtkPolydataFeature.h"
 #include "vtkmapcore_export.h"
 
@@ -201,8 +202,9 @@ public:
   std::array<double, 3> GetLabelOffset() const;
   //@}
 
-protected:
-  vtkMapMarkerSet();
+  vtkSetMacro(MarkerShape, unsigned int) vtkGetMacro(MarkerShape, unsigned int)
+
+    protected : vtkMapMarkerSet();
   ~vtkMapMarkerSet();
 
   class ClusteringNode;
@@ -227,6 +229,9 @@ protected:
   void ComputeNextColor(double color[3]);
 
   void InitializeLabels(vtkRenderer* rend);
+
+  // Updates single marker geometry if it has changed.
+  void UpdateSingleMarkerGeometry();
 
   void OnRenderStart();
 
@@ -282,6 +287,8 @@ protected:
 
   static unsigned int NextMarkerHue;
   double SelectionHue;
+
+  unsigned int MarkerShape = static_cast<int>(vtkMapType::Shape::TEARDROP);
 
 private:
   class MapMarkerSetInternals;
