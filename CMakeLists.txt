@@ -24,7 +24,7 @@ endif ()
 # User options
 # ==============================================================================
 
-option(BUILD_EXAMPLES "Build example applications." ON)
+option(BUILD_EXAMPLES "Build example applications." OFF)
 option(BUILD_QT_APPS "Build Qt applications." OFF)
 option(BUILD_SHARED_LIBS "Build vtkMap with shared libraries." ON)
 option(BUILD_GDAL_EXTENSION "GDAL Extensions." OFF)
