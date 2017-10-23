@@ -867,9 +867,10 @@ void vtkMapMarkerSet::InitializeLabels(vtkRenderer* rend)
   textProp->SetJustificationToCentered();
 
   // Setup callback to update necessary render parameters
-  auto observer =
+  auto obs =
     vtkMakeMemberFunctionCommand(*this, &vtkMapMarkerSet::OnRenderStart);
-  rend->AddObserver(vtkCommand::StartEvent, observer);
+  this->Observer = vtkSmartPointer<vtkCommand>(obs);
+  rend->AddObserver(vtkCommand::StartEvent, this->Observer);
 
   mapper->Update();
 }
@@ -877,6 +878,12 @@ void vtkMapMarkerSet::InitializeLabels(vtkRenderer* rend)
 //----------------------------------------------------------------------------
 void vtkMapMarkerSet::OnRenderStart()
 {
+  if (!this->Layer)
+  {
+    vtkErrorMacro(<< "Invalid Layer!")
+    return;
+  }
+
   auto rend = this->Layer->GetRenderer();
   if (!rend)
   {
@@ -1062,8 +1069,10 @@ void vtkMapMarkerSet::CleanUp()
   this->Internals->NumberOfMarkers = 0;
   this->Internals->NumberOfNodes = 0;
 
-  this->Layer->GetRenderer()->RemoveActor(this->Internals->ShadowActor);
-  this->Layer->GetRenderer()->RemoveActor2D(this->Internals->LabelActor);
+  auto rend = this->Layer->GetRenderer();
+  rend->RemoveActor(this->Internals->ShadowActor);
+  rend->RemoveActor2D(this->Internals->LabelActor);
+  rend->RemoveObserver(this->Observer);
 
   this->Superclass::CleanUp();
 }

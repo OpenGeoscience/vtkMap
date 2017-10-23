@@ -29,10 +29,10 @@ vtkPolydataFeature::vtkPolydataFeature()
 vtkPolydataFeature::~vtkPolydataFeature()
 {
   this->Actor->Delete();
-  this->Actor = 0;
+  this->Actor = nullptr;
 
   this->Mapper->Delete();
-  this->Mapper = 0;
+  this->Mapper = nullptr;
 }
 
 //----------------------------------------------------------------------------
@@ -68,7 +68,7 @@ void vtkPolydataFeature::Update()
 void vtkPolydataFeature::CleanUp()
 {
   this->Layer->RemoveActor(this->Actor);
-  this->SetLayer(0);
+  this->SetLayer(nullptr);
 }
 
 //----------------------------------------------------------------------------
