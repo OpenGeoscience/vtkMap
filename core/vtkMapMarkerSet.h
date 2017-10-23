@@ -19,11 +19,15 @@
 #define __vtkMapMarkerSet_h
 #include <set>
 
+#include <vtkSmartPointer.h>
+
 #include "vtkMap_typedef.h"
 #include "vtkPolydataFeature.h"
 #include "vtkmapcore_export.h"
 
+
 class vtkActor;
+class vtkCommand;
 class vtkIdList;
 class vtkLookupTable;
 class vtkMapper;
@@ -204,7 +208,9 @@ public:
 
   vtkSetMacro(MarkerShape, unsigned int) vtkGetMacro(MarkerShape, unsigned int)
 
-    protected : vtkMapMarkerSet();
+protected:
+
+  vtkMapMarkerSet();
   ~vtkMapMarkerSet();
 
   class ClusteringNode;
@@ -289,6 +295,8 @@ public:
   double SelectionHue;
 
   unsigned int MarkerShape = static_cast<int>(vtkMapType::Shape::TEARDROP);
+
+  vtkSmartPointer<vtkCommand> Observer;
 
 private:
   class MapMarkerSetInternals;
