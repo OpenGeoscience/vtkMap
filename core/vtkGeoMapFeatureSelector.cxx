@@ -432,14 +432,6 @@ void vtkGeoMapFeatureSelector::PickMarkers(
   // Appends its results to the input selection (i.e., does NOT reset it).
   // Calling code *should* set all other feature types unpickable.
 
-  // Sanity check: Cannot use vtkHardwareSelector with AAFrames
-  if (renderer->GetRenderWindow()->GetAAFrames() > 0)
-  {
-    vtkWarningMacro("Render window has anti-aliasing frames set (AAFrames)"
-      << ", so selection of markers may not work");
-    return;
-  }
-
   this->Internal->Selector->SetFieldAssociation(
     vtkDataObject::FIELD_ASSOCIATION_POINTS);
   this->Internal->Mode =
