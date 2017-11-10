@@ -25,7 +25,6 @@
 #include "vtkPolydataFeature.h"
 #include "vtkmapcore_export.h"
 
-
 class vtkActor;
 class vtkCommand;
 class vtkIdList;
@@ -202,15 +201,15 @@ public:
   // Description:
   // Label offset in screen coordinates. Use this to position offset
   // to reposition the label.
-  void SetLabelOffset(std::array<double, 3>& offset);
+  void SetLabelOffset(std::array<double, 3> offset);
   std::array<double, 3> GetLabelOffset() const;
   //@}
 
   vtkSetMacro(MarkerShape, unsigned int) vtkGetMacro(MarkerShape, unsigned int)
 
-protected:
+    protected :
 
-  vtkMapMarkerSet();
+    vtkMapMarkerSet();
   ~vtkMapMarkerSet();
 
   class ClusteringNode;
