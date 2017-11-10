@@ -60,6 +60,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <iomanip>
 #include <iostream>
 #include <iterator> // std::back_inserter
@@ -880,8 +881,7 @@ void vtkMapMarkerSet::OnRenderStart()
 {
   if (!this->Layer)
   {
-    vtkErrorMacro(<< "Invalid Layer!")
-    return;
+    vtkErrorMacro(<< "Invalid Layer!") return;
   }
 
   auto rend = this->Layer->GetRenderer();
@@ -1452,15 +1452,30 @@ vtkTextProperty* vtkMapMarkerSet::GetLabelProperties() const
   return this->Internals->LabelMapper->GetLabelTextProperty();
 }
 
-void vtkMapMarkerSet::SetLabelOffset(std::array<double, 3>& offset)
+void vtkMapMarkerSet::SetLabelOffset(std::array<double, 3> offset)
 {
+  // Adjust device pixel ratio
+  auto adjust = [](double& n, const double ratio) { n *= ratio; };
+  auto func = std::bind(adjust, std::placeholders::_1,
+    static_cast<double>(this->Layer->GetMap()->GetDevicePixelRatio()));
+  std::for_each(offset.begin(), offset.end(), func);
+
   this->Internals->LabelSelector->SetPointOffset(offset.data());
 }
 
 std::array<double, 3> vtkMapMarkerSet::GetLabelOffset() const
 {
-  const auto offset = this->Internals->LabelSelector->GetPointOffset();
-  return { { offset[0], offset[1], offset[2] } };
+  auto off = this->Internals->LabelSelector->GetPointOffset();
+  std::array<double, 3> offset = { { off[0], off[1], off[2] } };
+
+  // Adjust device pixel ratio (this makes offsets consistent
+  // across devices).
+  auto adjust = [](double& n, const double ratio) { n /= ratio; };
+  auto func = std::bind(adjust, std::placeholders::_1,
+    static_cast<double>(this->Layer->GetMap()->GetDevicePixelRatio()));
+  std::for_each(offset.begin(), offset.end(), func);
+
+  return std::move(offset);
 }
 #undef SQRT_TWO
 #undef MARKER_TYPE
