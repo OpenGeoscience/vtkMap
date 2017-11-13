@@ -31,12 +31,6 @@ class vtkProp;
 class VTKMAPCORE_EXPORT vtkFeature : public vtkObject
 {
 public:
-  enum Bins
-  {
-    Hidden = 99,
-    Visible = 100,
-  };
-
   void PrintSelf(ostream& os, vtkIndent indent) override;
   vtkTypeMacro(vtkFeature, vtkObject);
 
@@ -47,9 +41,6 @@ public:
   vtkGetMacro(Visibility, int);
   vtkSetMacro(Visibility, int);
   vtkBooleanMacro(Visibility, int);
-
-  vtkGetMacro(Bin, int);
-  vtkSetMacro(Bin, int);
 
   //we hold onto a weak pointer to the current feature layer that
   //we are part of
@@ -96,7 +87,6 @@ protected:
 
   unsigned int Id;
   int Visibility;
-  int Bin;
 
   char* Gcs;
 

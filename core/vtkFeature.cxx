@@ -20,7 +20,6 @@ vtkFeature::vtkFeature()
 {
   this->Id = 0;
   this->Visibility = 1;
-  this->Bin = Visible;
   this->Gcs = 0;
   this->Layer = 0;
 
@@ -59,7 +58,7 @@ bool vtkFeature::IsVisible()
 //----------------------------------------------------------------------------
 vtkProp* vtkFeature::PickProp()
 {
-  return NULL;
+  return nullptr;
 }
 
 //----------------------------------------------------------------------------
