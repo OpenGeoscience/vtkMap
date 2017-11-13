@@ -31,7 +31,7 @@ class VTKMAPCORE_EXPORT vtkMapTile : public vtkFeature
 {
 public:
   static vtkMapTile* New();
-  void PrintSelf(ostream& os, vtkIndent indent);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
   vtkTypeMacro(vtkMapTile, vtkFeature)
 
     // Description:

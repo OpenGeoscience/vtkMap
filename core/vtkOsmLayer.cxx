@@ -35,15 +35,6 @@
 
 vtkStandardNewMacro(vtkOsmLayer)
 
-  //----------------------------------------------------------------------------
-  struct sortTiles
-{
-  inline bool operator()(vtkMapTile* tile1, vtkMapTile* tile2)
-  {
-    return (tile1->GetBin() < tile2->GetBin());
-  }
-};
-
 //----------------------------------------------------------------------------
 vtkOsmLayer::vtkOsmLayer()
   : vtkFeatureLayer()

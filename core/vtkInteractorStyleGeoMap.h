@@ -81,8 +81,8 @@ public:
   using vtkInteractorStyleRubberBand2D::GetStartPosition;
   using vtkInteractorStyleRubberBand2D::GetEndPosition;
 
-  int* GetStartPosition() { return this->StartPosition; }
-  int* GetEndPosition() { return this->EndPosition; }
+  int* GetStartPosition() override { return this->StartPosition; }
+  int* GetEndPosition() override { return this->EndPosition; }
 
   // Description:
   // Modes for RubberBandMode
