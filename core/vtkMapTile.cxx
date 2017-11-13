@@ -33,12 +33,11 @@ vtkStandardNewMacro(vtkMapTile)
   //----------------------------------------------------------------------------
   vtkMapTile::vtkMapTile()
 {
+  this->Visibility = 0;
   Plane = 0;
   TexturePlane = 0;
   Actor = 0;
   Mapper = 0;
-  this->Bin = Hidden;
-  this->VisibleFlag = false;
   this->Corners[0] = this->Corners[1] = this->Corners[2] = this->Corners[3] =
     0.0;
 }
@@ -117,30 +116,6 @@ void vtkMapTile::Build()
 
   this->BuildTime.Modified();
   imageReader->Delete();
-}
-
-//----------------------------------------------------------------------------
-void vtkMapTile::SetVisible(bool val)
-{
-  if (val != this->VisibleFlag)
-  {
-    this->VisibleFlag = val;
-    if (this->VisibleFlag)
-    {
-      this->Bin = VisibleFlag;
-    }
-    else
-    {
-      this->Bin = Hidden;
-    }
-    this->Modified();
-  }
-}
-
-//----------------------------------------------------------------------------
-bool vtkMapTile::IsVisible()
-{
-  return this->Visible;
 }
 
 //----------------------------------------------------------------------------

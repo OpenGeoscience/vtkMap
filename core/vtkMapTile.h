@@ -53,11 +53,6 @@ public:
   vtkSetVector4Macro(Corners, double);
 
   // Description:
-  // Get/Set bin of the tile
-  vtkGetMacro(Bin, int);
-  vtkSetMacro(Bin, int);
-
-  // Description:
   vtkGetMacro(Plane, vtkPlaneSource*) vtkGetMacro(Actor, vtkActor*)
     vtkGetMacro(Mapper, vtkPolyDataMapper*)
 
@@ -65,9 +60,6 @@ public:
     // Get/Set position of the tile
     void SetCenter(double* center);
   void SetCenter(double x, double y, double z);
-
-  void SetVisible(bool val);
-  bool IsVisible();
 
   // Description:
   // Create the geometry and download
@@ -101,8 +93,6 @@ protected:
   vtkActor* Actor;
   vtkPolyDataMapper* Mapper;
 
-  int Bin;
-  bool VisibleFlag;
   double Corners[4];
 
 private:

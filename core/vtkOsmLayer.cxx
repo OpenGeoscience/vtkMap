@@ -35,8 +35,8 @@
 
 vtkStandardNewMacro(vtkOsmLayer)
 
-//----------------------------------------------------------------------------
-vtkOsmLayer::vtkOsmLayer()
+  //----------------------------------------------------------------------------
+  vtkOsmLayer::vtkOsmLayer()
   : vtkFeatureLayer()
 {
   this->BaseOn();
@@ -463,7 +463,7 @@ void vtkOsmLayer::SelectTiles(std::vector<vtkMapTile*>& tiles,
       if (tile)
       {
         tiles.push_back(tile);
-        tile->SetVisible(true);
+        tile->VisibilityOn();
       }
       else
       {
@@ -532,7 +532,7 @@ void vtkOsmLayer::InitializeTiles(std::vector<vtkMapTile*>& tiles,
         tile->SetFileSystemPath(this->TileNotAvailableImagePath);
       }
 
-      tile->SetVisible(true);
+      tile->VisibilityOn();
     }
 
     // Initialize tile
