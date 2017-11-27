@@ -815,8 +815,11 @@ void vtkMapMarkerSet::UpdateSingleMarkerGeometry()
 {
   vtkNew<vtkPolyDataReader> pointMarkerReader;
   pointMarkerReader->ReadFromInputStringOn();
-  pointMarkerReader->SetInputString(
-    GetMarkerGeometry(static_cast<const vtkMapType::Shape>(this->MarkerShape)));
+
+  auto shape = static_cast<const vtkMapType::Shape>(this->MarkerShape);
+  pointMarkerReader->SetInputString(GetMarkerGeometry(shape));
+  const int shadowVis = shape == vtkMapType::Shape::TEARDROP ? 1 : 0;
+  this->Internals->ShadowActor->SetVisibility(shadowVis);
 
   this->Internals->GlyphMapper->SetSourceConnection(
     0, pointMarkerReader->GetOutputPort());
