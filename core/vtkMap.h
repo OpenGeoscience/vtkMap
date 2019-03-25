@@ -106,7 +106,7 @@ public:
 
   // Description:
   // Get/Set the detailing level
-  vtkGetMacro(Zoom, int) vtkSetMacro(Zoom, int)
+  vtkGetMacro(Zoom, int) vtkSetClampMacro(Zoom, int, 0, 19)
 
     // Description:
     // Get/Set center of the map.
