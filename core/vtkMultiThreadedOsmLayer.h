@@ -71,7 +71,7 @@ protected:
 
   // Description:
   // Instantiate and initialize vtkMapTile
-  vtkMapTile* CreateTile(vtkMapTileSpecInternal& spec,
+  vtkSmartPointer<vtkMapTile> CreateTile(vtkMapTileSpecInternal& spec,
     const std::string& localPath, const std::string& remoteUrl);
 
   // Description:

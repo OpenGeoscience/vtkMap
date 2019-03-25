@@ -66,7 +66,7 @@ class vtkSequencePass;
 class VTKMAPCORE_EXPORT vtkMap : public vtkObject
 {
 public:
-  using LayerContainer = std::vector<vtkLayer*>;
+  using LayerContainer = std::vector<vtkSmartPointer<vtkLayer>>;
 
   // Description:
   // State of asynchronous layers
@@ -241,7 +241,7 @@ protected:
   // Description:
   // Base layer that dictates the coordinate tranformation
   // and navigation
-  vtkLayer* BaseLayer;
+  vtkSmartPointer<vtkLayer> BaseLayer;
 
   // Description:
   // List of layers attached to the map

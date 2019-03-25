@@ -50,7 +50,7 @@ public:
   // Description:
   // The full path to the directory used for caching map-tile files.
   // Set automatically by vtkMap.
-  vtkGetStringMacro(CacheDirectory);
+  vtkGetStringMacro(CacheDirectory)
 
   // Description:
   void Update() override;
@@ -65,7 +65,7 @@ protected:
   vtkOsmLayer();
   ~vtkOsmLayer() override;
 
-  vtkSetStringMacro(CacheDirectory);
+  vtkSetStringMacro(CacheDirectory)
 
   virtual void AddTiles();
   bool DownloadImageFile(std::string url, std::string filename);
@@ -73,14 +73,14 @@ protected:
   void RemoveTiles();
 
   // Next 3 methods used to add tiles to layer
-  void SelectTiles(std::vector<vtkMapTile*>& tiles,
+  void SelectTiles(std::vector<vtkSmartPointer<vtkMapTile>>& tiles,
     std::vector<vtkMapTileSpecInternal>& tileSpecs);
-  void InitializeTiles(std::vector<vtkMapTile*>& tiles,
+  void InitializeTiles(std::vector<vtkSmartPointer<vtkMapTile>>& tiles,
     std::vector<vtkMapTileSpecInternal>& tileSpecs);
-  void RenderTiles(std::vector<vtkMapTile*>& tiles);
+  void RenderTiles(std::vector<vtkSmartPointer<vtkMapTile>>& tiles);
 
   void AddTileToCache(int zoom, int x, int y, vtkMapTile* tile);
-  vtkMapTile* GetCachedTile(int zoom, int x, int y);
+  vtkSmartPointer<vtkMapTile> GetCachedTile(int zoom, int x, int y);
 
   // Construct paths for local & remote tile access
   // A stringstream is passed in for performance reasons
@@ -96,8 +96,10 @@ protected:
   vtkTextActor* AttributionActor;
 
   char* CacheDirectory;
-  std::map<int, std::map<int, std::map<int, vtkMapTile*> > > CachedTilesMap;
-  std::vector<vtkMapTile*> CachedTiles;
+  // CachedTilesMap contains already built tiles
+  std::map<int, std::map<int, std::map<int, vtkSmartPointer<vtkMapTile>> > > CachedTilesMap;
+  // CachedTiles is intended to retrieve tiles put on the scene
+  std::vector<vtkSmartPointer<vtkMapTile>> CachedTiles;
 
 private:
   vtkOsmLayer(const vtkOsmLayer&);            // Not implemented

@@ -19,6 +19,8 @@
 #ifndef __vtkMapTileSpecInternal_h
 #define __vtkMapTileSpecInternal_h
 
+#include <vtkSmartPointer.h>
+
 class vtkMapTile;
 
 class vtkMapTileSpecInternal
@@ -27,14 +29,17 @@ public:
   double Corners[4]; // world coordinates
   int ZoomRowCol[3]; // OSM tile indices
   int ZoomXY[3];     // local cache indices
-  vtkMapTile* Tile;
+  vtkSmartPointer<vtkMapTile> Tile;
 
   vtkMapTileSpecInternal();
 };
 
-inline vtkMapTileSpecInternal::vtkMapTileSpecInternal()
+inline vtkMapTileSpecInternal::vtkMapTileSpecInternal() :
+    Corners {0., 0., 0., 0.},
+    ZoomRowCol {0, 0, 0},
+    ZoomXY {0, 0, 0}
 {
-  this->Tile = nullptr;
+
 }
 
 #endif // __vtkMapTileSpecInternal_h
