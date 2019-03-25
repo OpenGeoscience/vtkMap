@@ -107,9 +107,9 @@ vtkMap::vtkMap()
   this->RubberBandStyle->AddObserver(
     vtkInteractorStyleGeoMap::RightButtonCompleteEvent, fwd);
 
-  vtkCommand* obsPoly =
-    vtkMakeMemberFunctionCommand(*this, &vtkMap::OnPolygonSelectionEvent);
-  this->DrawPolyStyle->AddObserver(vtkCommand::SelectionChangedEvent, obsPoly);
+  PolygonSelectionObserver.TakeReference(
+              vtkMakeMemberFunctionCommand(*this, &vtkMap::OnPolygonSelectionEvent));
+  this->DrawPolyStyle->AddObserver(vtkCommand::SelectionChangedEvent, PolygonSelectionObserver.GetPointer());
 
   this->PerspectiveProjection = false;
   this->Zoom = 1;

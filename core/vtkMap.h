@@ -50,6 +50,7 @@
 
 class vtkCallbackCommand;
 class vtkCameraPass;
+class vtkCommand;
 class vtkFeature;
 class vtkGeoMapFeatureSelector;
 class vtkGeoMapSelection;
@@ -269,6 +270,8 @@ protected:
   //@}
 
   int DevicePixelRatio = 1;
+
+  vtkSmartPointer<vtkCommand> PolygonSelectionObserver;
 
 private:
   vtkMap(const vtkMap&) VTK_DELETE_FUNCTION;
