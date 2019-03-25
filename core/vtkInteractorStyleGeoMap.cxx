@@ -273,10 +273,9 @@ void vtkInteractorStyleGeoMap::ZoomIn(int levels)
 {
   if (this->Map)
   {
-    int zoom = this->Map->GetZoom();
-    if (zoom < 19)
+    const int zoom = this->Map->GetZoom() + levels;
+    if (zoom <= 19)
     {
-      zoom += levels;
       this->Map->SetZoom(zoom);
       this->SetCurrentRenderer(this->Map->GetRenderer());
 
@@ -337,10 +336,9 @@ void vtkInteractorStyleGeoMap::ZoomOut(int levels)
 {
   if (this->Map)
   {
-    int zoom = this->Map->GetZoom();
-    if (zoom > 0)
+    int zoom = this->Map->GetZoom() - levels;
+    if (zoom >= 0)
     {
-      zoom -= levels;
       this->Map->SetZoom(zoom);
       this->SetCurrentRenderer(this->Map->GetRenderer());
 
