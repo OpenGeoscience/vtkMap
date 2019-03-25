@@ -148,7 +148,6 @@ int main(int argc, char* argv[])
   curl_global_init(CURL_GLOBAL_DEFAULT);
 
   // Setup command line arguments
-  std::string inputFile;
   int clusteringOff = false;
   bool showHelp = false;
   bool perspective = false;

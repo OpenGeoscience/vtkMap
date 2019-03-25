@@ -20,8 +20,7 @@ vtkFeature::vtkFeature()
 {
   this->Id = 0;
   this->Visibility = 1;
-  this->Gcs = 0;
-  this->Layer = 0;
+  this->Gcs = nullptr;
 
   this->SetGcs("EPSG4326");
 }
