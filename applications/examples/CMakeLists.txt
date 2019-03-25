@@ -4,14 +4,17 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 add_executable(example
   example.cxx)
 target_link_libraries(example
-  vtkMapCore)
+  vtkMapCore
+  ${CURL_LIBRARIES})
 
 add_executable(exampleLayers
   exampleLayers.cxx)
 target_link_libraries(exampleLayers
-  vtkMapCore)
+  vtkMapCore
+  ${CURL_LIBRARIES})
 
 add_executable(markerSize
   markerSize.cxx)
 target_link_libraries(markerSize
-  vtkMapCore)
+  vtkMapCore
+  ${CURL_LIBRARIES})
