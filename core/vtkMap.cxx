@@ -547,8 +547,21 @@ void vtkMap::Initialize()
   // Initialize graphics
   double x = this->Center[1];
   double y = vtkMercator::lat2y(this->Center[0]);
-  double distance =
-    computeCameraDistance(this->Renderer->GetActiveCamera(), this->Zoom);
+
+  // from setCenter
+  double cameraCoords[3] = { 0.0, 0.0, 1.0 };
+  this->Renderer->GetActiveCamera()->GetPosition(cameraCoords);
+
+  double distance;
+  if (this->PerspectiveProjection)
+  {
+    distance = computeCameraDistance(this->Renderer->GetActiveCamera(), this->Zoom);
+  }
+  else
+  {
+    distance = cameraCoords[2];
+  }
+
   this->Renderer->GetActiveCamera()->SetPosition(x, y, distance);
   this->Renderer->GetActiveCamera()->SetFocalPoint(x, y, 0.0);
   this->Renderer->SetBackground(1.0, 1.0, 1.0);
