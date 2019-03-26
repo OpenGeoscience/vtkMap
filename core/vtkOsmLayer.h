@@ -44,16 +44,17 @@ public:
     // The default server is tile.openstreetmap.org.
     // The attribution will be displayed at the bottom of the window.
     // The file extension is typically "png" or "jpg".
-    void SetMapTileServer(
-      const char* server, const char* attribution, const char* extension);
+    void SetMapTileServer(const char* server,
+      const char* attribution,
+      const char* extension);
 
   // Description:
   // The full path to the directory used for caching map-tile files.
   // Set automatically by vtkMap.
   vtkGetStringMacro(CacheDirectory)
 
-  // Description:
-  void Update() override;
+    // Description:
+    void Update() override;
 
   // Description:
   // Set the subdirectory used for caching map files.
@@ -67,25 +68,25 @@ protected:
 
   vtkSetStringMacro(CacheDirectory)
 
-  virtual void AddTiles();
+    virtual void AddTiles();
   bool DownloadImageFile(std::string url, std::string filename);
   bool VerifyImageFile(FILE* fp, std::string filename);
   void RemoveTiles();
 
   // Next 3 methods used to add tiles to layer
-  void SelectTiles(std::vector<vtkSmartPointer<vtkMapTile>>& tiles,
+  void SelectTiles(std::vector<vtkSmartPointer<vtkMapTile> >& tiles,
     std::vector<vtkMapTileSpecInternal>& tileSpecs);
-  void InitializeTiles(std::vector<vtkSmartPointer<vtkMapTile>>& tiles,
+  void InitializeTiles(std::vector<vtkSmartPointer<vtkMapTile> >& tiles,
     std::vector<vtkMapTileSpecInternal>& tileSpecs);
-  void RenderTiles(std::vector<vtkSmartPointer<vtkMapTile>>& tiles);
+  void RenderTiles(std::vector<vtkSmartPointer<vtkMapTile> >& tiles);
 
   void AddTileToCache(int zoom, int x, int y, vtkMapTile* tile);
   vtkSmartPointer<vtkMapTile> GetCachedTile(int zoom, int x, int y);
 
   // Construct paths for local & remote tile access
   // A stringstream is passed in for performance reasons
-  void MakeFileSystemPath(
-    vtkMapTileSpecInternal& tileSpec, std::stringstream& ss);
+  void MakeFileSystemPath(vtkMapTileSpecInternal& tileSpec,
+    std::stringstream& ss);
   void MakeUrl(vtkMapTileSpecInternal& tileSpec, std::stringstream& ss);
 
 protected:
@@ -97,9 +98,10 @@ protected:
 
   char* CacheDirectory;
   // CachedTilesMap contains already built tiles
-  std::map<int, std::map<int, std::map<int, vtkSmartPointer<vtkMapTile>> > > CachedTilesMap;
+  std::map<int, std::map<int, std::map<int, vtkSmartPointer<vtkMapTile> > > >
+    CachedTilesMap;
   // CachedTiles is intended to retrieve tiles put on the scene
-  std::vector<vtkSmartPointer<vtkMapTile>> CachedTiles;
+  std::vector<vtkSmartPointer<vtkMapTile> > CachedTiles;
 
 private:
   vtkOsmLayer(const vtkOsmLayer&);            // Not implemented

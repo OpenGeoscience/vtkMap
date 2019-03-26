@@ -73,7 +73,8 @@ int computeZoomLevel(vtkCamera* cam)
 
 //----------------------------------------------------------------------------
 static void StaticPollingCallback(vtkObject* caller,
-  long unsigned int vtkNotUsed(eventId), void* clientData,
+  long unsigned int vtkNotUsed(eventId),
+  void* clientData,
   void* vtkNotUsed(callData))
 {
   vtkMap* self = static_cast<vtkMap*>(clientData);
@@ -108,8 +109,9 @@ vtkMap::vtkMap()
     vtkInteractorStyleGeoMap::RightButtonCompleteEvent, fwd);
 
   PolygonSelectionObserver.TakeReference(
-              vtkMakeMemberFunctionCommand(*this, &vtkMap::OnPolygonSelectionEvent));
-  this->DrawPolyStyle->AddObserver(vtkCommand::SelectionChangedEvent, PolygonSelectionObserver.GetPointer());
+    vtkMakeMemberFunctionCommand(*this, &vtkMap::OnPolygonSelectionEvent));
+  this->DrawPolyStyle->AddObserver(
+    vtkCommand::SelectionChangedEvent, PolygonSelectionObserver.GetPointer());
 
   this->PerspectiveProjection = false;
   this->Zoom = 1;
@@ -405,7 +407,7 @@ void vtkMap::RemoveLayer(vtkLayer* layer)
   auto itLayer = std::find(this->Layers.begin(), this->Layers.end(), layer);
   if (itLayer != this->Layers.end())
   {
-      this->Layers.erase(itLayer);
+    this->Layers.erase(itLayer);
   }
   this->UpdateLayerSequence();
 }
@@ -542,7 +544,8 @@ void vtkMap::Initialize()
   double distance;
   if (this->PerspectiveProjection)
   {
-    distance = computeCameraDistance(this->Renderer->GetActiveCamera(), this->Zoom);
+    distance =
+      computeCameraDistance(this->Renderer->GetActiveCamera(), this->Zoom);
   }
   else
   {
@@ -612,8 +615,9 @@ double vtkMap::Clip(double n, double minValue, double maxValue)
 }
 
 //----------------------------------------------------------------------------
-void vtkMap::ComputeLatLngCoords(
-  double displayCoords[2], double elevation, double latLngCoords[3])
+void vtkMap::ComputeLatLngCoords(double displayCoords[2],
+  double elevation,
+  double latLngCoords[3])
 {
   // Compute GCS coordinates
   double worldCoords[3] = { 0.0, 0.0, 0.0 };
@@ -678,8 +682,9 @@ void vtkMap::EndSelection()
 }
 
 //----------------------------------------------------------------------------
-void vtkMap::ComputeWorldCoords(
-  double displayCoords[2], double z, double worldCoords[3])
+void vtkMap::ComputeWorldCoords(double displayCoords[2],
+  double z,
+  double worldCoords[3])
 {
   // Get renderer's DisplayToWorld point
   double rendererCoords[4] = { 0.0, 0.0, 0.0, 1.0 };
@@ -725,8 +730,9 @@ void vtkMap::ComputeWorldCoords(
 }
 
 //----------------------------------------------------------------------------
-void vtkMap::ComputeDisplayCoords(
-  double latLngCoords[2], double elevation, double displayCoords[3])
+void vtkMap::ComputeDisplayCoords(double latLngCoords[2],
+  double elevation,
+  double displayCoords[3])
 {
   double x = latLngCoords[1];
   double y = vtkMercator::lat2y(latLngCoords[0]);

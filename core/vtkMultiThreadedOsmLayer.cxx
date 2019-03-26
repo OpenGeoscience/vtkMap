@@ -340,7 +340,7 @@ void vtkMultiThreadedOsmLayer::AddTiles()
     return;
   }
 
-  std::vector<vtkSmartPointer<vtkMapTile>> tiles;
+  std::vector<vtkSmartPointer<vtkMapTile> > tiles;
   std::vector<vtkMapTileSpecInternal> tileSpecs;
 
   this->SelectTiles(tiles, tileSpecs);
@@ -362,8 +362,10 @@ void vtkMultiThreadedOsmLayer::AddTiles()
 }
 
 //----------------------------------------------------------------------------
-vtkSmartPointer<vtkMapTile> vtkMultiThreadedOsmLayer::CreateTile(vtkMapTileSpecInternal& spec,
-  const std::string& localPath, const std::string& remoteUrl)
+vtkSmartPointer<vtkMapTile> vtkMultiThreadedOsmLayer::CreateTile(
+  vtkMapTileSpecInternal& spec,
+  const std::string& localPath,
+  const std::string& remoteUrl)
 {
   vtkSmartPointer<vtkMapTile> tile = vtkSmartPointer<vtkMapTile>::New();
   tile->SetCorners(spec.Corners);
@@ -420,8 +422,8 @@ void vtkMultiThreadedOsmLayer::AssignOneTileSpecPerThread(
 
 //----------------------------------------------------------------------------
 // Checks thread results and updates lists
-void vtkMultiThreadedOsmLayer::CollateThreadResults(
-  TileSpecList& newTiles, TileSpecList& tileSpecs)
+void vtkMultiThreadedOsmLayer::CollateThreadResults(TileSpecList& newTiles,
+  TileSpecList& tileSpecs)
 {
   int numThreads = this->Internals->RequestThreader->GetNumberOfThreads();
   for (int i = 0; i < numThreads; i++)

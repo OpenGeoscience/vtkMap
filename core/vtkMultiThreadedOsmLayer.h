@@ -42,8 +42,8 @@ class VTKMAPCORE_EXPORT vtkMultiThreadedOsmLayer : public vtkOsmLayer
 {
 public:
   static vtkMultiThreadedOsmLayer* New();
-  vtkTypeMacro(vtkMultiThreadedOsmLayer, vtkOsmLayer) void PrintSelf(
-    ostream& os, vtkIndent indent) override;
+  vtkTypeMacro(vtkMultiThreadedOsmLayer,
+    vtkOsmLayer) void PrintSelf(ostream& os, vtkIndent indent) override;
 
   // Description:
   void Update() override;
@@ -72,7 +72,8 @@ protected:
   // Description:
   // Instantiate and initialize vtkMapTile
   vtkSmartPointer<vtkMapTile> CreateTile(vtkMapTileSpecInternal& spec,
-    const std::string& localPath, const std::string& remoteUrl);
+    const std::string& localPath,
+    const std::string& remoteUrl);
 
   // Description:
   // Assign tile specs evenly across request threads

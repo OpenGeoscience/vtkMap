@@ -46,9 +46,7 @@ vtkFeatureLayer::vtkFeatureLayer()
 }
 
 //----------------------------------------------------------------------------
-vtkFeatureLayer::~vtkFeatureLayer()
-{
-}
+vtkFeatureLayer::~vtkFeatureLayer() {}
 
 //----------------------------------------------------------------------------
 void vtkFeatureLayer::PrintSelf(std::ostream& os, vtkIndent indent)

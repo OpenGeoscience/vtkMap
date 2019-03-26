@@ -32,9 +32,7 @@ vtkStandardNewMacro(vtkGeoMapLayerPass)
 {
 }
 
-vtkGeoMapLayerPass::~vtkGeoMapLayerPass()
-{
-}
+vtkGeoMapLayerPass::~vtkGeoMapLayerPass() {}
 
 void vtkGeoMapLayerPass::Render(const vtkRenderState* state)
 {

@@ -81,7 +81,8 @@ public:
         break;
       case Selection::RUBBER_BAND:
         sel = this->Selector->GenerateSelection(this->PolygonPoints[0],
-          this->PolygonPoints[1], this->PolygonPoints[2],
+          this->PolygonPoints[1],
+          this->PolygonPoints[2],
           this->PolygonPoints[3]);
         break;
     }
@@ -153,7 +154,7 @@ public:
   FeatureMap FeaturePickMap;
   Selection Mode;
   int* PolygonPoints = nullptr;
-  int PolygonBounds[4] = {0, 0, 0, 0};
+  int PolygonBounds[4] = { 0, 0, 0, 0 };
   vtkIdType PolygonPointsCount = 0;
   vtkSmartPointer<vtkHardwareSelector> Selector;
 };
@@ -197,8 +198,9 @@ void vtkGeoMapFeatureSelector::RemoveFeature(vtkFeature* feature)
 }
 
 //-----------------------------------------------------------------------------
-void vtkGeoMapFeatureSelector::PickPoint(
-  vtkRenderer* renderer, int displayCoords[2], vtkGeoMapSelection* selection)
+void vtkGeoMapFeatureSelector::PickPoint(vtkRenderer* renderer,
+  int displayCoords[2],
+  vtkGeoMapSelection* selection)
 {
   // Expand area pickers frustum size to increase reliability
   const double offset = 4.0;
@@ -213,7 +215,8 @@ void vtkGeoMapFeatureSelector::PickPoint(
 
 //-----------------------------------------------------------------------------
 void vtkGeoMapFeatureSelector::PickPolygon(vtkRenderer* ren,
-  const std::vector<vtkVector2i>& polygonPoints, vtkGeoMapSelection* result)
+  const std::vector<vtkVector2i>& polygonPoints,
+  vtkGeoMapSelection* result)
 {
   vtkNew<vtkIntArray> array;
   if (!this->Internal->VectorToArray(polygonPoints, array.GetPointer()))
@@ -226,7 +229,8 @@ void vtkGeoMapFeatureSelector::PickPolygon(vtkRenderer* ren,
   this->Internal->PolygonPointsCount = array->GetNumberOfValues();
   this->Internal->Mode = vtkGeoMapFeatureSelectorInternal::Selection::POLYGON;
   this->Internal->ComputePolygonBounds(this->Internal->PolygonPoints,
-    this->Internal->PolygonPointsCount, this->Internal->PolygonBounds);
+    this->Internal->PolygonPointsCount,
+    this->Internal->PolygonBounds);
 
   // Temporary feature map to remove elements that have been selected in
   // each IncrementalSelect call.  TODO Caching could be removed if features
@@ -246,16 +250,20 @@ void vtkGeoMapFeatureSelector::PickPolygon(vtkRenderer* ren,
 }
 
 //-----------------------------------------------------------------------------
-void vtkGeoMapFeatureSelector::PickArea(
-  vtkRenderer* renderer, int displayCoords[4], vtkGeoMapSelection* selection)
+void vtkGeoMapFeatureSelector::PickArea(vtkRenderer* renderer,
+  int displayCoords[4],
+  vtkGeoMapSelection* selection)
 {
   // Clear selection
   selection->Clear();
 
   // Use rendered-area picker to minimize hits on marker features
   vtkNew<vtkAreaPicker> areaPicker;
-  int result = areaPicker->AreaPick(displayCoords[0], displayCoords[1],
-    displayCoords[2], displayCoords[3], renderer);
+  int result = areaPicker->AreaPick(displayCoords[0],
+    displayCoords[1],
+    displayCoords[2],
+    displayCoords[3],
+    renderer);
   //std::cout << "Pick result " << result << std::endl;
 
   int markerCount = 0;
@@ -337,8 +345,9 @@ void vtkGeoMapFeatureSelector::PickArea(
 }
 
 // ------------------------------------------------------------
-void vtkGeoMapFeatureSelector::PickPolyDataCells(
-  vtkProp* prop, vtkPlanes* frustum, vtkIdList* idList)
+void vtkGeoMapFeatureSelector::PickPolyDataCells(vtkProp* prop,
+  vtkPlanes* frustum,
+  vtkIdList* idList)
 {
   idList->Reset();
   vtkActor* actor = vtkActor::SafeDownCast(prop);
@@ -425,8 +434,9 @@ void vtkGeoMapFeatureSelector::PickPolyDataCells(
 }
 
 // ------------------------------------------------------------
-void vtkGeoMapFeatureSelector::PickMarkers(
-  vtkRenderer* renderer, int displayCoords[4], vtkGeoMapSelection* selection)
+void vtkGeoMapFeatureSelector::PickMarkers(vtkRenderer* renderer,
+  int displayCoords[4],
+  vtkGeoMapSelection* selection)
 {
   // Finds marker/cluster features at given display coords
   // Appends its results to the input selection (i.e., does NOT reset it).
@@ -443,8 +453,9 @@ void vtkGeoMapFeatureSelector::PickMarkers(
 }
 
 // ------------------------------------------------------------
-void vtkGeoMapFeatureSelector::IncrementalSelect(
-  vtkGeoMapSelection* selection, vtkRenderer* ren, FeatureMap& featMap)
+void vtkGeoMapFeatureSelector::IncrementalSelect(vtkGeoMapSelection* selection,
+  vtkRenderer* ren,
+  FeatureMap& featMap)
 {
   std::set<vtkProp*> propSet; // remembers props marked unpickable
   bool done = false;
@@ -530,7 +541,9 @@ void vtkGeoMapFeatureSelector::IncrementalSelect(
 
 // ------------------------------------------------------------
 bool vtkGeoMapFeatureSelector::SelectPolyData(vtkGeoMapSelection* selection,
-  vtkSelectionNode* node, FeatureMap& map, FeatureMap::const_iterator& it)
+  vtkSelectionNode* node,
+  FeatureMap& map,
+  FeatureMap::const_iterator& it)
 {
   vtkPolydataFeature* polyFeature =
     dynamic_cast<vtkPolydataFeature*>(it->second);
@@ -555,7 +568,9 @@ bool vtkGeoMapFeatureSelector::SelectPolyData(vtkGeoMapSelection* selection,
 
 // ------------------------------------------------------------
 bool vtkGeoMapFeatureSelector::SelectMarkerSet(vtkGeoMapSelection* selection,
-  vtkSelectionNode* node, FeatureMap& map, FeatureMap::const_iterator& it)
+  vtkSelectionNode* node,
+  FeatureMap& map,
+  FeatureMap::const_iterator& it)
 {
   vtkMapMarkerSet* markerFeature = vtkMapMarkerSet::SafeDownCast(it->second);
   if (!markerFeature)

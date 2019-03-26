@@ -431,13 +431,17 @@ void vtkInteractorStyleGeoMap::Pan()
   focalDepth = viewFocus[2];
 
   this->ComputeDisplayToWorld(rwi->GetEventPosition()[0],
-    rwi->GetEventPosition()[1], focalDepth, newPickPoint);
+    rwi->GetEventPosition()[1],
+    focalDepth,
+    newPickPoint);
 
   // Has to recalc old mouse point since the viewport has moved,
   // so can't move it outside the loop
 
   this->ComputeDisplayToWorld(rwi->GetLastEventPosition()[0],
-    rwi->GetLastEventPosition()[1], focalDepth, oldPickPoint);
+    rwi->GetLastEventPosition()[1],
+    focalDepth,
+    oldPickPoint);
 
   // Camera motion is reversed
 
@@ -448,10 +452,12 @@ void vtkInteractorStyleGeoMap::Pan()
   camera->GetFocalPoint(viewFocus);
   camera->GetPosition(viewPoint);
   camera->SetFocalPoint(motionVector[0] + viewFocus[0],
-    motionVector[1] + viewFocus[1], motionVector[2] + viewFocus[2]);
+    motionVector[1] + viewFocus[1],
+    motionVector[2] + viewFocus[2]);
 
   camera->SetPosition(motionVector[0] + viewPoint[0],
-    motionVector[1] + viewPoint[1], motionVector[2] + viewPoint[2]);
+    motionVector[1] + viewPoint[1],
+    motionVector[2] + viewPoint[2]);
 
   this->Map->Draw();
   this->MouseMoved = false;

@@ -34,12 +34,11 @@ public:
   vtkMapTileSpecInternal();
 };
 
-inline vtkMapTileSpecInternal::vtkMapTileSpecInternal() :
-    Corners {0., 0., 0., 0.},
-    ZoomRowCol {0, 0, 0},
-    ZoomXY {0, 0, 0}
+inline vtkMapTileSpecInternal::vtkMapTileSpecInternal()
+  : Corners{ 0., 0., 0., 0. }
+  , ZoomRowCol{ 0, 0, 0 }
+  , ZoomXY{ 0, 0, 0 }
 {
-
 }
 
 #endif // __vtkMapTileSpecInternal_h

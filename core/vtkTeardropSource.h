@@ -91,8 +91,9 @@ protected:
   vtkTeardropSource(int res = 12);
   ~vtkTeardropSource() {}
 
-  int RequestData(
-    vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  int RequestData(vtkInformation*,
+    vtkInformationVector**,
+    vtkInformationVector*) override;
 
   double TailHeight;
   double TipStrength;
@@ -110,8 +111,10 @@ private:
   void ComputeTailPath(vtkPoints*, vtkDoubleArray*);
   void ComputeHeadPath(vtkPoints*, vtkDoubleArray*);
   void ComputePolyData(vtkPoints*, vtkDoubleArray*, vtkPolyData*);
-  void ComputeTailCoordinate(
-    double t, double controlPt[4][2], double coordinates[3], double normal[3]);
+  void ComputeTailCoordinate(double t,
+    double controlPt[4][2],
+    double coordinates[3],
+    double normal[3]);
 };
 
 #endif

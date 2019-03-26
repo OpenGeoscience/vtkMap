@@ -72,8 +72,8 @@ void vtkGeoMapSelection::PrintSelf(ostream& os, vtkIndent indent)
 }
 
 //-----------------------------------------------------------------------------
-bool vtkGeoMapSelection::GetPolyDataCellIds(
-  vtkFeature* feature, vtkIdList* idList) const
+bool vtkGeoMapSelection::GetPolyDataCellIds(vtkFeature* feature,
+  vtkIdList* idList) const
 {
   idList->Reset();
 
@@ -98,8 +98,9 @@ bool vtkGeoMapSelection::GetPolyDataCellIds(
 }
 
 //-----------------------------------------------------------------------------
-bool vtkGeoMapSelection::GetMapMarkerIds(
-  vtkFeature* feature, vtkIdList* markerIdList, vtkIdList* clusterIdList) const
+bool vtkGeoMapSelection::GetMapMarkerIds(vtkFeature* feature,
+  vtkIdList* markerIdList,
+  vtkIdList* clusterIdList) const
 {
   markerIdList->Reset();
   clusterIdList->Reset();
@@ -193,8 +194,9 @@ void vtkGeoMapSelection::AddFeature(vtkFeature* feature, vtkIdList* cellIds)
 }
 
 //-----------------------------------------------------------------------------
-void vtkGeoMapSelection::AddFeature(
-  vtkFeature* feature, vtkIdList* markerIds, vtkIdList* clusterIds)
+void vtkGeoMapSelection::AddFeature(vtkFeature* feature,
+  vtkIdList* markerIds,
+  vtkIdList* clusterIds)
 {
   // For map marker features, which have markers & clusters
   this->SelectedFeatures->AddItem(feature);

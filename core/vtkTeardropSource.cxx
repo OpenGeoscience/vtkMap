@@ -148,8 +148,8 @@ void vtkTeardropSource::PrintSelf(ostream& os, vtkIndent indent)
 }
 
 //----------------------------------------------------------------------------
-void vtkTeardropSource::ComputeTailPath(
-  vtkPoints* tailPath, vtkDoubleArray* tailNormals)
+void vtkTeardropSource::ComputeTailPath(vtkPoints* tailPath,
+  vtkDoubleArray* tailNormals)
 {
   tailPath->Reset();
   tailNormals->Reset();
@@ -191,8 +191,8 @@ void vtkTeardropSource::ComputeTailPath(
 }
 
 //----------------------------------------------------------------------------
-void vtkTeardropSource::ComputeHeadPath(
-  vtkPoints* headPath, vtkDoubleArray* headNormals)
+void vtkTeardropSource::ComputeHeadPath(vtkPoints* headPath,
+  vtkDoubleArray* headNormals)
 {
   headPath->Reset();
   headNormals->Reset();
@@ -238,8 +238,9 @@ void vtkTeardropSource::ComputeHeadPath(
 }
 
 //----------------------------------------------------------------------------
-void vtkTeardropSource::ComputePolyData(
-  vtkPoints* path, vtkDoubleArray* pathNormals, vtkPolyData* output)
+void vtkTeardropSource::ComputePolyData(vtkPoints* path,
+  vtkDoubleArray* pathNormals,
+  vtkPolyData* output)
 {
   int numPathPts = path->GetNumberOfPoints();
   int numOutputPts = 2 + (numPathPts - 2) * this->Resolution;
@@ -396,8 +397,10 @@ void vtkTeardropSource::ComputePolyData(
 }
 
 //----------------------------------------------------------------------------
-void vtkTeardropSource::ComputeTailCoordinate(
-  double t, double controlPt[4][2], double coordinates[3], double normal[3])
+void vtkTeardropSource::ComputeTailCoordinate(double t,
+  double controlPt[4][2],
+  double coordinates[3],
+  double normal[3])
 {
   double tm1 = 1.0 - t;
   double tm13 = tm1 * tm1 * tm1;

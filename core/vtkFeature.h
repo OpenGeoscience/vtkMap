@@ -78,8 +78,9 @@ public:
   // Description:
   // Pick all feature items at designated display coordinates.
   // For external features to override.
-  virtual void PickItems(
-    vtkRenderer* renderer, int displayCoords[4], vtkGeoMapSelection* selection);
+  virtual void PickItems(vtkRenderer* renderer,
+    int displayCoords[4],
+    vtkGeoMapSelection* selection);
 
 protected:
   vtkFeature();

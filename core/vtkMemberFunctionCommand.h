@@ -53,7 +53,7 @@
 #define __vtkMemberFunctionCommand_h
 #include "vtkCommand.h"
 
-template <class ClassT>
+template<class ClassT>
 class vtkMemberFunctionCommand : public vtkCommand
 {
   typedef vtkMemberFunctionCommand<ClassT> ThisT;
@@ -90,8 +90,8 @@ public:
   }
   //@}
 
-  void SetCallback(
-    ClassT& object, void (ClassT::*method2)(vtkObject*, unsigned long, void*))
+  void SetCallback(ClassT& object,
+    void (ClassT::*method2)(vtkObject*, unsigned long, void*))
   {
     this->Object = &object;
     this->Method2 = method2;
@@ -127,8 +127,8 @@ private:
 
   ClassT* Object;
   void (ClassT::*Method)();
-  void (ClassT::*Method2)(
-    vtkObject* caller, unsigned long event, void* calldata);
+  void (
+    ClassT::*Method2)(vtkObject* caller, unsigned long event, void* calldata);
 
   vtkMemberFunctionCommand(const vtkMemberFunctionCommand&) VTK_DELETE_FUNCTION;
   void operator=(const vtkMemberFunctionCommand&) VTK_DELETE_FUNCTION;
@@ -149,9 +149,9 @@ private:
  * vtkMemberFunctionCommand, vtkCallbackCommand
  */
 
-template <class ClassT>
-vtkMemberFunctionCommand<ClassT>* vtkMakeMemberFunctionCommand(
-  ClassT& object, void (ClassT::*method)())
+template<class ClassT>
+vtkMemberFunctionCommand<ClassT>* vtkMakeMemberFunctionCommand(ClassT& object,
+  void (ClassT::*method)())
 {
   vtkMemberFunctionCommand<ClassT>* result =
     vtkMemberFunctionCommand<ClassT>::New();
@@ -159,9 +159,9 @@ vtkMemberFunctionCommand<ClassT>* vtkMakeMemberFunctionCommand(
   return result;
 }
 
-template <class ClassT>
-vtkMemberFunctionCommand<ClassT>* vtkMakeMemberFunctionCommand(
-  ClassT& object, void (ClassT::*method)(vtkObject*, unsigned long, void*))
+template<class ClassT>
+vtkMemberFunctionCommand<ClassT>* vtkMakeMemberFunctionCommand(ClassT& object,
+  void (ClassT::*method)(vtkObject*, unsigned long, void*))
 {
   vtkMemberFunctionCommand<ClassT>* result =
     vtkMemberFunctionCommand<ClassT>::New();

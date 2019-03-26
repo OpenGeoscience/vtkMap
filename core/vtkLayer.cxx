@@ -37,9 +37,7 @@ vtkLayer::vtkLayer()
 }
 
 //----------------------------------------------------------------------------
-vtkLayer::~vtkLayer()
-{
-}
+vtkLayer::~vtkLayer() {}
 
 //----------------------------------------------------------------------------
 void vtkLayer::PrintSelf(ostream& os, vtkIndent indent)

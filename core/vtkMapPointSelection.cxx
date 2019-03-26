@@ -29,14 +29,18 @@ vtkStandardNewMacro(vtkMapPointSelection)
 
   void vtkMapPointSelection::SetMaskArray(const std::string& name)
 {
-  this->SetInputArrayToProcess(vtkMapPointSelection::MASK, 0, 0,
-    vtkDataObject::FIELD_ASSOCIATION_POINTS, name.c_str());
+  this->SetInputArrayToProcess(vtkMapPointSelection::MASK,
+    0,
+    0,
+    vtkDataObject::FIELD_ASSOCIATION_POINTS,
+    name.c_str());
   this->FilterMasked = true;
   this->Modified();
 }
 
 int vtkMapPointSelection::RequestData(vtkInformation*,
-  vtkInformationVector** inputVec, vtkInformationVector* outputVec)
+  vtkInformationVector** inputVec,
+  vtkInformationVector* outputVec)
 {
   // Get input
   auto inInfo = inputVec[0]->GetInformationObject(0);
@@ -173,7 +177,8 @@ bool vtkMapPointSelection::InitializeMasking()
 }
 
 bool vtkMapPointSelection::WorldToDisplay(
-  const std::array<double, 4>& pointWorld, std::array<double, 4>& pointDispl)
+  const std::array<double, 4>& pointWorld,
+  std::array<double, 4>& pointDispl)
 {
   std::array<double, 4> pointView;
   this->CompositePerspectiveTransform->MultiplyPoint(
@@ -184,15 +189,16 @@ bool vtkMapPointSelection::WorldToDisplay(
     return false;
 
   this->Renderer->SetViewPoint(pointView[0] / pointView[3],
-    pointView[1] / pointView[3], pointView[2] / pointView[3]);
+    pointView[1] / pointView[3],
+    pointView[2] / pointView[3]);
   this->Renderer->ViewToDisplay();
 
   this->Renderer->GetDisplayPoint(pointDispl.data());
   return true;
 }
 
-bool vtkMapPointSelection::IsPointVisible(
-  const std::array<double, 4>& point, const vtkIdType& pointId)
+bool vtkMapPointSelection::IsPointVisible(const std::array<double, 4>& point,
+  const vtkIdType& pointId)
 {
   bool success = true;
   success &= IsWithinBounds(point);

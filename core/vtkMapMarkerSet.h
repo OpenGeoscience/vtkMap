@@ -147,8 +147,9 @@ public:
   // Description:
   // Return descendent ids for given cluster id.
   // This is inteneded for traversing selected clusters.
-  void GetClusterChildren(
-    vtkIdType clusterId, vtkIdList* childMarkerIds, vtkIdList* childClusterIds);
+  void GetClusterChildren(vtkIdType clusterId,
+    vtkIdList* childMarkerIds,
+    vtkIdList* childClusterIds);
 
   // Description:
   // Return all marker ids descending from given cluster id
@@ -207,7 +208,8 @@ public:
 
   vtkSetMacro(MarkerShape, unsigned int) vtkGetMacro(MarkerShape, unsigned int)
 
-    protected :
+    protected
+    :
 
     vtkMapMarkerSet();
   ~vtkMapMarkerSet();
@@ -218,14 +220,18 @@ public:
   void InsertIntoNodeTable(ClusteringNode* node);
 
   // Computes clustering distance in gcs coordinates
-  double ComputeDistanceThreshold2(
-    double latitude, double longitude, int clusteringDistance) const;
+  double ComputeDistanceThreshold2(double latitude,
+    double longitude,
+    int clusteringDistance) const;
 
   // Find closest node within distance threshold squared
-  ClusteringNode* FindClosestNode(
-    ClusteringNode* node, int zoomLevel, double distanceThreshold2);
-  void MergeNodes(ClusteringNode* node, ClusteringNode* mergingNode,
-    std::set<ClusteringNode*>& parentsToMerge, int level);
+  ClusteringNode* FindClosestNode(ClusteringNode* node,
+    int zoomLevel,
+    double distanceThreshold2);
+  void MergeNodes(ClusteringNode* node,
+    ClusteringNode* mergingNode,
+    std::set<ClusteringNode*>& parentsToMerge,
+    int level);
 
   void GetMarkerIdsRecursive(vtkIdType clusterId, vtkIdList* markerIds);
 

@@ -223,7 +223,8 @@ vtkMapMarkerSet::vtkMapMarkerSet()
   this->Internals->ZoomLevel = -1;
   std::set<ClusteringNode*> clusterSet;
   std::fill_n(std::back_inserter(this->Internals->NodeTable),
-    this->ClusteringTreeDepth, clusterSet);
+    this->ClusteringTreeDepth,
+    clusterSet);
   this->Internals->NumberOfMarkers = 0;
   this->Internals->NumberOfNodes = 0;
   this->Internals->GlyphMapper = vtkGlyph3DMapper::New();
@@ -504,7 +505,8 @@ void vtkMapMarkerSet::RecomputeClusters()
   // Re-initialize node table
   std::set<ClusteringNode*> newClusterSet;
   std::fill_n(std::back_inserter(this->Internals->NodeTable),
-    this->ClusteringTreeDepth, newClusterSet);
+    this->ClusteringTreeDepth,
+    newClusterSet);
 
   // Reset number of nodes & markers; will be used to renumber current markers
   this->Internals->NumberOfNodes = 0;
@@ -630,8 +632,9 @@ bool vtkMapMarkerSet::SetMarkerSelection(int markerId, bool selected)
 }
 
 //----------------------------------------------------------------------------
-void vtkMapMarkerSet::GetClusterChildren(
-  vtkIdType clusterId, vtkIdList* childMarkerIds, vtkIdList* childClusterIds)
+void vtkMapMarkerSet::GetClusterChildren(vtkIdType clusterId,
+  vtkIdList* childMarkerIds,
+  vtkIdList* childClusterIds)
 {
   childMarkerIds->Reset();
   childClusterIds->Reset();
@@ -683,8 +686,8 @@ void vtkMapMarkerSet::GetAllMarkerIds(vtkIdType clusterId, vtkIdList* markerIds)
 }
 
 //----------------------------------------------------------------------------
-void vtkMapMarkerSet::GetMarkerIdsRecursive(
-  vtkIdType clusterId, vtkIdList* markerIds)
+void vtkMapMarkerSet::GetMarkerIdsRecursive(vtkIdType clusterId,
+  vtkIdList* markerIds)
 {
   // Get children markers & clusters
   vtkNew<vtkIdList> childMarkerIds;
@@ -1279,8 +1282,9 @@ void vtkMapMarkerSet::InsertIntoNodeTable(ClusteringNode* node)
 }
 
 //----------------------------------------------------------------------------
-double vtkMapMarkerSet::ComputeDistanceThreshold2(
-  double latitude, double longitude, int clusteringDistance) const
+double vtkMapMarkerSet::ComputeDistanceThreshold2(double latitude,
+  double longitude,
+  int clusteringDistance) const
 {
   if (!this->Layer->GetMap()->GetPerspectiveProjection())
   {
@@ -1309,10 +1313,12 @@ double vtkMapMarkerSet::ComputeDistanceThreshold2(
     secondDisplayCoords, 0.0, secondLatLonCoords);
 
   // Convert both points to world coords
-  double inputWorldCoords[3] = { inputLatLonCoords[1],
-    vtkMercator::lat2y(inputLatLonCoords[0]), 0.0 };
-  double secondWorldCoords[3] = { secondLatLonCoords[1],
-    vtkMercator::lat2y(secondLatLonCoords[0]), 0.0 };
+  double inputWorldCoords[3] = {
+    inputLatLonCoords[1], vtkMercator::lat2y(inputLatLonCoords[0]), 0.0
+  };
+  double secondWorldCoords[3] = {
+    secondLatLonCoords[1], vtkMercator::lat2y(secondLatLonCoords[0]), 0.0
+  };
 
   // Return value is the distance squared
   double threshold2 =
@@ -1328,7 +1334,9 @@ double vtkMapMarkerSet::ComputeDistanceThreshold2(
 
 //----------------------------------------------------------------------------
 vtkMapMarkerSet::ClusteringNode* vtkMapMarkerSet::FindClosestNode(
-  ClusteringNode* node, int zoomLevel, double distanceThreshold2)
+  ClusteringNode* node,
+  int zoomLevel,
+  double distanceThreshold2)
 {
   // Convert distanceThreshold from image to gcs coords
   // double level0Scale = 360.0 / 256.0;  // 360 degress <==> 256 tile pixels
@@ -1368,7 +1376,8 @@ vtkMapMarkerSet::ClusteringNode* vtkMapMarkerSet::FindClosestNode(
 
 //----------------------------------------------------------------------------
 void vtkMapMarkerSet::MergeNodes(ClusteringNode* node,
-  ClusteringNode* mergingNode, std::set<ClusteringNode*>& parentsToMerge,
+  ClusteringNode* mergingNode,
+  std::set<ClusteringNode*>& parentsToMerge,
   int level)
 {
   vtkDebugMacro("Merging " << mergingNode->NodeId << " into " << node->NodeId);
@@ -1459,7 +1468,8 @@ void vtkMapMarkerSet::SetLabelOffset(std::array<double, 3> offset)
 {
   // Adjust device pixel ratio
   auto adjust = [](double& n, const double ratio) { n *= ratio; };
-  auto func = std::bind(adjust, std::placeholders::_1,
+  auto func = std::bind(adjust,
+    std::placeholders::_1,
     static_cast<double>(this->Layer->GetMap()->GetDevicePixelRatio()));
   std::for_each(offset.begin(), offset.end(), func);
 
@@ -1474,7 +1484,8 @@ std::array<double, 3> vtkMapMarkerSet::GetLabelOffset() const
   // Adjust device pixel ratio (this makes offsets consistent
   // across devices).
   auto adjust = [](double& n, const double ratio) { n /= ratio; };
-  auto func = std::bind(adjust, std::placeholders::_1,
+  auto func = std::bind(adjust,
+    std::placeholders::_1,
     static_cast<double>(this->Layer->GetMap()->GetDevicePixelRatio()));
   std::for_each(offset.begin(), offset.end(), func);
 

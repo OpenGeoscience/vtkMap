@@ -78,8 +78,8 @@ public:
   void OnMouseWheelForward() override;
   void OnMouseWheelBackward() override;
 
-  using vtkInteractorStyleRubberBand2D::GetStartPosition;
   using vtkInteractorStyleRubberBand2D::GetEndPosition;
+  using vtkInteractorStyleRubberBand2D::GetStartPosition;
 
   int* GetStartPosition() override { return this->StartPosition; }
   int* GetEndPosition() override { return this->EndPosition; }
