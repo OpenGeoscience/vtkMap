@@ -153,7 +153,7 @@ public:
   FeatureMap FeaturePickMap;
   Selection Mode;
   int* PolygonPoints = nullptr;
-  int PolygonBounds[4] = {0, 0, 0, 0};
+  int PolygonBounds[4] = { 0, 0, 0, 0 };
   vtkIdType PolygonPointsCount = 0;
   vtkSmartPointer<vtkHardwareSelector> Selector;
 };

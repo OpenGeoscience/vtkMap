@@ -108,8 +108,9 @@ vtkMap::vtkMap()
     vtkInteractorStyleGeoMap::RightButtonCompleteEvent, fwd);
 
   PolygonSelectionObserver.TakeReference(
-              vtkMakeMemberFunctionCommand(*this, &vtkMap::OnPolygonSelectionEvent));
-  this->DrawPolyStyle->AddObserver(vtkCommand::SelectionChangedEvent, PolygonSelectionObserver.GetPointer());
+    vtkMakeMemberFunctionCommand(*this, &vtkMap::OnPolygonSelectionEvent));
+  this->DrawPolyStyle->AddObserver(
+    vtkCommand::SelectionChangedEvent, PolygonSelectionObserver.GetPointer());
 
   this->PerspectiveProjection = false;
   this->Zoom = 1;
@@ -405,7 +406,7 @@ void vtkMap::RemoveLayer(vtkLayer* layer)
   auto itLayer = std::find(this->Layers.begin(), this->Layers.end(), layer);
   if (itLayer != this->Layers.end())
   {
-      this->Layers.erase(itLayer);
+    this->Layers.erase(itLayer);
   }
   this->UpdateLayerSequence();
 }
@@ -542,7 +543,8 @@ void vtkMap::Initialize()
   double distance;
   if (this->PerspectiveProjection)
   {
-    distance = computeCameraDistance(this->Renderer->GetActiveCamera(), this->Zoom);
+    distance =
+      computeCameraDistance(this->Renderer->GetActiveCamera(), this->Zoom);
   }
   else
   {

@@ -66,7 +66,7 @@ class vtkSequencePass;
 class VTKMAPCORE_EXPORT vtkMap : public vtkObject
 {
 public:
-  using LayerContainer = std::vector<vtkSmartPointer<vtkLayer>>;
+  using LayerContainer = std::vector<vtkSmartPointer<vtkLayer> >;
 
   // Description:
   // State of asynchronous layers

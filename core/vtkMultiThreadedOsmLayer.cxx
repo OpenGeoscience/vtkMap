@@ -340,7 +340,7 @@ void vtkMultiThreadedOsmLayer::AddTiles()
     return;
   }
 
-  std::vector<vtkSmartPointer<vtkMapTile>> tiles;
+  std::vector<vtkSmartPointer<vtkMapTile> > tiles;
   std::vector<vtkMapTileSpecInternal> tileSpecs;
 
   this->SelectTiles(tiles, tileSpecs);
@@ -362,8 +362,9 @@ void vtkMultiThreadedOsmLayer::AddTiles()
 }
 
 //----------------------------------------------------------------------------
-vtkSmartPointer<vtkMapTile> vtkMultiThreadedOsmLayer::CreateTile(vtkMapTileSpecInternal& spec,
-  const std::string& localPath, const std::string& remoteUrl)
+vtkSmartPointer<vtkMapTile> vtkMultiThreadedOsmLayer::CreateTile(
+  vtkMapTileSpecInternal& spec, const std::string& localPath,
+  const std::string& remoteUrl)
 {
   vtkSmartPointer<vtkMapTile> tile = vtkSmartPointer<vtkMapTile>::New();
   tile->SetCorners(spec.Corners);

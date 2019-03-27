@@ -136,10 +136,10 @@ void vtkOsmLayer::Update()
   // Write the "tile not available" image to the cache directory
   if (!this->TileNotAvailableImagePath)
   {
-      std::stringstream ss;
-      ss << this->CacheDirectory << "/"
-         << "tile-not-available.png";
-      this->TileNotAvailableImagePath = strdup(ss.str().c_str());
+    std::stringstream ss;
+    ss << this->CacheDirectory << "/"
+       << "tile-not-available.png";
+    this->TileNotAvailableImagePath = strdup(ss.str().c_str());
   }
 
   if (!vtkOsmLayer::VerifyImageFile(nullptr, TileNotAvailableImagePath))
@@ -213,7 +213,7 @@ void vtkOsmLayer::AddTiles()
     return;
   }
 
-  std::vector<vtkSmartPointer<vtkMapTile>> tiles;
+  std::vector<vtkSmartPointer<vtkMapTile> > tiles;
   std::vector<vtkMapTileSpecInternal> tileSpecs;
 
   this->SelectTiles(tiles, tileSpecs);
@@ -350,7 +350,7 @@ bool vtkOsmLayer::VerifyImageFile(FILE* fp, std::string filename)
 // Builds two lists based on current viewpoint:
 //  * Existing tiles to render
 //  * New tile-specs, representing tiles to be instantiated & initialized
-void vtkOsmLayer::SelectTiles(std::vector<vtkSmartPointer<vtkMapTile>> &tiles,
+void vtkOsmLayer::SelectTiles(std::vector<vtkSmartPointer<vtkMapTile> >& tiles,
   std::vector<vtkMapTileSpecInternal>& tileSpecs)
 {
   double focusDisplayPoint[3], bottomLeft[4], topRight[4];
@@ -489,7 +489,8 @@ void vtkOsmLayer::SelectTiles(std::vector<vtkSmartPointer<vtkMapTile>> &tiles,
 
 //----------------------------------------------------------------------------
 // Instantiates and initializes tiles from spec objects
-void vtkOsmLayer::InitializeTiles(std::vector<vtkSmartPointer<vtkMapTile>>& tiles,
+void vtkOsmLayer::InitializeTiles(
+  std::vector<vtkSmartPointer<vtkMapTile> >& tiles,
   std::vector<vtkMapTileSpecInternal>& tileSpecs)
 {
   std::stringstream oss;
@@ -521,7 +522,8 @@ void vtkOsmLayer::InitializeTiles(std::vector<vtkSmartPointer<vtkMapTile>>& tile
       if (this->DownloadImageFile(url, filename))
       {
         // Update tile cache
-        this->AddTileToCache(spec.ZoomXY[0], spec.ZoomXY[1], spec.ZoomXY[2], tile);
+        this->AddTileToCache(
+          spec.ZoomXY[0], spec.ZoomXY[1], spec.ZoomXY[2], tile);
       }
       else
       {
@@ -533,7 +535,8 @@ void vtkOsmLayer::InitializeTiles(std::vector<vtkSmartPointer<vtkMapTile>>& tile
       // This is potentially the case when the tile was downloaded in a previous
       // execution of a program using vtkMap and vtkOsmLayer.
       // Update tile cache :
-      this->AddTileToCache(spec.ZoomXY[0], spec.ZoomXY[1], spec.ZoomXY[2], tile);
+      this->AddTileToCache(
+        spec.ZoomXY[0], spec.ZoomXY[1], spec.ZoomXY[2], tile);
     }
 
     // Initialize tile
@@ -546,7 +549,7 @@ void vtkOsmLayer::InitializeTiles(std::vector<vtkSmartPointer<vtkMapTile>>& tile
 
 //----------------------------------------------------------------------------
 // Updates display to incorporate all new tiles
-void vtkOsmLayer::RenderTiles(std::vector<vtkSmartPointer<vtkMapTile>>& tiles)
+void vtkOsmLayer::RenderTiles(std::vector<vtkSmartPointer<vtkMapTile> >& tiles)
 {
   if (tiles.size() > 0)
   {
@@ -586,9 +589,10 @@ void vtkOsmLayer::AddTileToCache(int zoom, int x, int y, vtkMapTile* tile)
 //----------------------------------------------------------------------------
 vtkSmartPointer<vtkMapTile> vtkOsmLayer::GetCachedTile(int zoom, int x, int y)
 {
-  if (this->CachedTilesMap.find(zoom)       == this->CachedTilesMap.end() ||
-      this->CachedTilesMap[zoom].find(x)    == this->CachedTilesMap[zoom].end() ||
-      this->CachedTilesMap[zoom][x].find(y) == this->CachedTilesMap[zoom][x].end())
+  if (this->CachedTilesMap.find(zoom) == this->CachedTilesMap.end() ||
+    this->CachedTilesMap[zoom].find(x) == this->CachedTilesMap[zoom].end() ||
+    this->CachedTilesMap[zoom][x].find(y) ==
+      this->CachedTilesMap[zoom][x].end())
   {
     return nullptr;
   }
