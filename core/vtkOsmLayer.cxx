@@ -43,6 +43,7 @@ vtkStandardNewMacro(vtkOsmLayer)
   this->MapTileServer = strdup("tile.openstreetmap.org");
   this->MapTileExtension = strdup("png");
   this->MapTileAttribution = strdup("(c) OpenStreetMap contributors");
+  this->TileNotAvailableImagePath = NULL;
   this->AttributionActor = NULL;
   this->CacheDirectory = NULL;
 }
@@ -99,11 +100,10 @@ void vtkOsmLayer::SetMapTileServer(
 
   // Clear tile cached and update internals
   // Remove tiles from renderer before calling RemoveTiles()
-  std::vector<vtkMapTile*>::iterator iter = this->CachedTiles.begin();
+  auto iter = this->CachedTiles.begin();
   for (; iter != this->CachedTiles.end(); iter++)
   {
-    vtkMapTile* tile = *iter;
-    this->RemoveActor(tile->GetActor());
+    this->RemoveActor(iter->GetPointer()->GetActor());
   }
   this->RemoveTiles();
 
@@ -134,13 +134,20 @@ void vtkOsmLayer::Update()
   }
 
   // Write the "tile not available" image to the cache directory
-  std::stringstream ss;
-  ss << this->CacheDirectory << "/"
-     << "tile-not-available.png";
-  this->TileNotAvailableImagePath = strdup(ss.str().c_str());
-  FILE* fp = fopen(this->TileNotAvailableImagePath, "wb");
-  fwrite(tileNotAvailable_png, 1, tileNotAvailable_png_len, fp);
-  fclose(fp);
+  if (!this->TileNotAvailableImagePath)
+  {
+    std::stringstream ss;
+    ss << this->CacheDirectory << "/"
+       << "tile-not-available.png";
+    this->TileNotAvailableImagePath = strdup(ss.str().c_str());
+  }
+
+  if (!vtkOsmLayer::VerifyImageFile(nullptr, TileNotAvailableImagePath))
+  {
+    FILE* fp = fopen(this->TileNotAvailableImagePath, "wb");
+    fwrite(tileNotAvailable_png, 1, tileNotAvailable_png_len, fp);
+    fclose(fp);
+  }
 
   if (!this->AttributionActor && this->MapTileAttribution)
   {
@@ -160,7 +167,7 @@ void vtkOsmLayer::Update()
 
   this->AddTiles();
 
-  this->Superclass::Update();
+  this->Superclass::Update(); // redundant isn't it ????
 }
 
 //----------------------------------------------------------------------------
@@ -195,12 +202,6 @@ void vtkOsmLayer::SetCacheSubDirectory(const char* relativePath)
 void vtkOsmLayer::RemoveTiles()
 {
   this->CachedTilesMap.clear();
-  std::vector<vtkMapTile*>::iterator iter = this->CachedTiles.begin();
-  for (; iter != this->CachedTiles.end(); iter++)
-  {
-    vtkMapTile* tile = *iter;
-    tile->Delete();
-  }
   this->CachedTiles.clear();
 }
 
@@ -212,7 +213,7 @@ void vtkOsmLayer::AddTiles()
     return;
   }
 
-  std::vector<vtkMapTile*> tiles;
+  std::vector<vtkSmartPointer<vtkMapTile> > tiles;
   std::vector<vtkMapTileSpecInternal> tileSpecs;
 
   this->SelectTiles(tiles, tileSpecs);
@@ -349,7 +350,7 @@ bool vtkOsmLayer::VerifyImageFile(FILE* fp, std::string filename)
 // Builds two lists based on current viewpoint:
 //  * Existing tiles to render
 //  * New tile-specs, representing tiles to be instantiated & initialized
-void vtkOsmLayer::SelectTiles(std::vector<vtkMapTile*>& tiles,
+void vtkOsmLayer::SelectTiles(std::vector<vtkSmartPointer<vtkMapTile> >& tiles,
   std::vector<vtkMapTileSpecInternal>& tileSpecs)
 {
   double focusDisplayPoint[3], bottomLeft[4], topRight[4];
@@ -449,8 +450,6 @@ void vtkOsmLayer::SelectTiles(std::vector<vtkMapTile*>& tiles,
   //std::cerr << "tile1x " << tile1x << " tile2x " << tile2x << std::endl;
   //std::cerr << "tile1y " << tile1y << " tile2y " << tile2y << std::endl;
 
-  std::ostringstream ossKey, ossImageSource;
-  std::vector<vtkMapTile*> pendingTiles;
   int xIndex, yIndex;
   for (int i = tile1x; i <= tile2x; ++i)
   {
@@ -490,7 +489,8 @@ void vtkOsmLayer::SelectTiles(std::vector<vtkMapTile*>& tiles,
 
 //----------------------------------------------------------------------------
 // Instantiates and initializes tiles from spec objects
-void vtkOsmLayer::InitializeTiles(std::vector<vtkMapTile*>& tiles,
+void vtkOsmLayer::InitializeTiles(
+  std::vector<vtkSmartPointer<vtkMapTile> >& tiles,
   std::vector<vtkMapTileSpecInternal>& tileSpecs)
 {
   std::stringstream oss;
@@ -508,7 +508,7 @@ void vtkOsmLayer::InitializeTiles(std::vector<vtkMapTile*>& tiles,
     url = oss.str();
 
     // Instantiate tile
-    vtkMapTile* tile = vtkMapTile::New();
+    vtkSmartPointer<vtkMapTile> tile = vtkSmartPointer<vtkMapTile>::New();
     tile->SetLayer(this);
     tile->SetCorners(spec.Corners);
     tile->SetFileSystemPath(filename);
@@ -522,46 +522,57 @@ void vtkOsmLayer::InitializeTiles(std::vector<vtkMapTile*>& tiles,
       if (this->DownloadImageFile(url, filename))
       {
         // Update tile cache
-        int zoom = spec.ZoomXY[0];
-        int x = spec.ZoomXY[1];
-        int y = spec.ZoomXY[2];
-        this->AddTileToCache(zoom, x, y, tile);
+        this->AddTileToCache(
+          spec.ZoomXY[0], spec.ZoomXY[1], spec.ZoomXY[2], tile);
       }
       else
       {
         tile->SetFileSystemPath(this->TileNotAvailableImagePath);
       }
-
-      tile->VisibilityOn();
+    }
+    else
+    {
+      // This is potentially the case when the tile was downloaded in a previous
+      // execution of a program using vtkMap and vtkOsmLayer.
+      // Update tile cache :
+      this->AddTileToCache(
+        spec.ZoomXY[0], spec.ZoomXY[1], spec.ZoomXY[2], tile);
     }
 
     // Initialize tile
+    tile->VisibilityOn();
     tile->Init();
   } // for
 
-  tileSpecs.clear();
+  //tileSpecs.clear(); // it's not this method job to clear it :)
 }
 
 //----------------------------------------------------------------------------
 // Updates display to incorporate all new tiles
-void vtkOsmLayer::RenderTiles(std::vector<vtkMapTile*>& tiles)
+void vtkOsmLayer::RenderTiles(std::vector<vtkSmartPointer<vtkMapTile> >& tiles)
 {
   if (tiles.size() > 0)
   {
     // Remove old tiles
-    std::vector<vtkMapTile*>::iterator itr = this->CachedTiles.begin();
+    auto itr = this->CachedTiles.begin();
     for (; itr != this->CachedTiles.end(); ++itr)
     {
-      this->RemoveActor((*itr)->GetActor());
+      this->RemoveActor(itr->GetPointer()->GetActor());
     }
+
+    // clear the last rendered tiles cache
+    CachedTiles.clear();
 
     // Add new tiles
     for (std::size_t i = 0; i < tiles.size(); ++i)
     {
       this->AddActor(tiles[i]->GetActor());
+
+      // add tiles put on the scene in the proper cache
+      CachedTiles.push_back(tiles[i]);
     }
 
-    tiles.clear();
+    //tiles.clear(); // it's not this method job to clear it :)
   }
 }
 
@@ -569,18 +580,21 @@ void vtkOsmLayer::RenderTiles(std::vector<vtkMapTile*>& tiles)
 void vtkOsmLayer::AddTileToCache(int zoom, int x, int y, vtkMapTile* tile)
 {
   this->CachedTilesMap[zoom][x][y] = tile;
-  this->CachedTiles.push_back(tile);
+  // don't add tiles to CachedTiles here ! as in RenderTiles, CachedTiles will
+  // contain old AND new tiles added via AddTileToCache in InitializeTiles,
+  // and will be used to remove the last tiles rendered before rendering the new ones.
+  //this->CachedTiles.push_back(tile);
 }
 
 //----------------------------------------------------------------------------
-vtkMapTile* vtkOsmLayer::GetCachedTile(int zoom, int x, int y)
+vtkSmartPointer<vtkMapTile> vtkOsmLayer::GetCachedTile(int zoom, int x, int y)
 {
-  if (this->CachedTilesMap.find(zoom) == this->CachedTilesMap.end() &&
-    this->CachedTilesMap[zoom].find(x) == this->CachedTilesMap[zoom].end() &&
+  if (this->CachedTilesMap.find(zoom) == this->CachedTilesMap.end() ||
+    this->CachedTilesMap[zoom].find(x) == this->CachedTilesMap[zoom].end() ||
     this->CachedTilesMap[zoom][x].find(y) ==
       this->CachedTilesMap[zoom][x].end())
   {
-    return NULL;
+    return nullptr;
   }
 
   return this->CachedTilesMap[zoom][x][y];
@@ -604,5 +618,4 @@ void vtkOsmLayer::MakeUrl(
   ss << "http://" << this->MapTileServer << "/" << tileSpec.ZoomRowCol[0] << "/"
      << tileSpec.ZoomRowCol[1] << "/" << tileSpec.ZoomRowCol[2] << "."
      << this->MapTileExtension;
-  ;
 }

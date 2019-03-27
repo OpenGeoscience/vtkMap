@@ -107,9 +107,10 @@ vtkMap::vtkMap()
   this->RubberBandStyle->AddObserver(
     vtkInteractorStyleGeoMap::RightButtonCompleteEvent, fwd);
 
-  vtkCommand* obsPoly =
-    vtkMakeMemberFunctionCommand(*this, &vtkMap::OnPolygonSelectionEvent);
-  this->DrawPolyStyle->AddObserver(vtkCommand::SelectionChangedEvent, obsPoly);
+  PolygonSelectionObserver.TakeReference(
+    vtkMakeMemberFunctionCommand(*this, &vtkMap::OnPolygonSelectionEvent));
+  this->DrawPolyStyle->AddObserver(
+    vtkCommand::SelectionChangedEvent, PolygonSelectionObserver.GetPointer());
 
   this->PerspectiveProjection = false;
   this->Zoom = 1;
@@ -139,21 +140,6 @@ vtkMap::~vtkMap()
   if (this->StorageDirectory)
   {
     delete[] StorageDirectory;
-  }
-
-  const std::size_t layer_size = this->Layers.size();
-  for (std::size_t i = 0; i < layer_size; ++i)
-  { //invoke delete on each vtk class in the vector
-    vtkLayer* layer = this->Layers[i];
-    if (layer)
-    {
-      layer->Delete();
-    }
-  }
-
-  if (this->BaseLayer)
-  {
-    this->BaseLayer->Delete();
   }
 }
 
@@ -210,7 +196,7 @@ void vtkMap::SetVisibleBounds(double latLngCoords[4])
 
   // Compute zoom level
   double maxDelta = 360.0;
-  double maxZoom = 20;
+  double maxZoom = 20; // NB: from 0 to 19
   int zoom = 0;
   double scaledDelta = delta;
   for (zoom = 0; scaledDelta < maxDelta && zoom < maxZoom; zoom++)
@@ -271,7 +257,9 @@ void vtkMap::GetCenter(double (&latlngPoint)[2])
   //std::cerr << "center is " << center[0] << " " << center[1] << std::endl;
   this->Renderer->SetDisplayPoint(center[0], center[1], 0.0);
   this->Renderer->DisplayToWorld();
-  double* worldPoint = this->Renderer->GetWorldPoint();
+
+  double worldPoint[4];
+  this->Renderer->GetWorldPoint(worldPoint);
 
   if (worldPoint[3] != 0.0)
   {
@@ -373,7 +361,6 @@ void vtkMap::AddLayer(vtkLayer* layer)
       this->Layers.push_back(this->BaseLayer);
     }
     this->BaseLayer = layer;
-    layer->Register(this);
   }
   else
   {
@@ -383,7 +370,6 @@ void vtkMap::AddLayer(vtkLayer* layer)
     {
       // TODO Use bin numbers to sort layer and its actors
       this->Layers.push_back(layer);
-      layer->Register(this);
     }
   }
 
@@ -417,10 +403,12 @@ void vtkMap::RemoveLayer(vtkLayer* layer)
     features->RemoveAllItems();
   }
 
-  this->Layers.erase(
-    std::remove(this->Layers.begin(), this->Layers.end(), layer));
+  auto itLayer = std::find(this->Layers.begin(), this->Layers.end(), layer);
+  if (itLayer != this->Layers.end())
+  {
+    this->Layers.erase(itLayer);
+  }
   this->UpdateLayerSequence();
-  layer->Delete();
 }
 
 //----------------------------------------------------------------------------
@@ -547,8 +535,22 @@ void vtkMap::Initialize()
   // Initialize graphics
   double x = this->Center[1];
   double y = vtkMercator::lat2y(this->Center[0]);
-  double distance =
-    computeCameraDistance(this->Renderer->GetActiveCamera(), this->Zoom);
+
+  // from setCenter
+  double cameraCoords[3] = { 0.0, 0.0, 1.0 };
+  this->Renderer->GetActiveCamera()->GetPosition(cameraCoords);
+
+  double distance;
+  if (this->PerspectiveProjection)
+  {
+    distance =
+      computeCameraDistance(this->Renderer->GetActiveCamera(), this->Zoom);
+  }
+  else
+  {
+    distance = cameraCoords[2];
+  }
+
   this->Renderer->GetActiveCamera()->SetPosition(x, y, distance);
   this->Renderer->GetActiveCamera()->SetFocalPoint(x, y, 0.0);
   this->Renderer->SetBackground(1.0, 1.0, 1.0);

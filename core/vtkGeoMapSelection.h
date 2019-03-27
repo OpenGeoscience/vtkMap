@@ -65,7 +65,7 @@ protected:
   vtkGeoMapSelection();
   ~vtkGeoMapSelection();
 
-  double LatLngBounds[4];
+  double LatLngBounds[4] = { 0., 0., 0., 0. };
   vtkCollection* SelectedFeatures;
 
 private:

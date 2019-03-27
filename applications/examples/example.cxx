@@ -1,3 +1,5 @@
+#include <curl/curl.h>
+
 #include "vtkFeatureLayer.h"
 #include "vtkGeoMapSelection.h"
 #include "vtkInteractorStyleGeoMap.h"
@@ -142,8 +144,10 @@ protected:
 // ------------------------------------------------------------
 int main(int argc, char* argv[])
 {
+  // Initialize libcurl for vtkMap to avoid bad surprises
+  curl_global_init(CURL_GLOBAL_DEFAULT);
+
   // Setup command line arguments
-  std::string inputFile;
   int clusteringOff = false;
   bool showHelp = false;
   bool perspective = false;
@@ -339,5 +343,9 @@ int main(int argc, char* argv[])
 
   //map->Print(std::cout);
   osmLayer->Delete();
+
+  // global libcurl cleanup
+  curl_global_cleanup();
+
   return 0;
 }

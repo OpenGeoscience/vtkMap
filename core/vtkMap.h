@@ -50,6 +50,7 @@
 
 class vtkCallbackCommand;
 class vtkCameraPass;
+class vtkCommand;
 class vtkFeature;
 class vtkGeoMapFeatureSelector;
 class vtkGeoMapSelection;
@@ -65,7 +66,7 @@ class vtkSequencePass;
 class VTKMAPCORE_EXPORT vtkMap : public vtkObject
 {
 public:
-  using LayerContainer = std::vector<vtkLayer*>;
+  using LayerContainer = std::vector<vtkSmartPointer<vtkLayer> >;
 
   // Description:
   // State of asynchronous layers
@@ -106,7 +107,7 @@ public:
 
   // Description:
   // Get/Set the detailing level
-  vtkGetMacro(Zoom, int) vtkSetMacro(Zoom, int)
+  vtkGetMacro(Zoom, int) vtkSetClampMacro(Zoom, int, 0, 19)
 
     // Description:
     // Get/Set center of the map.
@@ -240,7 +241,7 @@ protected:
   // Description:
   // Base layer that dictates the coordinate tranformation
   // and navigation
-  vtkLayer* BaseLayer;
+  vtkSmartPointer<vtkLayer> BaseLayer;
 
   // Description:
   // List of layers attached to the map
@@ -269,6 +270,8 @@ protected:
   //@}
 
   int DevicePixelRatio = 1;
+
+  vtkSmartPointer<vtkCommand> PolygonSelectionObserver;
 
 private:
   vtkMap(const vtkMap&) VTK_DELETE_FUNCTION;

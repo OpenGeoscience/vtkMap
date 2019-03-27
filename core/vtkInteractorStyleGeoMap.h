@@ -131,7 +131,7 @@ private:
 
   vtkMap* Map;
   int RubberBandMode;
-  vtkPoints* RubberBandPoints;
+  vtkPoints* RubberBandPoints = nullptr;
 
   std::unique_ptr<vtkMapType::Timer> Timer;
   size_t DoubleClickDelay = 500;

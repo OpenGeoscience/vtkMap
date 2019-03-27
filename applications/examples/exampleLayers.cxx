@@ -1,3 +1,5 @@
+#include <curl/curl.h>
+
 #include <iostream>
 
 #include <vtkCollection.h>
@@ -182,8 +184,10 @@ protected:
 // ------------------------------------------------------------
 int main(int argc, char* argv[])
 {
+  // Initialize libcurl for vtkMap to avoid bad surprises
+  curl_global_init(CURL_GLOBAL_DEFAULT);
+
   // Setup command line arguments
-  std::string inputFile;
   int clusteringOff = false;
   bool showHelp = false;
   bool perspective = false;
@@ -439,5 +443,9 @@ int main(int argc, char* argv[])
   moveCallback->Layer = circle.GetPointer();
 
   intr->Start();
+
+  // global libcurl cleanup
+  curl_global_cleanup();
+
   return 0;
 }
