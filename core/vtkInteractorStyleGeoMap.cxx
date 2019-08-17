@@ -222,7 +222,10 @@ bool vtkInteractorStyleGeoMap::IsDoubleClick()
   }
   else if (this->MouseClicks == 2)
   {
-    doubleClicked = onTime;
+    doubleClicked = onTime ;
+    doubleClicked = onTime && std::equal(this->StartPosition,
+                                         this->StartPosition + 2,
+                                         this->EndPosition);
     this->MouseClicks = 0;
   }
 
