@@ -32,19 +32,19 @@ public:
   vtkTypeMacro(vtkFeatureLayer, vtkLayer)
 
     // Description:
-    // Override vtkObject::Delete()
+    // Override vtkObjectBase::UnRegister(vtkObjectBase*)
     // Needed in order to delete features, which use a weak pointer to
     // to their vtkFeatureLayer instance,
-    void Delete() override;
+    void UnRegister(vtkObjectBase* o) override;
 
   // Description:
   // Add a new feature to the layer
   // Note: layer must be added to a vtkMap *before* features can be added.
-  void AddFeature(vtkFeature* feature);
+  void AddFeature(vtkSmartPointer<vtkFeature> feature);
 
   // Description:
   // Remove a feature from the layer
-  void RemoveFeature(vtkFeature* feature);
+  void RemoveFeature(vtkSmartPointer<vtkFeature> feature);
 
   // Description:
   // Return all features contained here
