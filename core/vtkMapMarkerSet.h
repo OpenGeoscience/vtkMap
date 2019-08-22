@@ -15,8 +15,8 @@
 // .SECTION Description
 //
 
-#ifndef __vtkMapMarkerSet_h
-#define __vtkMapMarkerSet_h
+#ifndef _vtkMapMarkerSet_h
+#define _vtkMapMarkerSet_h
 #include <set>
 
 #include <vtkSmartPointer.h>
@@ -54,7 +54,7 @@ public:
   void SetColor(double rgba[4]);
 
   // Description:
-  // Set/get the size to display point markers, in image pixels.
+  // Enable/disable the shadow under teardrop markers.
   // The default is true
   vtkSetMacro(EnablePointMarkerShadow, bool);
   vtkGetMacro(EnablePointMarkerShadow, bool);
@@ -73,8 +73,8 @@ public:
     POINTS_CONTAINED = 0,
     USER_DEFINED
   };
-  vtkSetMacro(ClusterMarkerSizeMode, int);
-  vtkGetMacro(ClusterMarkerSizeMode, int);
+  vtkSetMacro(ClusterMarkerSizeMode, int)
+  vtkGetMacro(ClusterMarkerSizeMode, int)
 
   // Description:
   // Set/get the Z offset value, in world coordinates, assigned
@@ -82,31 +82,31 @@ public:
   // This can be used to prevent selected markers from being
   // obscured by other (non-selected) markers.
   // The default is 0.0
-  vtkSetMacro(SelectedZOffset, double);
-  vtkGetMacro(SelectedZOffset, double);
+  vtkSetMacro(SelectedZOffset, double)
+  vtkGetMacro(SelectedZOffset, double)
 
   // Description:
   // Set/get whether to apply hierarchical clustering to map markers.
   // The default is off, and once turned on, behavior is undefined if
   // clustering is turned off.
-  vtkSetMacro(Clustering, bool);
-  vtkGetMacro(Clustering, bool);
-  vtkBooleanMacro(Clustering, bool);
+  vtkSetMacro(Clustering, bool)
+  vtkGetMacro(Clustering, bool)
+  vtkBooleanMacro(Clustering, bool)
 
   // Description:
   // Set/get the (maximum) depth of the point-clustering tree.
   // This function should only be called *before* adding any markers.
   // Valid values are between 2 and 20 inclusive; other values are ignored.
   // The default is 14.
-  vtkSetClampMacro(ClusteringTreeDepth, unsigned int, 2, 20);
-  vtkGetMacro(ClusteringTreeDepth, unsigned int);
+  vtkSetClampMacro(ClusteringTreeDepth, unsigned int, 2, 20)
+  vtkGetMacro(ClusteringTreeDepth, unsigned int)
 
   // Description:
   // Threshold distance to use when creating clusters.
   // The value is in display units (pixels).
   // Default value is 80 pixels.
-  vtkSetMacro(ClusterDistance, int);
-  vtkGetMacro(ClusterDistance, int);
+  vtkSetMacro(ClusterDistance, int)
+  vtkGetMacro(ClusterDistance, int)
 
   // Description:
   // Rebuild the internal clustering tree, to reflect
@@ -118,12 +118,12 @@ public:
   // The scale function is 2nd order model: y = k*x^2 / (x^2 + b).
   // Coefficient k sets the max scale factor, i.e., y(inf) = k
   // Coefficient b is computed to set min to 1, i.e., y(2) = 1.0
-  vtkSetClampMacro(MaxClusterScaleFactor, double, 1.0, 100.0);
-  vtkGetMacro(MaxClusterScaleFactor, double);
+  vtkSetClampMacro(MaxClusterScaleFactor, double, 1.0, 100.0)
+  vtkGetMacro(MaxClusterScaleFactor, double)
 
   // Description:
   // Get number of markers
-  int GetNumberOfMarkers();
+  size_t GetNumberOfMarkers();
 
   // Description:
   // Add marker to map, returns id
@@ -131,18 +131,22 @@ public:
 
   // Description:
   // Remove marker from map, returns boolean indicating success
-  bool DeleteMarker(vtkIdType markerId);
+  bool DeleteMarker(const vtkIdType markerId);
+
+  // Description:
+  // Remove all markers from map
+  void DeleteAllMarkers();
 
   // Description:
   // Set marker visibility
   // Note that you MUST REDRAW after changing visibility
-  bool SetMarkerVisibility(int markerId, bool visible);
-  bool GetMarkerVisibility(int markerId) const;
+  bool SetMarkerVisibility(vtkIdType markerId, bool visible);
+  bool GetMarkerVisibility(vtkIdType markerId) const;
 
   // Description:
   // Select or unselect marker
   // Note that you MUST REDRAW after changing selection
-  bool SetMarkerSelection(int markerId, bool selected);
+  bool SetMarkerSelection(vtkIdType markerId, bool selected);
 
   // Description:
   // Return descendent ids for given cluster id.
@@ -187,7 +191,7 @@ public:
   // Description:
   // For debug, writes out the set of cluster nodes
   // ascending from given marker
-  void PrintClusterPath(ostream& os, int markerId);
+  void PrintClusterPath(ostream& os, vtkIdType markerId);
 
   //@{
   // \brief Properties of the label displaying the number of
@@ -208,30 +212,32 @@ public:
 
   vtkSetMacro(MarkerShape, unsigned int) vtkGetMacro(MarkerShape, unsigned int)
 
+  void DumpAllNodesMap();
+
     protected
     :
 
     vtkMapMarkerSet();
-  ~vtkMapMarkerSet();
+  ~vtkMapMarkerSet() override;
 
   class ClusteringNode;
 
   // Used when rebuilding clustering tree
   void InsertIntoNodeTable(ClusteringNode* node);
 
-  // Computes clustering distance in gcs coordinates
+  // Computes squared clustering distance in gcs coordinates
   double ComputeDistanceThreshold2(double latitude,
     double longitude,
     int clusteringDistance) const;
 
   // Find closest node within distance threshold squared
   ClusteringNode* FindClosestNode(ClusteringNode* node,
-    int zoomLevel,
+    vtkIdType zoomLevel,
     double distanceThreshold2);
   void MergeNodes(ClusteringNode* node,
     ClusteringNode* mergingNode,
     std::set<ClusteringNode*>& parentsToMerge,
-    int level);
+    vtkIdType level);
 
   void GetMarkerIdsRecursive(vtkIdType clusterId, vtkIdList* markerIds);
 
@@ -311,4 +317,4 @@ private:
   vtkMapMarkerSet& operator=(const vtkMapMarkerSet&) = delete;
 };
 
-#endif // __vtkMapMarkerSet_h
+#endif // _vtkMapMarkerSet_h
