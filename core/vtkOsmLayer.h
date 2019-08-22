@@ -44,14 +44,14 @@ public:
     // The default server is tile.openstreetmap.org.
     // The attribution will be displayed at the bottom of the window.
     // The file extension is typically "png" or "jpg".
-    void SetMapTileServer(const char* server,
-      const char* attribution,
-      const char* extension);
+    void SetMapTileServer(const std::string& server,
+      const std::string &attribution,
+      const std::string& extension);
 
   // Description:
   // The full path to the directory used for caching map-tile files.
   // Set automatically by vtkMap.
-  vtkGetStringMacro(CacheDirectory)
+  const std::string& GetCacheDirectory() const;
 
     // Description:
     void Update() override;
@@ -66,11 +66,9 @@ protected:
   vtkOsmLayer();
   ~vtkOsmLayer() override;
 
-  vtkSetStringMacro(CacheDirectory)
-
     virtual void AddTiles();
   bool DownloadImageFile(std::string url, std::string filename);
-  bool VerifyImageFile(FILE* fp, std::string filename);
+  bool VerifyImageFile(FILE* fp, const std::string& filename);
   void RemoveTiles();
 
   // Next 3 methods used to add tiles to layer
@@ -90,13 +88,14 @@ protected:
   void MakeUrl(vtkMapTileSpecInternal& tileSpec, std::stringstream& ss);
 
 protected:
-  char* MapTileExtension;
-  char* MapTileServer;
-  char* MapTileAttribution;
-  char* TileNotAvailableImagePath;
+  std::string MapTileExtension;
+  std::string MapTileServer;
+  std::string MapTileAttribution;
+  std::string TileNotAvailableImagePath;
   vtkTextActor* AttributionActor;
 
-  char* CacheDirectory;
+  std::string CacheDirectory;
+
   // CachedTilesMap contains already built tiles
   std::map<int, std::map<int, std::map<int, vtkSmartPointer<vtkMapTile> > > >
     CachedTilesMap;
