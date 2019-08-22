@@ -238,7 +238,7 @@ bool vtkMapPointSelection::IsOccluded(const std::array<double, 4>& point) const
       this->InternalSelection[0] +
       (static_cast<int>(point[1]) - this->InternalSelection[2]) *
         (this->InternalSelection[1] - this->InternalSelection[0] + 1));
-    depth = this->DepthBuffer[index];
+    depth = double(this->DepthBuffer[index]);
   }
   else
   {

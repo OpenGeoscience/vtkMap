@@ -34,10 +34,10 @@ vtkStandardNewMacro(vtkMapTile)
   vtkMapTile::vtkMapTile()
 {
   this->Visibility = 0;
-  Plane = 0;
-  TexturePlane = 0;
-  Actor = 0;
-  Mapper = 0;
+  Plane = nullptr;
+  TexturePlane = nullptr;
+  Actor = nullptr;
+  Mapper = nullptr;
   this->Corners[0] = this->Corners[1] = this->Corners[2] = this->Corners[3] =
     0.0;
 }
@@ -78,7 +78,7 @@ void vtkMapTile::Build()
   this->TexturePlane = vtkTextureMapToPlane::New();
 
   // Read the image which will be the texture
-  vtkImageReader2* imageReader = NULL;
+  vtkImageReader2* imageReader = nullptr;
   std::string fileExtension =
     vtksys::SystemTools::GetFilenameLastExtension(this->ImageFile);
   if (fileExtension == ".png")
@@ -139,7 +139,7 @@ void vtkMapTile::Init()
 void vtkMapTile::CleanUp()
 {
   this->Layer->RemoveActor(this->Actor);
-  this->SetLayer(0);
+  this->SetLayer(nullptr);
 }
 
 //----------------------------------------------------------------------------

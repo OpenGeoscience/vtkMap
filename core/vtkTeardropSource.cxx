@@ -242,7 +242,7 @@ void vtkTeardropSource::ComputePolyData(vtkPoints* path,
   vtkDoubleArray* pathNormals,
   vtkPolyData* output)
 {
-  int numPathPts = path->GetNumberOfPoints();
+  int numPathPts = int(path->GetNumberOfPoints());
   int numOutputPts = 2 + (numPathPts - 2) * this->Resolution;
   int numOutputPolys = 2 * this->Resolution // triangles
     + (numPathPts - 3) * this->Resolution;  // quads
@@ -291,7 +291,7 @@ void vtkTeardropSource::ComputePolyData(vtkPoints* path,
   double theta = 0.0;
   int pointId = 1;
   int firstId = 1;
-  int deltaPointIds = path->GetNumberOfPoints() - 2;
+  int deltaPointIds = int(path->GetNumberOfPoints()) - 2;
   //std::cout << "deltaPointIds: " << deltaPointIds << std::endl;
   double maxAngle = 2.0 * vtkMath::Pi();
   if (this->FrontSideOnly)
