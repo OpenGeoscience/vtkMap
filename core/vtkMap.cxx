@@ -77,20 +77,21 @@ static void StaticPollingCallback(vtkObject* caller,
   void* clientData,
   void* vtkNotUsed(callData))
 {
+  (void) caller;
   vtkMap* self = static_cast<vtkMap*>(clientData);
   self->PollingCallback();
 }
 
 //----------------------------------------------------------------------------
 vtkMap::vtkMap()
-  : LayerCollection(vtkSmartPointer<vtkRenderPassCollection>::New())
+  : RubberBandStyle(vtkSmartPointer<vtkInteractorStyleGeoMap>::New())
+  , DrawPolyStyle(vtkSmartPointer<vtkInteractorStyleDrawPolygon>::New())
+  , LayerCollection(vtkSmartPointer<vtkRenderPassCollection>::New())
   , LayerSequence(vtkSmartPointer<vtkSequencePass>::New())
   , CameraPass(vtkSmartPointer<vtkCameraPass>::New())
-  , RubberBandStyle(vtkSmartPointer<vtkInteractorStyleGeoMap>::New())
-  , DrawPolyStyle(vtkSmartPointer<vtkInteractorStyleDrawPolygon>::New())
 {
-  this->StorageDirectory = NULL;
-  this->Renderer = NULL;
+  this->StorageDirectory = nullptr;
+  this->Renderer = nullptr;
   this->FeatureSelector = vtkGeoMapFeatureSelector::New();
 
   this->RubberBandStyle->SetMap(this);
@@ -117,8 +118,8 @@ vtkMap::vtkMap()
   this->Zoom = 1;
   this->Center[0] = this->Center[1] = 0.0;
   this->Initialized = false;
-  this->BaseLayer = NULL;
-  this->PollingCallbackCommand = NULL;
+  this->BaseLayer = nullptr;
+  this->PollingCallbackCommand = nullptr;
   this->CurrentAsyncState = AsyncOff;
 
   // Set default storage directory to ~/.vtkmap
@@ -415,7 +416,7 @@ void vtkMap::RemoveLayer(vtkLayer* layer)
 //----------------------------------------------------------------------------
 vtkLayer* vtkMap::FindLayer(const char* name)
 {
-  vtkLayer* result = NULL; // return value
+  vtkLayer* result = nullptr; // return value
 
   if (this->BaseLayer && this->BaseLayer->GetName() == name)
   {
@@ -784,8 +785,6 @@ void vtkMap::MoveLayer(const vtkLayer* layer, vtkMapType::Move direction)
     case vtkMapType::Move::BOTTOM:
       this->MoveToBottom(layer);
       break;
-    default:
-      vtkErrorMacro(<< "Move direction not supported!");
   }
 
   this->Draw();

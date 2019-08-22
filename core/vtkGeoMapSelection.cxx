@@ -172,7 +172,7 @@ void vtkGeoMapSelection::AddFeature(vtkFeature* feature, vtkIdList* cellIds)
   // For polydata features (which have cells)
   // Find cellId list for this feature
   std::map<vtkFeature*, vtkIdList*>::iterator finder;
-  vtkIdList* idList = NULL;
+  vtkIdList* idList = nullptr;
   finder = this->Internal->ComponentIdMap.find(feature);
   if (finder == this->Internal->ComponentIdMap.end())
   {
@@ -203,7 +203,7 @@ void vtkGeoMapSelection::AddFeature(vtkFeature* feature,
   std::map<vtkFeature*, vtkIdList*>::iterator finder;
 
   // Update marker ids stored for this feature
-  vtkIdList* markerIdStore = NULL;
+  vtkIdList* markerIdStore = nullptr;
   finder = this->Internal->ComponentIdMap.find(feature);
   if (finder == this->Internal->ComponentIdMap.end())
   {
@@ -218,7 +218,7 @@ void vtkGeoMapSelection::AddFeature(vtkFeature* feature,
   }
 
   // Update cluster ids stored for this feature
-  vtkIdList* clusterIdStore = NULL;
+  vtkIdList* clusterIdStore = nullptr;
   finder = this->Internal->ClusterIdMap.find(feature);
   if (finder == this->Internal->ClusterIdMap.end())
   {

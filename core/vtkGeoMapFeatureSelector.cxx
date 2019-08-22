@@ -57,8 +57,8 @@ public:
   };
 
   vtkGeoMapFeatureSelectorInternal()
-    : Selector(vtkSmartPointer<vtkHardwareSelector>::New())
-    , Mode(Selection::RUBBER_BAND)
+    : Mode(Selection::RUBBER_BAND)
+    , Selector(vtkSmartPointer<vtkHardwareSelector>::New())
   {
   }
 
@@ -119,7 +119,7 @@ public:
     if (vec.size() >= 3)
     {
       arr->SetNumberOfComponents(2);
-      arr->SetNumberOfTuples(vec.size());
+      arr->SetNumberOfTuples(vtkIdType(vec.size()));
 
       for (unsigned int j = 0; j < vec.size(); j++)
       {
@@ -140,7 +140,8 @@ public:
   {
     bounds[0] = VTK_INT_MAX;
     bounds[2] = VTK_INT_MIN;                          // x_min, x_max
-    bounds[1] = VTK_INT_MAX, bounds[3] = VTK_INT_MIN; // y_min, y_max
+    bounds[1] = VTK_INT_MAX;                          // y_min, y_max
+    bounds[3] = VTK_INT_MIN;
     for (vtkIdType i = 0; i < count; i += 2)
     {
       bounds[0] = std::min(polygonPoints[i], bounds[0]);     // x_min
@@ -203,7 +204,7 @@ void vtkGeoMapFeatureSelector::PickPoint(vtkRenderer* renderer,
   vtkGeoMapSelection* selection)
 {
   // Expand area pickers frustum size to increase reliability
-  const double offset = 4.0;
+  const int offset = 4;
 
   int boundCoords[4];
   boundCoords[0] = displayCoords[0] - offset;
@@ -369,7 +370,7 @@ void vtkGeoMapFeatureSelector::PickPolyDataCells(vtkProp* prop,
   //           << std::endl;
 
   // Check actor for transform
-  vtkPoints* originalPoints = NULL;
+  vtkPoints* originalPoints = nullptr;
   if (!actor->GetIsIdentity())
   {
     // Save original frustum geometry
@@ -480,7 +481,7 @@ void vtkGeoMapFeatureSelector::IncrementalSelect(vtkGeoMapSelection* selection,
     }
 
     // Process picked props
-    for (int i = 0; i < hwSelection->GetNumberOfNodes(); i++)
+    for (auto i = 0u; i < hwSelection->GetNumberOfNodes(); i++)
     {
       vtkSelectionNode* node = hwSelection->GetNode(i);
       vtkObjectBase* base =
@@ -513,7 +514,7 @@ void vtkGeoMapFeatureSelector::IncrementalSelect(vtkGeoMapSelection* selection,
       //        continue;
       //      }
 
-      bool selected = false;
+      //bool selected = false;
       if (this->Internal->Selector->GetFieldAssociation() ==
         vtkDataObject::FIELD_ASSOCIATION_POINTS)
         if (this->SelectMarkerSet(selection, node, featMap, iter))

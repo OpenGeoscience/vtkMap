@@ -27,12 +27,12 @@ vtkLayer::vtkLayer()
 {
   this->Visibility = 1;
   this->Opacity = 1.0;
-  this->Renderer = NULL;
+  this->Renderer = nullptr;
   this->Base = 0;
-  this->Map = NULL;
+  this->Map = nullptr;
   this->AsyncMode = false;
   this->Id = this->GlobalId + 1;
-  this->RenderPass->SetLayerId(this->Id);
+  this->RenderPass->SetLayerId(int(this->Id));
   this->GlobalId++;
 }
 
@@ -131,7 +131,7 @@ void vtkLayer::AddActor(vtkProp* prop)
   this->Renderer->AddActor(prop);
 
   vtkInformation* keys = vtkInformation::New();
-  keys->Set(vtkLayer::ID(), this->Id);
+  keys->Set(vtkLayer::ID(), int(this->Id));
   prop->SetPropertyKeys(keys);
   keys->Delete();
 }
@@ -148,7 +148,7 @@ void vtkLayer::AddActor2D(vtkProp* prop)
   this->Renderer->AddActor2D(prop);
 
   vtkInformation* keys = vtkInformation::New();
-  keys->Set(vtkLayer::ID(), this->Id);
+  keys->Set(vtkLayer::ID(), int(this->Id));
   prop->SetPropertyKeys(keys);
   keys->Delete();
 }
