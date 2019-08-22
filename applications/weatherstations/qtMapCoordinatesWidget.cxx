@@ -21,10 +21,16 @@
 // ------------------------------------------------------------
 qtMapCoordinatesWidget::qtMapCoordinatesWidget(QWidget* parent)
   : QWidget(parent)
-  , Map(0)
+  , Map(nullptr)
 {
   this->UI = new Ui_qtMapCoordinatesWidget;
   this->UI->setupUi(this);
+}
+
+// ------------------------------------------------------------
+qtMapCoordinatesWidget::~qtMapCoordinatesWidget()
+{
+  delete this->UI;
 }
 
 // ------------------------------------------------------------

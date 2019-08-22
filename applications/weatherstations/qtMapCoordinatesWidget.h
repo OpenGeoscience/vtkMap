@@ -30,6 +30,7 @@ class qtMapCoordinatesWidget : public QWidget
   Q_OBJECT
 public:
   qtMapCoordinatesWidget(QWidget* parent = 0);
+  ~qtMapCoordinatesWidget() override;
 
   void setCoordinates(double center[2], int zoom);
   void getCoordinates(double center[2], int& zoom) const;
