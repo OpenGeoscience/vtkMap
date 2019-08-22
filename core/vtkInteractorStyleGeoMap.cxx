@@ -42,7 +42,7 @@ vtkInteractorStyleGeoMap::vtkInteractorStyleGeoMap()
   : vtkInteractorStyleRubberBand2D()
   , Timer(std::unique_ptr<vtkMapType::Timer>(new vtkMapType::Timer))
 {
-  this->Map = NULL;
+  this->Map = nullptr;
   this->RubberBandMode = DisabledMode;
 }
 
@@ -67,7 +67,7 @@ void vtkInteractorStyleGeoMap::OnLeftButtonDown()
   if (this->RubberBandMode == vtkInteractorStyleGeoMap::DisabledMode)
   {
     // Default map interaction == select feature & start pan
-    int* pos = this->Interactor->GetEventPosition();
+    //int* pos = this->Interactor->GetEventPosition();
 
     vtkDebugMacro("StartPan()");
     this->Interaction = PANNING;
@@ -149,7 +149,7 @@ void vtkInteractorStyleGeoMap::OnLeftButtonUp()
   // Display-only mode
   else if (this->RubberBandMode == vtkInteractorStyleGeoMap::DisplayOnlyMode)
   {
-    int command = moved ? DisplayDrawCompleteEvent : DisplayClickCompleteEvent;
+    unsigned long command = moved ? DisplayDrawCompleteEvent : DisplayClickCompleteEvent;
     this->InvokeEvent(command, latLonCoords);
   }
 
@@ -222,7 +222,6 @@ bool vtkInteractorStyleGeoMap::IsDoubleClick()
   }
   else if (this->MouseClicks == 2)
   {
-    doubleClicked = onTime ;
     doubleClicked = onTime && std::equal(this->StartPosition,
                                          this->StartPosition + 2,
                                          this->EndPosition);
