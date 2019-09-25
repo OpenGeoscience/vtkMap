@@ -573,15 +573,12 @@ void vtkMapMarkerSet::RecomputeClusters()
 {
   //std::cout << "Enter RecomputeClusters()" << std::endl;
   // Clear current data
-  std::vector<std::set<ClusteringNode*> >::iterator tableIter =
-    this->Internals->NodeTable.begin();
 
   // delete all nodes except markers, their pointers are still
   // stored in MarkerNodesMap.
-  vtkIdType lastClusterLevel = this->ClusteringTreeDepth - 1;
-  for (vtkIdType i = 0; i < lastClusterLevel; ++i, ++tableIter)
+  for (vtkIdType i = 0; i < this->Internals->NodeTable.size() - 1; ++i)
   {
-    std::set<ClusteringNode*>& clusterSet = *tableIter;
+    std::set<ClusteringNode*>& clusterSet = this->Internals->NodeTable[i];
     std::set<ClusteringNode*>::iterator clusterIter = clusterSet.begin();
     for (; clusterIter != clusterSet.end(); ++clusterIter)
     {
@@ -610,9 +607,9 @@ void vtkMapMarkerSet::RecomputeClusters()
     const auto nodeId = this->Internals->UniqueNodeId++;
 
     markerNode->NodeId = nodeId;
-    markerNode->Level = lastClusterLevel;
+    markerNode->Level = this->Internals->NodeTable.size() - 1;
 
-    this->Internals->NodeTable[size_t(lastClusterLevel)].insert(markerNode);
+    this->Internals->NodeTable.back().insert(markerNode);
     this->Internals->AllNodesMap.emplace(nodeId, markerNode);
 
     this->InsertIntoNodeTable(markerNode);
@@ -1018,9 +1015,9 @@ void vtkMapMarkerSet::Update()
 
   // Clip zoom level to size of cluster table
   int zoomLevel = this->Layer->GetMap()->GetZoom();
-  if (zoomLevel >= int(this->ClusteringTreeDepth))
+  if (zoomLevel >= int(this->Internals->NodeTable.size()))
   {
-    zoomLevel = int(this->ClusteringTreeDepth) - 1;
+    zoomLevel = int(this->Internals->NodeTable.size()) - 1;
   }
 
   // Only need to rebuild polydata if either
@@ -1037,7 +1034,7 @@ void vtkMapMarkerSet::Update()
   // In non-clustering mode, markers stored at leaf level
   if (!this->Clustering)
   {
-    zoomLevel = int(this->ClusteringTreeDepth) - 1;
+    zoomLevel = int(this->Internals->NodeTable.size()) - 1;
   }
   //std::cout << __FILE__ << ":" << __LINE__ << " zoomLevel " << zoomLevel << std::endl;
 
