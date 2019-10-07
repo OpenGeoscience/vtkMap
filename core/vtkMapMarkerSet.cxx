@@ -566,6 +566,8 @@ void vtkMapMarkerSet::DeleteAllMarkers()
 
   this->Internals->UniqueMarkerId = 0;
   this->Internals->UniqueNodeId = 0;
+
+  this->Modified();
 }
 
 //----------------------------------------------------------------------------
