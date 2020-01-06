@@ -357,6 +357,7 @@ Json::Value qtWeatherStations::RequestStationData()
 
   std::stringstream curlStream;
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &curlStream);
+  curl_easy_setopt(curl, CURLOPT_USERAGENT, "wsmap");
 
   //curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
   //std::cout << "Start request" << std::endl;

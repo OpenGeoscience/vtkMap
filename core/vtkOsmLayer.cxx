@@ -252,6 +252,7 @@ bool vtkOsmLayer::DownloadImageFile(std::string url, std::string filename)
   curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+  curl_easy_setopt(curl, CURLOPT_USERAGENT, "vtkMap");
   res = curl_easy_perform(curl);
 
   curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpStatus);
