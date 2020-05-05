@@ -918,7 +918,7 @@ void vtkMapMarkerSet::UpdateSingleMarkerGeometry()
 
   auto shape = static_cast<const vtkMapType::Shape>(this->MarkerShape);
   pointMarkerReader->SetInputString(GetMarkerGeometry(shape));
-  const int shadowVis = shape == vtkMapType::Shape::TEARDROP ? 1 : 0;
+  const int shadowVis = (shape == vtkMapType::Shape::TEARDROP && this->IsVisible()) ? 1 : 0;
   this->Internals->ShadowActor->SetVisibility(shadowVis);
 
   this->Internals->GlyphMapper->SetSourceConnection(
@@ -1064,6 +1064,9 @@ void vtkMapMarkerSet::Update()
   auto numMarkersArray = vtkUnsignedIntArray::SafeDownCast(array);
   numMarkersArray->Reset();
 
+  // Update actors visibility
+  this->Actor->SetVisibility(this->IsVisible());
+  this->Internals->LabelActor->SetVisibility(this->IsVisible());
   this->UpdateSingleMarkerGeometry();
 
   // Coefficients for scaling cluster size, using simple 2nd order model
