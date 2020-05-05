@@ -65,8 +65,8 @@ target_include_directories(vtkMapCore
                              ${CMAKE_BINARY_DIR}
                              ${CMAKE_CURRENT_BINARY_DIR}
                              ${CMAKE_CURRENT_SOURCE_DIR}
-                           PRIVATE
                              ${CURL_INCLUDE_DIRS}
+                           PRIVATE
                              ${OPENGL_INCLUDE_DIRS}
                           )
 
