@@ -99,6 +99,7 @@ int TestGeoJSON(int argc, char* argv[])
 
   // Set up display
   vtkNew<vtkRenderWindow> renderWindow;
+  renderWindow->SetMultiSamples(0); // MSAA will create interpolated pixels
   renderWindow->AddRenderer(renderer.GetPointer());
   renderWindow->SetSize(500, 500);
 

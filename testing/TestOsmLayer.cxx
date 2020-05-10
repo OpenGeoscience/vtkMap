@@ -71,6 +71,7 @@ int TestOsmLayer(int argc, char* argv[])
   osmLayer->SetCacheSubDirectory(cacheDir.c_str());
 
   vtkNew<vtkRenderWindow> renderWindow;
+  renderWindow->SetMultiSamples(0); // MSAA will create interpolated pixels
   renderWindow->AddRenderer(renderer.GetPointer());
   renderWindow->SetSize(500, 500);
 

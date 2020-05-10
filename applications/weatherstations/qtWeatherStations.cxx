@@ -168,6 +168,7 @@ qtWeatherStations::qtWeatherStations(QWidget* parent)
   markerLayer->AddFeature(this->MapMarkers);
 
   vtkNew<vtkRenderWindow> mapRenderWindow;
+  mapRenderWindow->SetMultiSamples(0);
   mapRenderWindow->AddRenderer(this->Renderer);
   this->MapWidget->SetRenderWindow(mapRenderWindow.GetPointer());
 

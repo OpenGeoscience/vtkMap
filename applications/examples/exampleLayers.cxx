@@ -286,8 +286,8 @@ int main(int argc, char* argv[])
   osmLayer->Delete();
 
   vtkNew<vtkRenderWindow> wind;
+  wind->SetMultiSamples(0); // MSAA will create interpolated pixels
   wind->AddRenderer(rend.GetPointer());
-  ;
   wind->SetSize(800, 600);
 
   vtkNew<vtkRenderWindowInteractor> intr;
