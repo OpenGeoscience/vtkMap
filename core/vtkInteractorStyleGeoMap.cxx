@@ -260,14 +260,14 @@ void vtkInteractorStyleGeoMap::OnMouseMove()
 void vtkInteractorStyleGeoMap::OnMouseWheelForward()
 {
   this->ZoomIn(1);
-  this->Superclass::OnMouseWheelForward();
+  //this->Superclass::OnMouseWheelForward();
 }
 
 //----------------------------------------------------------------------------
 void vtkInteractorStyleGeoMap::OnMouseWheelBackward()
 {
   this->ZoomOut(1);
-  this->Superclass::OnMouseWheelBackward();
+  //this->Superclass::OnMouseWheelBackward();
 }
 
 //-----------------------------------------------------------------------------
