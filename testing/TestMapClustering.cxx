@@ -90,6 +90,7 @@ int main(int argc, char* argv[])
   map->SetZoom(zoomLevel);
 
   vtkNew<vtkRenderWindow> renderWindow;
+  renderWindow->SetMultiSamples(0); // MSAA will create interpolated pixels
   renderWindow->AddRenderer(renderer.GetPointer());
   renderWindow->SetSize(640, 640);
 

@@ -12,7 +12,7 @@ public:
 
   void reset() { timestamp = std::chrono::high_resolution_clock::now(); }
 
-  template <typename Period>
+  template<typename Period>
   size_t elapsed()
   {
     const auto current = std::chrono::high_resolution_clock::now();

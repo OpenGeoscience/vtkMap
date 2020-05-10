@@ -73,23 +73,25 @@ int computeZoomLevel(vtkCamera* cam)
 
 //----------------------------------------------------------------------------
 static void StaticPollingCallback(vtkObject* caller,
-  long unsigned int vtkNotUsed(eventId), void* clientData,
+  long unsigned int vtkNotUsed(eventId),
+  void* clientData,
   void* vtkNotUsed(callData))
 {
+  (void) caller;
   vtkMap* self = static_cast<vtkMap*>(clientData);
   self->PollingCallback();
 }
 
 //----------------------------------------------------------------------------
 vtkMap::vtkMap()
-  : LayerCollection(vtkSmartPointer<vtkRenderPassCollection>::New())
+  : RubberBandStyle(vtkSmartPointer<vtkInteractorStyleGeoMap>::New())
+  , DrawPolyStyle(vtkSmartPointer<vtkInteractorStyleDrawPolygon>::New())
+  , LayerCollection(vtkSmartPointer<vtkRenderPassCollection>::New())
   , LayerSequence(vtkSmartPointer<vtkSequencePass>::New())
   , CameraPass(vtkSmartPointer<vtkCameraPass>::New())
-  , RubberBandStyle(vtkSmartPointer<vtkInteractorStyleGeoMap>::New())
-  , DrawPolyStyle(vtkSmartPointer<vtkInteractorStyleDrawPolygon>::New())
 {
-  this->StorageDirectory = NULL;
-  this->Renderer = NULL;
+  this->StorageDirectory = nullptr;
+  this->Renderer = nullptr;
   this->FeatureSelector = vtkGeoMapFeatureSelector::New();
 
   this->RubberBandStyle->SetMap(this);
@@ -116,8 +118,8 @@ vtkMap::vtkMap()
   this->Zoom = 1;
   this->Center[0] = this->Center[1] = 0.0;
   this->Initialized = false;
-  this->BaseLayer = NULL;
-  this->PollingCallbackCommand = NULL;
+  this->BaseLayer = nullptr;
+  this->PollingCallbackCommand = nullptr;
   this->CurrentAsyncState = AsyncOff;
 
   // Set default storage directory to ~/.vtkmap
@@ -414,7 +416,7 @@ void vtkMap::RemoveLayer(vtkLayer* layer)
 //----------------------------------------------------------------------------
 vtkLayer* vtkMap::FindLayer(const char* name)
 {
-  vtkLayer* result = NULL; // return value
+  vtkLayer* result = nullptr; // return value
 
   if (this->BaseLayer && this->BaseLayer->GetName() == name)
   {
@@ -614,8 +616,9 @@ double vtkMap::Clip(double n, double minValue, double maxValue)
 }
 
 //----------------------------------------------------------------------------
-void vtkMap::ComputeLatLngCoords(
-  double displayCoords[2], double elevation, double latLngCoords[3])
+void vtkMap::ComputeLatLngCoords(double displayCoords[2],
+  double elevation,
+  double latLngCoords[3])
 {
   // Compute GCS coordinates
   double worldCoords[3] = { 0.0, 0.0, 0.0 };
@@ -680,8 +683,9 @@ void vtkMap::EndSelection()
 }
 
 //----------------------------------------------------------------------------
-void vtkMap::ComputeWorldCoords(
-  double displayCoords[2], double z, double worldCoords[3])
+void vtkMap::ComputeWorldCoords(double displayCoords[2],
+  double z,
+  double worldCoords[3])
 {
   // Get renderer's DisplayToWorld point
   double rendererCoords[4] = { 0.0, 0.0, 0.0, 1.0 };
@@ -727,8 +731,9 @@ void vtkMap::ComputeWorldCoords(
 }
 
 //----------------------------------------------------------------------------
-void vtkMap::ComputeDisplayCoords(
-  double latLngCoords[2], double elevation, double displayCoords[3])
+void vtkMap::ComputeDisplayCoords(double latLngCoords[2],
+  double elevation,
+  double displayCoords[3])
 {
   double x = latLngCoords[1];
   double y = vtkMercator::lat2y(latLngCoords[0]);
@@ -780,8 +785,6 @@ void vtkMap::MoveLayer(const vtkLayer* layer, vtkMapType::Move direction)
     case vtkMapType::Move::BOTTOM:
       this->MoveToBottom(layer);
       break;
-    default:
-      vtkErrorMacro(<< "Move direction not supported!");
   }
 
   this->Draw();

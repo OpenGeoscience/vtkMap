@@ -72,8 +72,8 @@ void vtkGeoMapSelection::PrintSelf(ostream& os, vtkIndent indent)
 }
 
 //-----------------------------------------------------------------------------
-bool vtkGeoMapSelection::GetPolyDataCellIds(
-  vtkFeature* feature, vtkIdList* idList) const
+bool vtkGeoMapSelection::GetPolyDataCellIds(vtkFeature* feature,
+  vtkIdList* idList) const
 {
   idList->Reset();
 
@@ -98,8 +98,9 @@ bool vtkGeoMapSelection::GetPolyDataCellIds(
 }
 
 //-----------------------------------------------------------------------------
-bool vtkGeoMapSelection::GetMapMarkerIds(
-  vtkFeature* feature, vtkIdList* markerIdList, vtkIdList* clusterIdList) const
+bool vtkGeoMapSelection::GetMapMarkerIds(vtkFeature* feature,
+  vtkIdList* markerIdList,
+  vtkIdList* clusterIdList) const
 {
   markerIdList->Reset();
   clusterIdList->Reset();
@@ -171,7 +172,7 @@ void vtkGeoMapSelection::AddFeature(vtkFeature* feature, vtkIdList* cellIds)
   // For polydata features (which have cells)
   // Find cellId list for this feature
   std::map<vtkFeature*, vtkIdList*>::iterator finder;
-  vtkIdList* idList = NULL;
+  vtkIdList* idList = nullptr;
   finder = this->Internal->ComponentIdMap.find(feature);
   if (finder == this->Internal->ComponentIdMap.end())
   {
@@ -193,15 +194,16 @@ void vtkGeoMapSelection::AddFeature(vtkFeature* feature, vtkIdList* cellIds)
 }
 
 //-----------------------------------------------------------------------------
-void vtkGeoMapSelection::AddFeature(
-  vtkFeature* feature, vtkIdList* markerIds, vtkIdList* clusterIds)
+void vtkGeoMapSelection::AddFeature(vtkFeature* feature,
+  vtkIdList* markerIds,
+  vtkIdList* clusterIds)
 {
   // For map marker features, which have markers & clusters
   this->SelectedFeatures->AddItem(feature);
   std::map<vtkFeature*, vtkIdList*>::iterator finder;
 
   // Update marker ids stored for this feature
-  vtkIdList* markerIdStore = NULL;
+  vtkIdList* markerIdStore = nullptr;
   finder = this->Internal->ComponentIdMap.find(feature);
   if (finder == this->Internal->ComponentIdMap.end())
   {
@@ -216,7 +218,7 @@ void vtkGeoMapSelection::AddFeature(
   }
 
   // Update cluster ids stored for this feature
-  vtkIdList* clusterIdStore = NULL;
+  vtkIdList* clusterIdStore = nullptr;
   finder = this->Internal->ClusterIdMap.find(feature);
   if (finder == this->Internal->ClusterIdMap.end())
   {

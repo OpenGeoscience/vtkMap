@@ -1,5 +1,7 @@
 vtkMap is a project wich adds VTK support for Geovisualization in 2D and 3D.
 
+It's a slippy map that can be used in C++/Qt programs.
+
 Requirements
 ------------
 * C++11

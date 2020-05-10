@@ -32,9 +32,7 @@ vtkStandardNewMacro(vtkGeoMapLayerPass)
 {
 }
 
-vtkGeoMapLayerPass::~vtkGeoMapLayerPass()
-{
-}
+vtkGeoMapLayerPass::~vtkGeoMapLayerPass() {}
 
 void vtkGeoMapLayerPass::Render(const vtkRenderState* state)
 {
@@ -68,7 +66,7 @@ void vtkGeoMapLayerPass::Render(const vtkRenderState* state)
 
 void vtkGeoMapLayerPass::FilterLayerProps(const vtkRenderState* state)
 {
-  const size_t maxCount = state->GetPropArrayCount();
+  const size_t maxCount = size_t(state->GetPropArrayCount());
   this->LayerProps.reserve(maxCount);
   this->LayerProps.clear();
 
@@ -76,7 +74,7 @@ void vtkGeoMapLayerPass::FilterLayerProps(const vtkRenderState* state)
   {
     vtkProp* prop = state->GetPropArray()[i];
     vtkInformation* keys = prop->GetPropertyKeys();
-    if (keys->Has(vtkLayer::ID()))
+    if (keys && keys->Has(vtkLayer::ID()))
     {
       const int id = keys->Get(vtkLayer::ID());
       if (id == this->LayerId)

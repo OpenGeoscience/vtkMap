@@ -42,7 +42,7 @@ vtkInteractorStyleGeoMap::vtkInteractorStyleGeoMap()
   : vtkInteractorStyleRubberBand2D()
   , Timer(std::unique_ptr<vtkMapType::Timer>(new vtkMapType::Timer))
 {
-  this->Map = NULL;
+  this->Map = nullptr;
   this->RubberBandMode = DisabledMode;
 }
 
@@ -67,7 +67,7 @@ void vtkInteractorStyleGeoMap::OnLeftButtonDown()
   if (this->RubberBandMode == vtkInteractorStyleGeoMap::DisabledMode)
   {
     // Default map interaction == select feature & start pan
-    int* pos = this->Interactor->GetEventPosition();
+    //int* pos = this->Interactor->GetEventPosition();
 
     vtkDebugMacro("StartPan()");
     this->Interaction = PANNING;
@@ -149,7 +149,7 @@ void vtkInteractorStyleGeoMap::OnLeftButtonUp()
   // Display-only mode
   else if (this->RubberBandMode == vtkInteractorStyleGeoMap::DisplayOnlyMode)
   {
-    int command = moved ? DisplayDrawCompleteEvent : DisplayClickCompleteEvent;
+    unsigned long command = moved ? DisplayDrawCompleteEvent : DisplayClickCompleteEvent;
     this->InvokeEvent(command, latLonCoords);
   }
 
@@ -222,7 +222,9 @@ bool vtkInteractorStyleGeoMap::IsDoubleClick()
   }
   else if (this->MouseClicks == 2)
   {
-    doubleClicked = onTime;
+    doubleClicked = onTime && std::equal(this->StartPosition,
+                                         this->StartPosition + 2,
+                                         this->EndPosition);
     this->MouseClicks = 0;
   }
 
@@ -258,14 +260,14 @@ void vtkInteractorStyleGeoMap::OnMouseMove()
 void vtkInteractorStyleGeoMap::OnMouseWheelForward()
 {
   this->ZoomIn(1);
-  this->Superclass::OnMouseWheelForward();
+  //this->Superclass::OnMouseWheelForward();
 }
 
 //----------------------------------------------------------------------------
 void vtkInteractorStyleGeoMap::OnMouseWheelBackward()
 {
   this->ZoomOut(1);
-  this->Superclass::OnMouseWheelBackward();
+  //this->Superclass::OnMouseWheelBackward();
 }
 
 //-----------------------------------------------------------------------------
@@ -431,13 +433,17 @@ void vtkInteractorStyleGeoMap::Pan()
   focalDepth = viewFocus[2];
 
   this->ComputeDisplayToWorld(rwi->GetEventPosition()[0],
-    rwi->GetEventPosition()[1], focalDepth, newPickPoint);
+    rwi->GetEventPosition()[1],
+    focalDepth,
+    newPickPoint);
 
   // Has to recalc old mouse point since the viewport has moved,
   // so can't move it outside the loop
 
   this->ComputeDisplayToWorld(rwi->GetLastEventPosition()[0],
-    rwi->GetLastEventPosition()[1], focalDepth, oldPickPoint);
+    rwi->GetLastEventPosition()[1],
+    focalDepth,
+    oldPickPoint);
 
   // Camera motion is reversed
 
@@ -448,10 +454,12 @@ void vtkInteractorStyleGeoMap::Pan()
   camera->GetFocalPoint(viewFocus);
   camera->GetPosition(viewPoint);
   camera->SetFocalPoint(motionVector[0] + viewFocus[0],
-    motionVector[1] + viewFocus[1], motionVector[2] + viewFocus[2]);
+    motionVector[1] + viewFocus[1],
+    motionVector[2] + viewFocus[2]);
 
   camera->SetPosition(motionVector[0] + viewPoint[0],
-    motionVector[1] + viewPoint[1], motionVector[2] + viewPoint[2]);
+    motionVector[1] + viewPoint[1],
+    motionVector[2] + viewPoint[2]);
 
   this->Map->Draw();
   this->MouseMoved = false;

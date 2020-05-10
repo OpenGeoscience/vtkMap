@@ -27,7 +27,6 @@
 
 #include <algorithm>
 #include <cstdio>  // remove()
-#include <cstring> // strdup()
 #include <iomanip>
 #include <iterator>
 #include <math.h>
@@ -37,15 +36,12 @@ vtkStandardNewMacro(vtkOsmLayer)
 
   //----------------------------------------------------------------------------
   vtkOsmLayer::vtkOsmLayer()
-  : vtkFeatureLayer()
 {
   this->BaseOn();
-  this->MapTileServer = strdup("tile.openstreetmap.org");
-  this->MapTileExtension = strdup("png");
-  this->MapTileAttribution = strdup("(c) OpenStreetMap contributors");
-  this->TileNotAvailableImagePath = NULL;
-  this->AttributionActor = NULL;
-  this->CacheDirectory = NULL;
+  this->MapTileServer = "tile.openstreetmap.org";
+  this->MapTileExtension = "png";
+  this->MapTileAttribution = "(c) OpenStreetMap contributors";
+  this->AttributionActor = nullptr;
 }
 
 //----------------------------------------------------------------------------
@@ -56,10 +52,6 @@ vtkOsmLayer::~vtkOsmLayer()
     this->AttributionActor->Delete();
   }
   this->RemoveTiles();
-  free(this->CacheDirectory);
-  free(this->MapTileAttribution);
-  free(this->MapTileExtension);
-  free(this->MapTileServer);
 }
 
 //----------------------------------------------------------------------------
@@ -69,8 +61,9 @@ void vtkOsmLayer::PrintSelf(ostream& os, vtkIndent indent)
 }
 
 //----------------------------------------------------------------------------
-void vtkOsmLayer::SetMapTileServer(
-  const char* server, const char* attribution, const char* extension)
+void vtkOsmLayer::SetMapTileServer(const std::string& server,
+  const std::string& attribution,
+  const std::string& extension)
 {
   if (!this->Map)
   {
@@ -107,16 +100,22 @@ void vtkOsmLayer::SetMapTileServer(
   }
   this->RemoveTiles();
 
-  this->MapTileExtension = strdup(extension);
-  this->MapTileServer = strdup(server);
-  this->MapTileAttribution = strdup(attribution);
-  this->CacheDirectory = strdup(fullPath.c_str());
+  this->MapTileExtension = extension;
+  this->MapTileServer = server;
+  this->MapTileAttribution = attribution;
+  this->CacheDirectory = fullPath;
 
   if (this->AttributionActor)
   {
-    this->AttributionActor->SetInput(this->MapTileAttribution);
+    this->AttributionActor->SetInput(this->MapTileAttribution.c_str());
     this->Modified();
   }
+}
+
+//----------------------------------------------------------------------------
+const std::string& vtkOsmLayer::GetCacheDirectory() const
+{
+  return this->CacheDirectory;
 }
 
 //----------------------------------------------------------------------------
@@ -127,32 +126,32 @@ void vtkOsmLayer::Update()
     return;
   }
 
-  if (!this->CacheDirectory)
+  if (this->CacheDirectory.empty())
   {
     this->SetMapTileServer(
       this->MapTileServer, this->MapTileAttribution, this->MapTileExtension);
   }
 
   // Write the "tile not available" image to the cache directory
-  if (!this->TileNotAvailableImagePath)
+  if (this->TileNotAvailableImagePath.empty())
   {
     std::stringstream ss;
     ss << this->CacheDirectory << "/"
        << "tile-not-available.png";
-    this->TileNotAvailableImagePath = strdup(ss.str().c_str());
+    this->TileNotAvailableImagePath = ss.str();
   }
 
   if (!vtkOsmLayer::VerifyImageFile(nullptr, TileNotAvailableImagePath))
   {
-    FILE* fp = fopen(this->TileNotAvailableImagePath, "wb");
+    FILE* fp = fopen(this->TileNotAvailableImagePath.c_str(), "wb");
     fwrite(tileNotAvailable_png, 1, tileNotAvailable_png_len, fp);
     fclose(fp);
   }
 
-  if (!this->AttributionActor && this->MapTileAttribution)
+  if (!this->AttributionActor && !this->MapTileAttribution.empty())
   {
     this->AttributionActor = vtkTextActor::New();
-    this->AttributionActor->SetInput(this->MapTileAttribution);
+    this->AttributionActor->SetInput(this->MapTileAttribution.c_str());
     this->AttributionActor->SetDisplayPosition(10, 0);
     vtkTextProperty* textProperty = this->AttributionActor->GetTextProperty();
     textProperty->SetFontSize(12);
@@ -195,7 +194,7 @@ void vtkOsmLayer::SetCacheSubDirectory(const char* relativePath)
     std::cerr << "Creating tile cache directory" << fullPath << std::endl;
     vtksys::SystemTools::MakeDirectory(fullPath.c_str());
   }
-  this->CacheDirectory = strdup(fullPath.c_str());
+  this->CacheDirectory = fullPath;
 }
 
 //----------------------------------------------------------------------------
@@ -253,6 +252,7 @@ bool vtkOsmLayer::DownloadImageFile(std::string url, std::string filename)
   curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+  curl_easy_setopt(curl, CURLOPT_USERAGENT, "vtkMap");
   res = curl_easy_perform(curl);
 
   curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpStatus);
@@ -280,7 +280,7 @@ bool vtkOsmLayer::DownloadImageFile(std::string url, std::string filename)
 }
 
 //----------------------------------------------------------------------------
-bool vtkOsmLayer::VerifyImageFile(FILE* fp, std::string filename)
+bool vtkOsmLayer::VerifyImageFile(FILE* fp, const std::string& filename)
 {
   // Confirms that the file is the expected image type.
   // This method is needed because some tile servers return
@@ -305,8 +305,9 @@ bool vtkOsmLayer::VerifyImageFile(FILE* fp, std::string filename)
   {
     match = true;
     unsigned char buffer[8];
-    unsigned char pngSignature[] = { 0x89, 'P', 'N', 'G', '\r', '\n', 0x1a,
-      '\n' };
+    unsigned char pngSignature[] = {
+      0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n'
+    };
 
     fseek(fp, 0, SEEK_SET);
     std::size_t n = fread(buffer, 1, 8, fp);
@@ -601,8 +602,8 @@ vtkSmartPointer<vtkMapTile> vtkOsmLayer::GetCachedTile(int zoom, int x, int y)
 }
 
 //----------------------------------------------------------------------------
-void vtkOsmLayer::MakeFileSystemPath(
-  vtkMapTileSpecInternal& tileSpec, std::stringstream& ss)
+void vtkOsmLayer::MakeFileSystemPath(vtkMapTileSpecInternal& tileSpec,
+  std::stringstream& ss)
 {
   ss.str("");
   ss << this->GetCacheDirectory() << "/" << tileSpec.ZoomRowCol[0] << "-"
@@ -611,8 +612,8 @@ void vtkOsmLayer::MakeFileSystemPath(
 }
 
 //----------------------------------------------------------------------------
-void vtkOsmLayer::MakeUrl(
-  vtkMapTileSpecInternal& tileSpec, std::stringstream& ss)
+void vtkOsmLayer::MakeUrl(vtkMapTileSpecInternal& tileSpec,
+  std::stringstream& ss)
 {
   ss.str("");
   ss << "http://" << this->MapTileServer << "/" << tileSpec.ZoomRowCol[0] << "/"

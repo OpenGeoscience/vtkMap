@@ -154,7 +154,7 @@ void vtkMultiThreadedOsmLayer::BackgroundThreadExecute()
   {
     // Check if there are scheduled tiles
     this->Internals->ScheduledTilesLock->Lock();
-    workingStackSize = this->Internals->ScheduledTiles.size();
+    workingStackSize = int(this->Internals->ScheduledTiles.size());
     if (workingStackSize > 0)
     {
       tileSpecs = this->Internals->ScheduledTiles.top();
@@ -351,7 +351,7 @@ void vtkMultiThreadedOsmLayer::AddTiles()
     this->Internals->ScheduledTilesLock->Lock();
     this->Internals->ScheduledTiles.push(tileSpecs);
     this->Internals->ScheduledStackSize =
-      this->Internals->ScheduledTiles.size();
+      int(this->Internals->ScheduledTiles.size());
     this->Internals->ThreadingCondition->Broadcast();
     this->Internals->ScheduledTilesLock->Unlock();
   }
@@ -363,7 +363,8 @@ void vtkMultiThreadedOsmLayer::AddTiles()
 
 //----------------------------------------------------------------------------
 vtkSmartPointer<vtkMapTile> vtkMultiThreadedOsmLayer::CreateTile(
-  vtkMapTileSpecInternal& spec, const std::string& localPath,
+  vtkMapTileSpecInternal& spec,
+  const std::string& localPath,
   const std::string& remoteUrl)
 {
   vtkSmartPointer<vtkMapTile> tile = vtkSmartPointer<vtkMapTile>::New();
@@ -380,15 +381,15 @@ vtkSmartPointer<vtkMapTile> vtkMultiThreadedOsmLayer::CreateTile(
 void vtkMultiThreadedOsmLayer::AssignTileSpecsToThreads(TileSpecList& tileSpecs)
 {
   // Clear current thread tile spec lists
-  int numThreads = this->Internals->RequestThreader->GetNumberOfThreads();
-  for (int i = 0; i < numThreads; i++)
+  auto numThreads = size_t(this->Internals->RequestThreader->GetNumberOfThreads());
+  for (size_t i = 0; i < numThreads; i++)
   {
     this->Internals->ThreadTileSpecs[i].clear();
   }
 
   // Distribute inputs across threads
-  int index;
-  for (int i = 0; i < tileSpecs.size(); i++)
+  size_t index;
+  for (size_t i = 0; i < tileSpecs.size(); i++)
   {
     index = i % numThreads;
     this->Internals->ThreadTileSpecs[index].push_back(tileSpecs[i]);
@@ -421,8 +422,8 @@ void vtkMultiThreadedOsmLayer::AssignOneTileSpecPerThread(
 
 //----------------------------------------------------------------------------
 // Checks thread results and updates lists
-void vtkMultiThreadedOsmLayer::CollateThreadResults(
-  TileSpecList& newTiles, TileSpecList& tileSpecs)
+void vtkMultiThreadedOsmLayer::CollateThreadResults(TileSpecList& newTiles,
+  TileSpecList& tileSpecs)
 {
   int numThreads = this->Internals->RequestThreader->GetNumberOfThreads();
   for (int i = 0; i < numThreads; i++)

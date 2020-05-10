@@ -111,23 +111,24 @@ protected:
   vtkMapPointSelection() = default;
   ~vtkMapPointSelection() override = default;
 
-  int RequestData(
-    vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  int RequestData(vtkInformation*,
+    vtkInformationVector**,
+    vtkInformationVector*) override;
 
   bool InitializeMasking();
 
   /**
    * Transform point from world to display coordinates.
    */
-  bool WorldToDisplay(
-    const std::array<double, 4>& pointWorld, std::array<double, 4>& pointDispl);
+  bool WorldToDisplay(const std::array<double, 4>& pointWorld,
+    std::array<double, 4>& pointDispl);
 
   //@{
   /**
    * Selection predicates.
    */
-  bool IsPointVisible(
-    const std::array<double, 4>& point, const vtkIdType& pointId);
+  bool IsPointVisible(const std::array<double, 4>& point,
+    const vtkIdType& pointId);
   bool IsMasked(const vtkIdType& id) const;
   bool IsWithinBounds(const std::array<double, 4>& point) const;
   bool IsOccluded(const std::array<double, 4>& point) const;

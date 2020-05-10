@@ -30,7 +30,7 @@ vtkStandardNewMacro(vtkFeatureLayer);
 class vtkFeatureLayer::vtkInternal
 {
 public:
-  std::vector<vtkFeature*> Features;
+  std::vector<vtkSmartPointer<vtkFeature>> Features;
   vtkSmartPointer<vtkCollection> FeatureCollection;
 
   vtkInternal()
@@ -46,9 +46,7 @@ vtkFeatureLayer::vtkFeatureLayer()
 }
 
 //----------------------------------------------------------------------------
-vtkFeatureLayer::~vtkFeatureLayer()
-{
-}
+vtkFeatureLayer::~vtkFeatureLayer() {}
 
 //----------------------------------------------------------------------------
 void vtkFeatureLayer::PrintSelf(std::ostream& os, vtkIndent indent)
@@ -61,11 +59,11 @@ void vtkFeatureLayer::PrintSelf(std::ostream& os, vtkIndent indent)
 }
 
 //----------------------------------------------------------------------------
-void vtkFeatureLayer::Delete()
+void vtkFeatureLayer::UnRegister(vtkObjectBase* o)
 {
   if (this->GetReferenceCount() > 1)
   {
-    this->Superclass::Delete();
+    this->Superclass::UnRegister(o);
     return;
   }
 
@@ -75,20 +73,18 @@ void vtkFeatureLayer::Delete()
   for (std::size_t i = 0; i < size; ++i)
   {
     //invoke delete on each vtk class in the vector
-    vtkFeature* f = this->Impl->Features[i];
-    if (f)
+    if (this->Impl->Features[i])
     {
-      f->CleanUp();
-      f->Delete();
+      this->Impl->Features[i]->CleanUp();
     }
   }
   delete this->Impl;
 
-  this->Superclass::Delete();
+  this->Superclass::UnRegister(o);
 }
 
 //----------------------------------------------------------------------------
-void vtkFeatureLayer::AddFeature(vtkFeature* feature)
+void vtkFeatureLayer::AddFeature(vtkSmartPointer<vtkFeature> feature)
 {
   if (!feature)
   {
@@ -105,11 +101,10 @@ void vtkFeatureLayer::AddFeature(vtkFeature* feature)
     return;
   }
 
-  std::vector<vtkFeature*>::iterator itr = std::find(
+  auto itr = std::find(
     this->Impl->Features.begin(), this->Impl->Features.end(), feature);
   if (itr == this->Impl->Features.end())
   {
-    feature->Register(this);
     feature->SetLayer(this);
     this->Impl->Features.push_back(feature);
   }
@@ -117,33 +112,30 @@ void vtkFeatureLayer::AddFeature(vtkFeature* feature)
   feature->Init();
 
   // Notify the map
-  this->Map->FeatureAdded(feature);
+  this->Map->FeatureAdded(feature.GetPointer());
 
   this->Modified();
 }
 
 //----------------------------------------------------------------------------
-void vtkFeatureLayer::RemoveFeature(vtkFeature* feature)
+void vtkFeatureLayer::RemoveFeature(vtkSmartPointer<vtkFeature> feature)
 {
   if (!feature)
   {
     return;
   }
 
-  // Notify the map first
-  this->Map->ReleaseFeature(feature);
-
-  feature->CleanUp();
-  typedef std::vector<vtkFeature*>::iterator iter;
-  iter found_iter = std::find(
+  auto found_iter = std::find(
     this->Impl->Features.begin(), this->Impl->Features.end(), feature);
+  if (found_iter != this->Impl->Features.end())
+  {
+    // Notify the map first
+    this->Map->ReleaseFeature(feature.GetPointer());
 
-  //now that we have found the feature delete it, leaving a dangling pointer
-  (*found_iter)->Delete();
+    feature->CleanUp();
 
-  //now resize the array to not hold the empty feature
-  this->Impl->Features.erase(std::remove(
-    this->Impl->Features.begin(), this->Impl->Features.end(), feature));
+    this->Impl->Features.erase(found_iter);
+  }
 }
 
 //----------------------------------------------------------------------------
@@ -152,10 +144,10 @@ vtkCollection* vtkFeatureLayer::GetFeatures()
   // The internal feature collection could be cached, but for,
   // we'll rebuild it every time.
   this->Impl->FeatureCollection->RemoveAllItems();
-  std::vector<vtkFeature*>::iterator iter = this->Impl->Features.begin();
+  auto iter = this->Impl->Features.begin();
   for (; iter != this->Impl->Features.end(); iter++)
   {
-    vtkFeature* feature = *iter;
+    vtkFeature* const feature = iter->GetPointer();
     this->Impl->FeatureCollection->AddItem(feature);
   }
   return this->Impl->FeatureCollection;

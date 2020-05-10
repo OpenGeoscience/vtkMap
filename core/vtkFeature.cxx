@@ -61,9 +61,13 @@ vtkProp* vtkFeature::PickProp()
 }
 
 //----------------------------------------------------------------------------
-void vtkFeature::PickItems(
-  vtkRenderer* renderer, int displayCoords[4], vtkGeoMapSelection* selection)
+void vtkFeature::PickItems(vtkRenderer* renderer,
+  int displayCoords[4],
+  vtkGeoMapSelection* selection)
 {
+  (void) renderer;
+  (void) displayCoords;
+  (void) selection;
   vtkWarningMacro("vtkFeature::PickItems() called -- should be overridden in "
     << this->GetClassName());
 }

@@ -23,8 +23,8 @@ vtkRasterFeature::vtkRasterFeature()
   : vtkFeature()
 {
   this->ZCoord = 0.1;
-  this->ImageData = NULL;
-  this->InputProjection = NULL;
+  this->ImageData = nullptr;
+  this->InputProjection = nullptr;
   this->Actor = vtkImageActor::New();
   this->Mapper = this->Actor->GetMapper();
 }
@@ -86,7 +86,7 @@ void vtkRasterFeature::Update()
 void vtkRasterFeature::CleanUp()
 {
   this->Layer->RemoveActor(this->Actor);
-  this->SetLayer(0);
+  this->SetLayer(nullptr);
 }
 
 //----------------------------------------------------------------------------

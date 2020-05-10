@@ -39,8 +39,9 @@ public:
   void Clear();
   void AddFeature(vtkFeature* feature);
   void AddFeature(vtkFeature* feature, vtkIdList* cellIds);
-  void AddFeature(
-    vtkFeature* feature, vtkIdList* markerIds, vtkIdList* clusterIds);
+  void AddFeature(vtkFeature* feature,
+    vtkIdList* markerIds,
+    vtkIdList* clusterIds);
 
   vtkSetVector4Macro(LatLngBounds, double);
   vtkGetVector4Macro(LatLngBounds, double);
@@ -58,7 +59,8 @@ public:
   // Returns the selected marker ids and cluster ids for marker set
   // Note that cluster ids are internally generated.
   // Returns true if input feature is vtkMapMarkerSet
-  bool GetMapMarkerIds(vtkFeature* feature, vtkIdList* markerIdList,
+  bool GetMapMarkerIds(vtkFeature* feature,
+    vtkIdList* markerIdList,
     vtkIdList* clusterIdList) const;
 
 protected:

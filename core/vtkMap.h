@@ -177,14 +177,16 @@ public:
   // Compute lat-lon coordinates for given display coordinates
   // and elevation. The latLngCoords[] is updated with
   // [latitude, longitude, elevation].
-  void ComputeLatLngCoords(
-    double displayCoords[2], double elevation, double latLngCoords[3]);
+  void ComputeLatLngCoords(double displayCoords[2],
+    double elevation,
+    double latLngCoords[3]);
 
   // Description:
   // Compute display coordinates for given lat/lon/elevation.
   // For internal debug/test use
-  void ComputeDisplayCoords(
-    double lanLngCoords[2], double elevation, double displayCoords[3]);
+  void ComputeDisplayCoords(double lanLngCoords[2],
+    double elevation,
+    double displayCoords[3]);
 
   /**
  * Change the order of layers in the stack. Supports move UP, DOWN,
@@ -205,8 +207,9 @@ protected:
   double Clip(double n, double minValue, double maxValue);
 
   // Computes display-to-world point at specified z coord
-  void ComputeWorldCoords(
-    double displayCoords[2], double z, double worldCoords[3]);
+  void ComputeWorldCoords(double displayCoords[2],
+    double z,
+    double worldCoords[3]);
 
   // Description:
   // The renderer used to draw the maps

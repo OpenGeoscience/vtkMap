@@ -60,12 +60,15 @@ public:
   void AddFeature(vtkFeature* feature);
   void RemoveFeature(vtkFeature* feature);
 
-  void PickPoint(
-    vtkRenderer* renderer, int displayCoords[2], vtkGeoMapSelection* selection);
-  void PickArea(
-    vtkRenderer* renderer, int displayCoords[4], vtkGeoMapSelection* selection);
+  void PickPoint(vtkRenderer* renderer,
+    int displayCoords[2],
+    vtkGeoMapSelection* selection);
+  void PickArea(vtkRenderer* renderer,
+    int displayCoords[4],
+    vtkGeoMapSelection* selection);
   void PickPolygon(vtkRenderer* ren,
-    const std::vector<vtkVector2i>& polygonPoints, vtkGeoMapSelection* result);
+    const std::vector<vtkVector2i>& polygonPoints,
+    vtkGeoMapSelection* result);
 
 protected:
   vtkGeoMapFeatureSelector();
@@ -73,8 +76,9 @@ protected:
 
   void PickPolyDataCells(vtkProp* prop, vtkPlanes* frustum, vtkIdList* idList);
 
-  void PickMarkers(
-    vtkRenderer* renderer, int displayCoords[4], vtkGeoMapSelection* selection);
+  void PickMarkers(vtkRenderer* renderer,
+    int displayCoords[4],
+    vtkGeoMapSelection* selection);
 
   bool PrepareSelect(vtkRenderer* ren);
 
@@ -88,12 +92,17 @@ private:
    * Runs mulitiple selection passes in order to capture markers hidden
    * behind other markers.
    */
-  void IncrementalSelect(
-    vtkGeoMapSelection* selection, vtkRenderer* ren, FeatureMap& featMap);
-  bool SelectMarkerSet(vtkGeoMapSelection* selection, vtkSelectionNode* node,
-    FeatureMap& map, FeatureMap::const_iterator& it);
-  bool SelectPolyData(vtkGeoMapSelection* selection, vtkSelectionNode* node,
-    FeatureMap& map, FeatureMap::const_iterator& it);
+  void IncrementalSelect(vtkGeoMapSelection* selection,
+    vtkRenderer* ren,
+    FeatureMap& featMap);
+  bool SelectMarkerSet(vtkGeoMapSelection* selection,
+    vtkSelectionNode* node,
+    FeatureMap& map,
+    FeatureMap::const_iterator& it);
+  bool SelectPolyData(vtkGeoMapSelection* selection,
+    vtkSelectionNode* node,
+    FeatureMap& map,
+    FeatureMap::const_iterator& it);
 
   class vtkGeoMapFeatureSelectorInternal;
   vtkGeoMapFeatureSelectorInternal* Internal;

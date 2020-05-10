@@ -248,8 +248,8 @@ int main(int argc, char* argv[])
   }
 
   vtkNew<vtkRenderWindow> wind;
+  wind->SetMultiSamples(0); // MSAA will create interpolated pixels
   wind->AddRenderer(rend.GetPointer());
-  ;
   //wind->SetSize(1920, 1080);
   wind->SetSize(800, 600);
 
